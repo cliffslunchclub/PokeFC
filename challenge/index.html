@@ -71,7 +71,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
-<script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="./drag-drop.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -153,12 +153,12 @@ function shopMarkup(used){
  const assigned=st.items.map((n,i)=>n?'<div class="shop-equipped-row"><span>'+esc(BY.get(st.roster[i]).name)+' <small>('+FORMS[st.formation][i]+')</small></span><b>'+esc(n)+'</b><button data-shop-clear="'+i+'" type="button" aria-label="Remove '+esc(n)+' from '+esc(BY.get(st.roster[i]).name)+'">×</button></div>':'').filter(Boolean).join('');
  return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
-  '<p>Choose an item, then assign it to a Pokémon. Each item can be held by one Pokémon at a time; replacing or removing an item refunds its cost.</p>'+
+  '<p>Drag an item onto a Pokémon on the pitch, or use the Pokémon dropdown below. Item compatibility, refunds, and budget rules still apply.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
   '<div id="shopCatalog" class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
    const n=it[0],holder=st.items.indexOf(n),targets=itemTargets(n),active=n===selectedShopItem;
    return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
-    '<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span><small>'+esc(itemEffect(it))+'</small>'+
+    '<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span><span class="challenge-drag-grip item-grip" data-drag-grip="item" data-drag-value="'+esc(n)+'" title="Drag onto Pokémon">⠿ DRAG</span><small>'+esc(itemEffect(it))+'</small>'+
     '<span class="shop-item-status">'+(holder>=0?'✓ EQUIPPED · '+esc(BY.get(st.roster[holder]).name):targets.length?'CHOOSE ITEM':'NOT ELIGIBLE')+'</span></button>';
   }).join('')+'</div>'+
   '<div class="shop-assign-panel"><h3>'+esc(name)+'</h3><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
@@ -191,7 +191,7 @@ function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rer
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
-let selectedShopItem=null,shopMessage="",shopScrollTop=0;
+let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="";
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -392,6 +392,7 @@ function completedRunCard(){
   '</section>';
 }
 function render(){const app=document.getElementById('app');
+ window.PFC_CHALLENGE_DND?.cancel?.();
  if(st.phase==='finished')BOARD?.archive(st,localStorage);
  syncChallengeNav();
  if(challengeView==='leaderboard'){renderLeaderboards(app);return}
@@ -505,7 +506,8 @@ body+=slots.map((pos,i)=>{
  '<button type="button" data-slot="'+i+'" '+(!isDraft||s?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'"></button>'+
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
  visibleStats+
- (s&&st.items[i]?'<span class="held-item-badge" title="'+esc(st.items[i])+'">'+esc(st.items[i])+'</span>':'')+'</div>';
+ (s&&(isDraft||isShop)&&st.moves>0?'<span class="challenge-drag-grip slot-grip" data-drag-grip="pokemon" data-drag-value="'+i+'" title="Drag to move/swap (uses one move)">⠿</span>':'')+
+ (s&&st.items[i]?'<span class="held-item-badge" '+(isShop?'data-held-item-source="'+i+'" data-drag-grip="held-item" data-drag-value="'+i+'" ':'')+'title="'+esc(st.items[i])+'">'+esc(st.items[i])+'</span>':'')+'</div>';
 }).join('');
 body+='</div>'+
 '<details class="challenge-fit-guide"><summary>HOW POSITION FIT WORKS <small>ROLE WEIGHTS · ITEMS · TIERS</small></summary>'+
@@ -518,7 +520,8 @@ body+='</div>'+
 '<div class="fit-role-row"><strong>Forwards · ST, LW, RW</strong><span>ATK 35% · SpA 20% · SPE 35% · HP 10%</span></div></div>'+
 '<p class="fit-tier-note">Tier boundaries: S ≥85 · A ≥75 · B ≥65 · C ≥55 · D below 55. Fit scores remain hidden; the tier updates with items.</p>'+
 '<p>On-pitch numbers show item-adjusted stats. Highlighted values differ from base stats; hover a number to see the change.</p></div></details>'+
-'<div class="challenge-roster-footer"><span>'+(isDraft?'Draft each Pokémon into an open position.':isShop?'Shop budget: ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div></section><div class="challenge-side-stack">';
+'<div class="challenge-roster-footer"><span>'+(isDraft?'Drag a scouted Pokémon onto an empty slot.':isShop?'Drag items onto Pokémon · ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div>'+
+ (dragStatus?'<p class="challenge-drop-status" id="challengeDropStatus" role="status">'+esc(dragStatus)+'</p>':'')+'</section><div class="challenge-side-stack">';
 if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
@@ -529,7 +532,7 @@ if(st.phase==='draft'){
  '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+opts.length+' ELIGIBLE</span></div></div></div>'+ 
  '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
  '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+opts.length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendaryCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
- '<p>Hover to preview another position. Click/tap an empty spot to select it and sort the choices by positional tier.</p>'+
+ '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType?'disabled':'')+'>↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen?'disabled':'')+'>↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
  '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
@@ -537,7 +540,7 @@ if(st.phase==='draft'){
  const first=i===0||cachedDraftTier(opts[i-1],slots[st.selected])!==tier;
  const stats=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
  const statText=stats.map(([short,key])=>'<span><b>'+short+'</b> '+s.baseStats[key]+'</span>').join('');
- return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
+ return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><span class="challenge-drag-grip pick-grip" data-drag-grip="candidate" data-drag-value="'+s.id+'" title="Drag onto an empty position">⠿</span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
 }).join('')+'</div></section>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
