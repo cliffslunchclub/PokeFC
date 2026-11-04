@@ -59,7 +59,7 @@ function renderPitch(){
   const p=BY.get(state.lineup[i]);
   return '<button type="button" class="pitch-slot '+(i===state.selected?'selected ':'')+(!p?'empty':'')+'" data-slot="'+i+'" style="left:'+x+'%;top:'+y+'%" aria-label="'+escapeHtml(role+' '+(p?p.name:'empty'))+'">'+
     '<span class="role">'+role+'</span>'+
-    (p?'<img alt="" loading="lazy" src="'+sprite(p.id)+'"><span class="name">'+escapeHtml(p.name)+'</span><span class="ovr">'+gradeFor(p,role)+'</span>':
+    (p?'<img alt="" loading="lazy" src="'+sprite(p.id)+'"><span class="name">'+escapeHtml(p.name)+'</span><span class="ovr grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</span>':
      '<span class="slot-plus">+</span><span class="name">OPEN</span>')+'</button>';
  }).join('');
 }
@@ -79,7 +79,7 @@ function renderProspects(){
   return '<button type="button" class="prospect '+(chosen?'chosen':'')+'" data-species="'+p.id+'" '+(chosen&&!here?'disabled':'')+'>'+
     '<img src="'+sprite(p.id)+'" alt="" loading="lazy">'+
     '<span class="identity"><strong>'+escapeHtml(p.name)+'</strong><small>#'+String(p.id).padStart(4,'0')+' · '+p.types.map(escapeHtml).join(' / ')+'</small><small>'+escapeHtml(details(p))+'</small></span>'+
-    '<span class="overall"><b>'+gradeFor(p,role)+'</b><small>'+role+' FIT</small></span>'+
+    '<span class="overall"><b class="grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</b><small>'+role+' FIT</small></span>'+
     '<span class="select-marker">'+(here?'✓':chosen?'●':'+')+'</span></button>';
  }).join('') || '<p class="empty-results">No Pokémon matched. Try a different search or type.</p>';
  $('more').hidden=opts.length<=limit;
