@@ -4,6 +4,26 @@
 (()=>{'use strict';
 const S=window.FXI_SPECIES||[], BY=new Map(S.map(p=>[p.id,p]));
 const OPP=window.PFC_PLAY_OPPONENTS||[],SAVE='pokefc-free-builder-v1';
+const CHALLENGE_KEY='pokefc-challenge-alpha-1';
+const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('challenge')==='1');
+const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
+const EVOLVABLE=new Set(SPECIAL.evolvable);
+function getChallenge(){
+ if(!CHALLENGE_MODE)return null;
+ try{const st=JSON.parse(localStorage.getItem(CHALLENGE_KEY));
+  return st&&st.phase==='locked'&&st.locked&&Array.isArray(st.locked.roster)&&st.locked.roster.length===11?st:null;
+ }catch{return null}
+}
+function heldStats(p,item){
+ const b={...p.baseStats};if(!item)return b;
+ if(item==='Eviolite'&&EVOLVABLE.has(p.id)){for(const k of Object.keys(b))b[k]+=20;return b}
+ const mega=(SPECIAL.megas[p.id]||[]).find(m=>m.stone===item);
+ if(mega)return {...mega.stats};
+ if(item==='Light Ball'&&p.id===25){b.attack*=2;b.spAttack*=2;return b}
+ const itemStats={Leftovers:{hp:10},'Muscle Band':{attack:10},'Wise Glasses':{spAttack:10},'Quick Claw':{speed:10},'Hard Stone':{defense:10},'Mental Herb':{spDefense:10},'Silk Scarf':{attack:5,speed:5},'Wide Lens':{spAttack:5,speed:5},'Sitrus Berry':{hp:5,spDefense:5},'Focus Band':{defense:5,spDefense:5},'Choice Scarf':{speed:20},'Scope Lens':{attack:15,speed:5},'Rocky Helmet':{defense:15,hp:5},'Shell Bell':{hp:10,spDefense:10},'Expert Belt':{attack:10,spAttack:10},'Light Clay':{defense:10,spDefense:10},'Zoom Lens':{spAttack:15,spDefense:5},'Float Stone':{speed:15,hp:5},'Safety Goggles':{spDefense:15,defense:5},'Grip Claw':{attack:10,defense:10},'Choice Band':{attack:40},'Choice Specs':{spAttack:40},'Assault Vest':{defense:20,spDefense:15,hp:5},'Life Orb':{attack:15,spAttack:15,speed:10},'Iron Ball':{defense:30,attack:10},'Power Anklet':{speed:30,hp:10},'Power Lens':{spAttack:30,speed:10},'Power Weight':{hp:30,defense:10},'Power Band':{spDefense:30,defense:10},'Weakness Policy':{attack:20,spAttack:20}}[item]||{};
+ for(const [k,v] of Object.entries(itemStats))b[k]+=v;
+ return b;
+}
 const FORMS={
  '4-3-3':['GK','LB','CB','CB','RB','CM','CM','CM','LW','ST','RW'],
  '4-2-3-1':['GK','LB','CB','CB','RB','CDM','CDM','LW','CAM','RW','ST'],
@@ -15,6 +35,11 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let preview=null,controller=null,currentResult=null,latestSnapshot=null,liveEvents=[],busy=false;
 function getXI(){
+ const challenge=getChallenge();
+ if(CHALLENGE_MODE){
+  if(!challenge)return null;
+  return {name:'CHALLENGE XI',formation:challenge.locked.formation,lineup:challenge.locked.roster.slice(),source:{items:challenge.locked.items.slice()},challenge};
+ }
  try{
   const v=JSON.parse(localStorage.getItem(SAVE));
   if(!v||!Array.isArray(v.lineup)||v.lineup.length!==11||!FORMS[v.formation])return null;
@@ -39,9 +64,9 @@ function gymSquad(o){
  return result;
 }
 function posClass(role){return role==='GK'?'GK':['LB','RB','CB','LWB','RWB'].includes(role)?'DEF':['ST','LW','RW'].includes(role)?'FWD':'MID'}
-function player(id,i,role,prefix){
+function player(id,i,role,prefix,held){
  const p=BY.get(id);if(!p)throw Error('Missing Pokédex species #'+id);
- const b=p.baseStats;
+ const b=heldStats(p,held);
  const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
  const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2});
  const defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
@@ -56,15 +81,19 @@ function makePreview(){
  if(!o)throw Error('No opponent selected');
  const roles=FORMS[home.formation];
  const cpuFormation=o.formation||'4-3-3';
- const seed=String(Date.now())+':'+Math.floor(Math.random()*1e8)+':'+o.key;
- return {seed,fixtureIndex:1,season:1,opponent:o,home:{id:'home-xi',city:home.name,formation:home.formation,tactic:$('tactic').value,lineup:home.lineup.map((id,i)=>player(id,i,roles[i],'home'))},
- away:{id:o.key,city:o.leader+' · '+o.city,formation:cpuFormation,tactic:o.tactic||'balanced',lineup:gymSquad(o).map((id,i)=>player(id,i,FORMS[cpuFormation][i],'away'))}};
+ const challenge=home.challenge||null;
+ const seed=challenge?'challenge:'+challenge.rng+':'+challenge.round:String(Date.now())+':'+Math.floor(Math.random()*1e8)+':'+o.key;
+ return {seed,fixtureIndex:1,season:1,opponent:o,challengeRound:challenge?.round??null,home:{id:challenge?'challenger':'home-xi',city:home.name,formation:home.formation,tactic:challenge?challenge.locked.tactic:$('tactic').value,lineup:home.lineup.map((id,i)=>player(id,i,roles[i],challenge?'c':'home',home.source.items?.[i]))},
+ away:{id:o.key,city:o.leader+' · '+o.city,formation:cpuFormation,tactic:o.tactic||'balanced',lineup:gymSquad(o).map((id,i)=>{
+   const held=o.leader==='Blue'&&id===18?'Pidgeotite':o.leader==='Red'&&id===6?'Charizardite X':o.leader==='Red'&&id===25?'Light Ball':null;
+   return player(id,i,FORMS[cpuFormation][i],'away',CHALLENGE_MODE?held:null);
+ })}};
 }
 function updateXI(){
  const team=getXI(),complete=team?.lineup.filter(Boolean).length||0,box=$('xiStatus');
  const ready=complete===11;
  box.className='xi-status '+(ready?'ready':'warning');
- box.textContent=ready?'✓ '+team.name+' · '+team.formation+' · 11/11 Pokémon ready':'⚠ '+complete+'/11 Pokémon selected. Finish your XI in Free Builder or auto-fill the remaining slots.';
+ box.textContent=ready?'✓ '+team.name+' · '+team.formation+' · 11/11 Pokémon ready':CHALLENGE_MODE?'This Challenge match is finished or no locked XI was found. Return to Challenges.':'⚠ '+complete+'/11 Pokémon selected. Finish your XI in Free Builder or auto-fill the remaining slots.';
  $('quick').disabled=!ready||busy;
  $('watch').disabled=!ready||busy;
  $('homeName').textContent=team?.name||'YOUR XI';
@@ -83,7 +112,8 @@ function autoFill(){
  updateXI();drawPitch();
 }
 function fillOpponents(){
- const filter=$('region').value,selected=$('opponent').value;
+ const challenge=getChallenge();
+ const filter=CHALLENGE_MODE?'bosses':$('region').value,selected=challenge?OPP.filter(x=>x.tier!=='gym')[challenge.round]?.key:$('opponent').value;
  const options=OPP.filter(o=>filter==='bosses'?o.tier!=='gym':filter==='all'?o.tier==='gym':o.region===filter);
  $('opponent').innerHTML=options.map(o=>'<option value="'+o.key+'">'+esc(o.region)+' · '+esc(o.leader)+' ('+esc(o.city)+')</option>').join('');
  if(options.some(o=>o.key===selected))$('opponent').value=selected;
@@ -141,22 +171,54 @@ function showSnapshot(s,ev){
  if(ev?.length){for(const e of ev){if(!liveEvents.some(x=>x.type===e.type&&x.minute===e.minute&&x.player===e.player))liveEvents.push(e)}}
  drawPitch(s);
 }
+function saveChallengeResult(result){
+ if(!CHALLENGE_MODE||!preview||preview.challengeRound==null)return null;
+ const challenge=getChallenge();
+ if(!challenge||challenge.round!==preview.challengeRound||challenge.locked.roster.some((id,i)=>Number(id)!==Number(preview.home.lineup[i].speciesId)))return null;
+ let outcome=result.score[0]>result.score[1]?'Victory':result.score[0]<result.score[1]?'Defeat':'Draw';
+ let tiebreak=null;
+ if(outcome==='Draw'){
+  const rng=window.FXI_QUICK.randomizer(preview.seed+':penalties');
+  let a=3+Math.floor(rng()*3),b=3+Math.floor(rng()*3);
+  if(a===b){if(rng()<.5)a++;else b++}
+  outcome=a>b?'Victory':'Defeat';
+  tiebreak='Penalty shootout '+a+'–'+b+' · provisional draw resolver (full extra-time engine pending)';
+ }
+ const record={boss:preview.opponent.leader,round:challenge.round+1,score:result.score.slice(),shots:result.stats.map(x=>x.shots),passes:result.stats.map(x=>x.passes),outcome,tiebreak,seed:preview.seed,origin:result.origin};
+ challenge.history=Array.isArray(challenge.history)?challenge.history:[];
+ challenge.result=record;challenge.history.push({...record});
+ challenge.phase=outcome!=='Victory'||challenge.round===5?'finished':'result';
+ try{
+  localStorage.setItem(CHALLENGE_KEY,JSON.stringify(challenge));
+  if(challenge.phase==='finished'){
+   const key='pokefc-challenge-personal-records-v1';
+   let board={};try{board=JSON.parse(localStorage.getItem(key))||{}}catch{}
+   const cat=(challenge.pool===4?'classic':'national')+'-'+(challenge.legends?'legends':'standard');
+   const before=board[cat]||{attempts:0,best:0,champions:0};
+   board[cat]={attempts:before.attempts+1,best:Math.max(before.best,challenge.history.length),champions:before.champions+(challenge.history.length===6&&outcome==='Victory'?1:0)};
+   localStorage.setItem(key,JSON.stringify(board));
+  }
+ }catch(e){$('engineStatus').textContent='Match complete, but Challenge save failed: '+e.message;return null}
+ $('returnChallenge').hidden=false;
+ return record;
+}
 function showResult(result){
  currentResult=result;
+ const challengeRecord=saveChallengeResult(result);
  $('score').textContent=result.score.join(' : ');
  $('matchClock').textContent='FULL TIME';
- $('matchState').textContent=result.score[0]>result.score[1]?'HOME WIN':result.score[0]<result.score[1]?'AWAY WIN':'DRAW';
+ $('matchState').textContent=challengeRecord?challengeRecord.outcome.toUpperCase():result.score[0]>result.score[1]?'HOME WIN':result.score[0]<result.score[1]?'AWAY WIN':'DRAW';
  $('modeTag').textContent=result.origin==='tacticmesh'?'WATCHED':result.origin==='hybrid'?'WATCH → SIM':'QUICK SIM';
  const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
  const statRows=rows.map(([label,key])=>'<div class="stat-row"><span>'+ (result.stats?.[0]?.[key]??'—') +(key==='possession'?'%':'')+'</span><small>'+label+'</small><span>'+(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+'</span></div>').join('');
  const events=(result.events||[]).filter(e=>e.type==='goal').map(e=>'<p><strong>'+Math.ceil(Number(e.minute)||0)+"' GOAL</strong> · "+esc(String(e.team)===String(preview.home.id)?preview.home.city:preview.away.city)+' · '+esc(preview.home.lineup.concat(preview.away.lineup).find(p=>p.id===e.player)?.name||'Pokémon')+'</p>').join('');
- $('matchResult').innerHTML='<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div><div class="stat-table">'+statRows+'</div><div class="event-feed">'+(events||'<p>No goals in this match.</p>')+'</div>';
+ $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?'<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+'<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div><div class="stat-table">'+statRows+'</div><div class="event-feed">'+(events||'<p>No goals in this match.</p>')+'</div>';
 }
 function stateBusy(isBusy){
  busy=isBusy;
  updateXI();
- $('region').disabled=isBusy;$('opponent').disabled=isBusy;$('tactic').disabled=isBusy;
- $('fillXI').disabled=isBusy;
+ $('region').disabled=isBusy||CHALLENGE_MODE;$('opponent').disabled=isBusy||CHALLENGE_MODE;$('tactic').disabled=isBusy||CHALLENGE_MODE;
+ $('fillXI').disabled=isBusy||CHALLENGE_MODE;
 }
 function stopWatch(){
  if(controller){controller.close();controller=null}
@@ -196,6 +258,16 @@ async function watchMatch(){
  }catch(e){$('engineStatus').textContent='Watch could not start: '+e.message;stopWatch()}
 }
 function start(){
+ if(CHALLENGE_MODE){
+  $('playIntroLabel').textContent='LOCKED CHALLENGE · WATCH OR QUICK SIM · ONE ATTEMPT';
+  $('playIntroHeading').textContent='CHALLENGE MATCH.';
+  $('playIntroText').textContent='Your locked Final XI, formation, tactics and items carry into this match. The result automatically advances or ends your Challenge attempt.';
+  $('teamActions').hidden=true;
+  $('region').value='bosses';
+  const challenger=getChallenge();if(challenger)$('tactic').value=challenger.locked.tactic;
+  $('region').disabled=true;$('opponent').disabled=true;$('tactic').disabled=true;$('fillXI').disabled=true;
+  $('returnChallenge').hidden=false;
+ }
  if(S.length!==1025||OPP.length!==38){$('engineStatus').textContent='Game data incomplete. Reload this page.';return}
  $('region').addEventListener('change',fillOpponents);
  $('opponent').addEventListener('change',selectOpponent);
