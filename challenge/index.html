@@ -869,6 +869,42 @@ if(st.phase==='finished'){
  };
 }
 
+// Mouse drag/drop and touch/pen handles all call the same validated gameplay actions.
+if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
+ const candidateIds=new Set(st.phase==='draft'?eligible().map(s=>s.id):[]);
+ const canDrag=source=>{
+  if(source.type==='candidate')return st.phase==='draft'&&candidateIds.has(Number(source.value));
+  if(source.type==='pokemon')return st.moves>0&&Boolean(st.roster[Number(source.value)]);
+  if(source.type==='item')return st.phase==='shop'&&itemTargets(source.value).length>0;
+  if(source.type==='held-item')return st.phase==='shop'&&Boolean(st.items[Number(source.value)]);
+  return false;
+ };
+ const dropItemName=source=>source.type==='held-item'?st.items[Number(source.value)]:source.value;
+ const canDrop=(source,index)=>{
+  if(!Number.isInteger(index)||index<0||index>10||!canDrag(source))return false;
+  if(source.type==='candidate')return !slotAnimationBusy&&!st.roster[index];
+  if(source.type==='pokemon')return index!==Number(source.value);
+  if(source.type==='item'||source.type==='held-item'){
+   const name=dropItemName(source);
+   return st.phase==='shop'&&Boolean(itemFor(BY.get(st.roster[index]),name))&&
+    (source.type!=='held-item'||index!==Number(source.value));
+  }
+  return false;
+ };
+ const onDrop=(source,index)=>{
+  if(source.type==='item'||source.type==='held-item'){
+   const name=dropItemName(source),result=equipShopItem(name,index);
+   selectedShopItem=name;
+   shopMessage=result.ok?'Equipped '+name+' to '+(BY.get(st.roster[index])?.name||'Pokémon')+'.':result.error;
+   dragStatus=shopMessage;
+   render();return;
+  }
+  const result=source.type==='candidate'?draftPokemon(source.value,index):moveDraftedPokemon(source.value,index);
+  if(!result.ok)showChallengeMessage('POKÉMON DROP NOT AVAILABLE',result.error);
+ };
+ window.PFC_CHALLENGE_DND.mount(app,{canDrag,canDrop,onDrop});
+}
+
 document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
