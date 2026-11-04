@@ -2,7 +2,7 @@
  * Converts actual match engine goal events to a compact, saved Challenge ledger.
  * Does not generate imaginary scorers/minutes for matches missing their event log. */
 (function(root){'use strict';
- const num=v=>Number.isFinite(Number(v))?Number(v):null;
+ const num=v=>v===null||v===undefined||v===''?null:Number.isFinite(Number(v))?Number(v):null;
  const safe=v=>v==null?'':String(v);
  const scalar=(n)=>n==null?null:Math.round(n*10)/10;
  const inRange=(n)=>n!=null&&n>=0&&n<=150;
