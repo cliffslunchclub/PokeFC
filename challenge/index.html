@@ -101,6 +101,57 @@ function rating(s,pos,item){if(!s)return 0;const b=effectiveStats(s,item);const 
 const teamScore=()=>st.roster.reduce((a,id,i)=>a+rating(BY.get(id),FORMS[st.formation][i],st.items[i]),0)/11;
 function roll(){const a=pool();if(!a.length){st.roll=null;return}const types=[...new Set(a.flatMap(s=>s.types))],valid=[];for(const type of types)for(let g=1;g<=st.pool;g++)if(a.some(s=>s.types.includes(type)&&(s.gen||gen(s.id))===g))valid.push({type,gen:g});st.roll=valid[Math.floor(next()*valid.length)]}
 function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rerollGen)return;const a=pool(),old=st.roll;if(!old)return;const opts=which==='type'?[...new Set(a.filter(s=>(s.gen||gen(s.id))===old.gen).flatMap(s=>s.types))].filter(x=>x!==old.type).map(type=>({type,gen:old.gen})):Array.from({length:st.pool},(_,i)=>i+1).filter(g=>g!==old.gen&&a.some(s=>gen(s.id)===g&&s.types.includes(old.type))).map(gen=>({type:old.type,gen}));if(!opts.length)return;st.roll=opts[Math.floor(next()*opts.length)];if(which==='type')st.rerollType--;else st.rerollGen--}
+function runStats(){
+ const matches=Array.isArray(st.history)?st.history:[];
+ const wins=matches.filter(m=>m.outcome==='Victory').length;
+ const lost=matches.length-wins;
+ const champion=matches.length===6&&wins===6;
+ const line=st.locked?.roster||st.roster;
+ const formation=st.locked?.formation||st.formation;
+ const score=Number(st.locked?.score);
+ return {matches,wins,lost,champion,line,formation,score:Number.isFinite(score)?score:teamScore(),
+  category:(st.pool===4?'CLASSIC · GEN I–IV':'NATIONAL · GEN I–IX')+' / LEGENDS '+(st.legends?'ON':'OFF')};
+}
+function runShareText(){
+ const r=runStats();
+ const roster=r.line.map((id,i)=>FORMS[r.formation][i]+' '+(BY.get(id)?.name||'Unknown')).join(', ');
+ const equipment=(st.locked?.items||st.items).map((item,i)=>item?(BY.get(r.line[i])?.name||'Pokémon')+': '+item:null).filter(Boolean);
+ return [
+  '⚽ PokéFC CHALLENGE · '+(r.champion?'CHAMPION RUN':'RUN COMPLETE'),
+  r.category,
+  'TEAM SCORE: '+r.score.toFixed(1)+' · FORMATION: '+r.formation,
+  'RECORD: '+r.wins+'W–'+r.lost+'L · MATCHES: '+r.matches.length+'/6',
+  'RESULTS: '+r.matches.map(m=>m.boss+' '+m.score.join('–')+' ('+m.outcome+')').join(' | '),
+  'FINAL XI: '+roster,
+  'HELD ITEMS: '+(equipment.length?equipment.join(', '):'None'),
+  'Try the challenge: https://pfc.cliffslunchclub.com/challenge/',
+  'Local browser run summary · Not an official leaderboard entry'
+ ].join('\n');
+}
+function completedRunCard(){
+ const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
+ const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(BY.get(id)?.name||'Unknown')+'</span>').join('');
+ const matchList=r.matches.map((m,i)=>'<div class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–'))+'</strong><small>'+esc(m.outcome)+'</small></div>').join('');
+ return '<section class="panel challenge-complete-panel">'+
+  '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
+  '<h2>'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
+  '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Save your squad and results or try another draft.')+'</p>'+
+  '<div class="run-metrics"><div><span>TEAM SCORE</span><strong>'+r.score.toFixed(1)+'</strong></div>'+
+  '<div><span>RECORD</span><strong>'+r.wins+'W · '+r.lost+'L</strong></div>'+
+  '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
+  '<div><span>FORMATION</span><strong>'+esc(r.formation)+'</strong></div></div>'+
+  '<p class="run-category">'+esc(r.category)+'</p>'+
+  '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+
+  '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
+  '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
+  '<div id="runSharePanel" class="run-share-panel" hidden>'+
+   '<h3>SHARE YOUR RUN</h3><p>Preview what a public run card will contain. A shareable link and direct X posting will be added later.</p>'+
+   '<pre class="run-share-preview">'+esc(runShareText())+'</pre>'+
+   '<div class="run-share-actions"><button id="copyRunSummary" type="button">COPY RUN SUMMARY</button>'+
+   '<button id="postTwitter" type="button" disabled title="X posting is not available yet">POST TO X / TWITTER · COMING SOON</button></div>'+
+   '<p id="runShareStatus" role="status" aria-live="polite"></p></div>'+
+  '</section>';
+}
 function render(){const app=document.getElementById('app');if(st.phase==='setup'){
  let records={};try{records=JSON.parse(localStorage.getItem('pokefc-challenge-personal-records-v1'))||{}}catch{}
  const categories=[['classic-standard','CLASSIC / STANDARD'],['classic-legends','CLASSIC / LEGENDS'],['national-standard','NATIONAL / STANDARD'],['national-legends','NATIONAL / LEGENDS']];
@@ -126,7 +177,7 @@ function render(){const app=document.getElementById('app');if(st.phase==='setup'
  '<p>01 / Draft eleven Pokémon using type and generation rolls.</p>'+
  '<p>02 / Spend your budget and lock the same Final XI for all matches.</p>'+
  '<p>03 / Beat Lorelei → Bruno → Agatha → Lance → Blue → Red.</p>'+
- '<p>Personal records stay in this browser. No online leaderboard yet.</p></div></aside></div>';
+ '<p>Personal records stay in this browser. No online leaderboard yet.</p></div>'+ '<div class="challenge-leaderboard-teaser"><div class="leaderboard-top"><h3>GLOBAL LEADERBOARDS</h3><span>COMING SOON</span></div>'+ '<p>Four divisions: Classic Standard, Classic Legends, National Standard and National Legends.</p>'+ '<p>Your best local results are shown above. Online rankings will appear here when verified submissions launch.</p></div></aside></div>';
  const poolSelect=document.getElementById('pool');
  const sync=()=>{for(const [id,val] of [['classicMode','4'],['nationalMode','9']]){
   const node=document.getElementById(id),selected=poolSelect.value===val;
@@ -196,12 +247,17 @@ if(st.phase==='locked'){
  const boss=BOSSES[st.round]||BOSSES[0];
  body+='<section class="panel"><span class="pfc-eyebrow">GAUNTLET MATCH '+(st.round+1)+' / 6</span><h2>NEXT: '+esc(boss?.leader||'LORELEI')+'</h2><p>'+esc((boss?.formation||'5-3-2')+' · '+(boss?.tactic||'Defensive')+' · fixed opponent XI · no substitutions or equipment changes')+'</p><p class="statline">Completed: '+st.history.length+' / 6 · '+(st.pool===4?'Classic':'National')+' · Legends '+(st.legends?'On':'Off')+'</p><button id="play" class="primary">QUICK SIM VS '+esc((boss?.leader||'Lorelei').toUpperCase())+' →</button> <a class="challenge-watch-link" href="../play/?challenge=1">WATCH MATCH ↗</a><p class="statline">Watch the same locked XI and boss with genuine TacticMesh physics. Pause or hand off to Quick Sim at any moment. The verified result is recorded against this Challenge attempt.</p></section>';
 }
-if(st.phase==='result'||st.phase==='finished'){
+if(st.phase==='result'){
  const win=st.result?.outcome==='Victory';
- body+='<section class="panel"><span class="pfc-eyebrow">'+(st.phase==='finished'?'GAUNTLET COMPLETE':'MATCH '+(st.round+1)+' / 6')+'</span><h2>'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'Result')+'</h2><h1>'+ (st.result?.score||[0,0]).join(' – ')+'</h1><p>Shots '+(st.result?.shots||[]).join(' – ')+' · Passes '+(st.result?.passes||[]).join(' – ')+'</p>'+(st.result?.tiebreak?'<p class="warning">'+esc(st.result.tiebreak)+'</p>':'')+
- '<p class="statline">'+st.history.map((h,i)=>'Match '+(i+1)+': '+esc(h.boss)+' '+h.score.join('-')+' ('+esc(h.outcome)+')').join(' · ')+'</p>'+
- (st.phase==='result'&&win?'<button id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button>':st.phase==='finished'&&win?'<h2>🏆 CHALLENGE CHAMPION</h2><p>All six bosses defeated with the same Final XI.</p>':'<p class="warning">This attempt has ended. Start a new draft for another try.</p>')+'</section>';
+ body+='<section class="panel"><span class="pfc-eyebrow">MATCH '+(st.round+1)+' / 6</span>'+
+ '<h2>'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'Result')+'</h2>'+
+ '<div class="challenge-final-score"><h1>'+(st.result?.score||[0,0]).join(' – ')+'</h1></div>'+
+ '<p>Shots '+(st.result?.shots||[]).join(' – ')+' · Passes '+(st.result?.passes||[]).join(' – ')+'</p>'+
+ (st.result?.tiebreak?'<p class="warning">'+esc(st.result.tiebreak)+'</p>':'')+
+ (win?'<button id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button>':'')+
+ '</section>';
 }
+if(st.phase==='finished')body+=completedRunCard();
 body+='</div></div><section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
 app.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{st.selected=+b.dataset.slot;save();render()});
 app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{if(st.roster[st.selected])return;const s=BY.get(+b.dataset.pick);if(!eligible().some(x=>x.id===s.id))return;if(s.legendary&&st.roster.filter(id=>BY.get(id)?.legendary).length>=2)return;st.roster[st.selected]=s.id;if(st.roster.every(Boolean))st.phase='shop';else{st.selected=st.roster.findIndex(x=>!x);roll()}save();render()});
@@ -221,6 +277,29 @@ if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
  save();render()
 }catch(e){alert('Quick Sim error: '+e.message)}};
 if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
+if(st.phase==='finished'){
+ document.getElementById('shareRun').onclick=()=>{
+  const panel=document.getElementById('runSharePanel');
+  panel.hidden=!panel.hidden;
+  const button=document.getElementById('shareRun');
+  if(button.setAttribute)button.setAttribute('aria-expanded',String(!panel.hidden));
+ };
+ document.getElementById('quickRestart').onclick=()=>{
+  const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
+  st=initial();Object.assign(st,config);st.phase='draft';roll();save();render();
+ };
+ document.getElementById('copyRunSummary').onclick=()=>{
+  const value=runShareText(),status=document.getElementById('runShareStatus');
+  if(typeof navigator!=='undefined'&&navigator.clipboard?.writeText){
+   navigator.clipboard.writeText(value).then(()=>{status.textContent='Run summary copied to clipboard.'},()=>{
+    status.textContent='Select the run summary above to copy it.';
+   });
+  }else if(typeof window.prompt==='function'){
+   window.prompt('Copy your run summary:',value);
+  }else{status.textContent='Select the run summary above to copy it.'}
+ };
+}
+
 document.getElementById('reset').onclick=()=>{if(confirm('Abandon this local Challenge run?')){st=initial();save();render()}}}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
