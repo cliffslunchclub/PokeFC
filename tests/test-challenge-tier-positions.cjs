@@ -20,15 +20,20 @@ const app={innerHTML:'',querySelectorAll(sel){
   dataset:{pick:m[1]},onclick:null,closest(){return {querySelector(){return {textContent:'',className:''}}}}}));
  bound.set(sel,elements);return elements;
 }};
+const animations=[];let batches=0,reducedMotion=false;
+const makeCard=id=>({dataset:{speciesId:id},animate(frames,options){animations.push({id,frames,options})}});
 const grid={
  scrollTop:123,list:null,
- get children(){if(this.list===null)this.list=[...app.innerHTML.matchAll(/<div class="pick" data-species-id="(\d+)"/g)].map(x=>({dataset:{speciesId:x[1]}}));return this.list},
- appendChild(card){const i=this.list.indexOf(card);if(i>=0)this.list.splice(i,1);this.list.push(card)}
+ get children(){if(this.list===null)this.list=[...app.innerHTML.matchAll(/<div class="pick" data-species-id="(\d+)"/g)].map(x=>makeCard(x[1]));return this.list},
+ appendChild(card){const i=this.list.indexOf(card);if(i>=0)this.list.splice(i,1);this.list.push(card)},
+ replaceChildren(fragment){batches++;this.list=fragment.contents.slice()}
 };
-const doc={getElementById(id){if(id==='app')return app;if(id==='challengePickGrid')return grid;
+const doc={
+ createDocumentFragment(){return {contents:[],appendChild(card){this.contents.push(card)}}},
+ getElementById(id){if(id==='app')return app;if(id==='challengePickGrid')return grid;
  if(!controls.has(id))controls.set(id,{id,value:'',textContent:'',setAttribute(){}});
  return controls.get(id)}};
-const ctx=vm.createContext({window:{},document:doc,console,localStorage:{getItem(){return saved},setItem(k,v){saved=v}},
+const ctx=vm.createContext({window:{matchMedia:()=>({matches:reducedMotion})},document:doc,console,localStorage:{getItem(){return saved},setItem(k,v){saved=v}},
  crypto:{getRandomValues(a){a[0]=18391;return a}},alert:()=>{},confirm:()=>true});
 for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
@@ -52,6 +57,11 @@ assert.equal(JSON.parse(saved).selected,1,'hover is a transient preview until cl
 slots[9].onclick();
 assert.equal(JSON.parse(saved).selected,9,'click anywhere on the tile commits the position');
 assert.equal(grid.scrollTop,0,'clicking a new position scrolls candidates to top');
+const shuffled=before.some((id,i)=>id!==Number(grid.children[i].dataset.speciesId));
+assert.equal(batches,shuffled?1:0,'At most one atomic DOM reorder, not appendChild on every card');
+assert(animations.length<=12,'Only the top 12 cards animate, never the whole list');
+assert(animations.every(x=>x.options.duration<=250),'Shuffle is fast and nonblocking');
+assert(animations.every(x=>x.frames[0].transform.includes('translateY')),'Shuffle uses compositor transforms');
 const species=new Map(ctx.window.FXI_SPECIES.map(x=>[x.id,x]));
 const score=s=>Math.min(100,20+.55*(s.baseStats.attack*.35+s.baseStats.spAttack*.2+s.baseStats.speed*.35+s.baseStats.hp*.1));
 const rank={S:0,A:1,B:2,C:3,D:4};
@@ -60,11 +70,19 @@ const expected=before.map(id=>species.get(id)).sort((a,b)=>rank[tiers.tier(score
 assert.deepEqual(ordered.map(x=>x.id),expected.map(x=>x.id),'selected ST position sorts Pokémon S-to-D then alphabetically within each tier');
 const actualTiers=ordered.map(x=>rank[tiers.tier(score(x))]);
 assert(actualTiers.every((rank,i)=>i===0||rank>=actualTiers[i-1]),'tiers are monotone descending');
+const beforeSameRole=batches;
+slots[8].onclick(); // LW uses FWD, the same positional formula as ST
+assert.equal(batches,beforeSameRole,'No DOM movement for another position with the same rating family');
+reducedMotion=true;
+const animationsBefore=animations.length;
+slots[1].onclick(); // LB is different rating family
+assert.equal(animations.length,animationsBefore,'Reduced-motion preference skips shuffling entirely');
+assert.equal(JSON.parse(saved).selected,1,'Reduced-motion selection still commits successfully');
 assert.match(app.innerHTML,/SORTED BY POSITION FIT/);
 assert.doesNotMatch(app.innerHTML,/HP \d+ · ATK/,'draft cards no longer show full six raw stats');
 slots[0].onmouseenter();
-assert.equal(JSON.parse(saved).selected,9,'occupied slot not treated as new draft destination');
+assert.equal(JSON.parse(saved).selected,1,'occupied slot not treated as new draft destination');
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-pitch \.slot button\[data-slot\][^\n]*position:absolute/,'Full-tile click overlay');
 assert.match(css,/\.challenge-pitch \.slot\.empty:hover/,'Hover indication');
-console.log('PASS S-D tier sorting per selected position, hover preview without list movement, click reordering and simplified draft cards');
+console.log('PASS fast S-D tier sorting: cached previews, one DOM batch, max 12 animated cards, no same-role reflow and reduced motion');
