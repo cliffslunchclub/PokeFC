@@ -17,3 +17,15 @@ html{scroll-behavior:smooth}body{background:radial-gradient(ellipse 90% 18% at 5
 .pfc-footnote{font-size:11px;color:var(--pfc-dim);line-height:1.7}
 .pfc-header *{box-sizing:border-box}
 @media(max-width:720px){.pfc-shell{padding-inline:14px}.pfc-head-row{gap:6px;min-height:0;padding-block:9px}.pfc-beta{margin-left:auto}.pfc-nav{order:3;width:100%;margin:4px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.pfc-nav a{font-size:11px!important;padding:8px 5px;text-align:center}.pfc-logo{font-size:21px}}
+
+/* Site-wide masthead contract. Keep ahead of mode-specific legacy selectors. */
+.pfc-header{display:block!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important;position:sticky!important}
+.pfc-header .pfc-head-row{display:flex!important;justify-content:initial!important;align-items:center!important;gap:24px;flex-wrap:wrap}
+.pfc-header .pfc-logo{display:inline-flex!important;align-items:center!important;gap:0;color:#f8fcfd!important;font-size:23px!important;font-weight:950!important;line-height:1.15!important;letter-spacing:-1.4px!important;text-decoration:none!important;border:0!important;padding:0!important;background:none!important}
+.pfc-header .pfc-logo:hover{color:#fff!important}
+.pfc-header .pfc-mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin-right:10px;background:transparent;transform:none;box-shadow:none;padding:0;flex-shrink:0}
+.pfc-header .pfc-mark img{display:block;width:32px;height:32px;max-width:100%;object-fit:contain}
+.pfc-header .pfc-nav{display:flex;align-items:center;gap:5px;margin-left:auto}
+.pfc-header .pfc-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:39px;line-height:1.1!important;border-radius:7px!important;text-transform:uppercase;text-decoration:none!important;box-shadow:none!important}
+.pfc-header .pfc-beta{display:inline-flex;align-items:center;justify-content:center;min-height:31px}
+@media(max-width:720px){.pfc-header .pfc-head-row{gap:6px}.pfc-header .pfc-logo{font-size:21px!important}.pfc-header .pfc-nav{display:grid;order:3;margin:4px 0 0;width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.pfc-header .pfc-nav a{padding:8px 5px}.pfc-header .pfc-beta{margin-left:auto}}
