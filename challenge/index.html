@@ -27,7 +27,9 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .statline{font-size:11px;color:#b7cbd5}
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
-</style></head>
+</style>
+<link rel="stylesheet" href="./challenge.css?v=1">
+</head>
 <body>
 <header class="pfc-header">
   <div class="pfc-shell pfc-head-row">
@@ -40,7 +42,22 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
     <span class="pfc-beta">OPEN ALPHA</span>
   </div>
 </header>
-<div class="challenge-frame"><div class="challenge-heading"><span class="pfc-eyebrow">CLASSIC · NATIONAL · 6-BOSS GAUNTLET</span><h1>THE INDIGO CHALLENGE.</h1><p>Draft 11 Pokémon, manage a ₽1,000 item budget, then face Lorelei, Bruno, Agatha, Lance, Blue and Red. Lock your XI before entering the gauntlet.</p></div><main id="app"></main></div>
+<div class="challenge-frame">
+<section class="challenge-hero" aria-labelledby="challenge-title">
+  <div class="challenge-hero-copy">
+    <span class="challenge-kicker">INDIGO LEAGUE · CHALLENGE MODE</span>
+    <h1 id="challenge-title">THE ROAD TO<br><em>CHAMPION.</em></h1>
+    <p>Draft a one-of-a-kind eleven, equip your stars and run the gauntlet. Every choice counts across six straight matches against the Elite Four and Champions.</p>
+    <div class="challenge-hero-stats"><span>11-PLAYER XI</span><span>6 BOSSES</span><span>GEN I–IV OR I–IX</span><span>₽1,000 SHOP</span></div>
+  </div>
+  <div class="challenge-hero-art" aria-hidden="true">
+    <span class="hero-number">XI</span>
+    <img class="hero-poke-one" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png" alt="">
+    <img class="hero-poke-two" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png" alt="">
+  </div>
+</section>
+<main id="app"></main>
+</div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
