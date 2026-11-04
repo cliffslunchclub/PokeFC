@@ -23,10 +23,12 @@
    category:(st.pool===4?'CLASSIC · GEN I–IV':'NATIONAL · GEN I–IX')+' / LEGENDS '+(st.legends?'ON':'OFF'),
    champions:played===6&&wins===6,teamScore:Number(st.locked.score)||0,
    formation,tactic:st.locked.tactic||st.tactic||'balanced',wins,losses:played-wins,played,
-   players:line.map((id,i)=>({
-    id,role:positions[i],name:String(byId.get(id)?.name||'Unknown'),
-    item:String(st.locked.items?.[i]||'')
-   })),
+   players:line.map((id,i)=>{
+    const item=String(st.locked.items?.[i]||''),base=String(byId.get(id)?.name||'Unknown');
+    const mega=(root.PFC_CHALLENGE_SPECIAL?.megas?.[id]||[]).find(x=>x.stone===item),suffix=mega?.form?.split('-mega')[1]||'';
+    return {id,role:positions[i],name:mega?'Mega '+base+(suffix?' '+suffix.replace(/^-/, '').toUpperCase():''):base,
+     spriteId:mega?root.PFC_CHALLENGE_MEGA_SPRITES?.[mega.form]||id:id,item};
+   }),
    results:st.history.map(m=>({boss:String(m.boss||''),score:Array.isArray(m.score)?m.score.slice(0,2):[0,0],outcome:String(m.outcome||'Defeat'),shootout:m.shootout?{home:Number(m.shootout.home)||0,away:Number(m.shootout.away)||0}:null})),
    createdAt:new Date().toISOString().slice(0,10)
   };
@@ -120,7 +122,10 @@
  }
  async function loadSprites(data,ImageCtor){
   const ids=[...new Set(data.players.map(p=>p.id))];
-  const images=await Promise.all(ids.map(id=>fetchSprite(id,ImageCtor||root.Image)));
+  const images=await Promise.all(ids.map(async id=>{
+   const player=data.players.find(p=>p.id===id);
+   return await fetchSprite(player.spriteId||id,ImageCtor||root.Image)||await fetchSprite(id,ImageCtor||root.Image);
+  }));
   const map={};ids.forEach((id,i)=>{if(images[i])map[id]=images[i]});
   return map;
  }
