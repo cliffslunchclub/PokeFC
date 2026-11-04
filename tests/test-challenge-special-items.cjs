@@ -30,7 +30,7 @@ const context=vm.createContext({window,document,localStorage:{
  getItem(){return stored},
  setItem(_k,v){stored=v}
 },crypto:{getRandomValues(arr){arr[0]=752139;return arr}},alert(s){logs.push(s)},confirm(){return true},console});
-for(const name of ['species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js']){
+for(const name of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),context,{filename:name,timeout:5000});
 }
 const special=window.PFC_CHALLENGE_SPECIAL;
@@ -72,6 +72,10 @@ assert(logs.some(s=>s.includes('one Mega Evolution')),'limit violation reported'
 controls.lock.onclick();
 assert.equal(state().phase,'locked');
 controls.play.onclick();
-assert.equal(state().phase,'result','Lorelei Quick Sim must complete');
+assert(['result','finished'].includes(state().phase),'Lorelei Quick Sim must complete');
 assert.equal(state().result.score.length,2);
+assert.equal(context.window.FXI_SPECIES.length,1025);
+assert.equal(context.window.PFC_PLAY_OPPONENTS.length,38);
+assert.equal(state().result.boss,'Lorelei');
+assert.equal(state().history.length,1);
 console.log('PASS Challenge special items: Eviolite, Mega X/Y, eligibility, budget, Mega cap, saved match');
