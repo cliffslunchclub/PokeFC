@@ -11,7 +11,7 @@ const captured=[];
 const context=vm.createContext({window:{},document:{getElementById:id=>id==='app'?app:(elems[id]??={value:'balanced'})},
  localStorage:{getItem:key=>key==='pokefc-challenge-alpha-1'?stored:null,setItem:(key,v)=>{if(key==='pokefc-challenge-alpha-1')stored=v}},
  crypto:{getRandomValues(a){a[0]=12345;return a}},console,confirm:()=>true,alert:e=>{throw Error(e)}});
-for(const name of ['national-species.js','challenge/special-items-data.js','challenge/match-report.js','play/opponents.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name});
+for(const name of ['national-species.js','challenge/special-items-data.js','challenge/match-report.js','challenge/performance.js','play/opponents.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name});
 context.window.FXI_QUICK={simulate(preview){
  captured.push(preview);
  return {score:[2,0],stats:[{shots:8,shotsOnTarget:5,passes:320,possession:56.2},{shots:4,shotsOnTarget:2,passes:210,possession:43.8}],
@@ -103,6 +103,8 @@ for(let i=0;i<6;i++){
  elems.closeHistoryModal.onclick();
  assert.equal(elems.challengeHistoryModal.open,false,'Match-history dialog closes');
  assert.equal(state().result.report.status,'complete','Quick Sim goal ledger is persisted');
+ assert(state().result.award?.name,'Player of the match is saved');
+ assert.match(app.innerHTML,/PLAYER OF THE MATCH/,'Match star appears in both win and loss reports');
  assert.equal(state().result.report.goals.length,2);
  assert.equal(state().result.report.goals[0].minuteLabel,'17');
  assert.equal(state().result.report.goals[0].player,'Jolteon');
@@ -124,6 +126,8 @@ const blue=captured[4].away.lineup.find(p=>p.name==='Mega Pidgeot');
 const redPikachu=captured[5].away.lineup.find(p=>p.name==='Pikachu');
 assert(blue&&redPikachu);
 assert.match(app.innerHTML,/TOURNAMENT STATS/,'Champion recap includes tournament stats');
+assert.equal((app.innerHTML.match(/class="tournament-pokemon(?: tournament-top-player)?"/g)||[]).length,11,'All 11 starter sprites get tournament stats');
+assert.match(app.innerHTML,/BEST PLAYER OF THE TOURNAMENT/);
 assert(blue.main.vision>40,'Blue Mega Pidgeot');
 assert(redPikachu.main.finishing>60,'Red Light Ball Pikachu boost');
 console.log('PASS six-boss National Challenge gauntlet, fixed opponents, locked XI, champion and boss items');
