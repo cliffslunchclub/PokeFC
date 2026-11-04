@@ -21,7 +21,7 @@ body{max-width:none!important;padding:0!important;font:14px/1.55 system-ui,sans-
 button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:900}
 .panel>label{margin:6px 12px 8px 0}
 .panel select,.panel button{max-width:100%}
-.mode-pill{font-size:11px;color:#f6d587;border:1px solid #76683e;border-radius:7px;padding:5px 10px;display:inline-block;margin-right:6px}
+.watch-challenge{display:inline-flex;padding:10px 14px;border-radius:8px;text-decoration:none;color:#142b24!important;font-weight:900;background:#f8d889!important;line-height:1.7}.mode-pill{font-size:11px;color:#f6d587;border:1px solid #76683e;border-radius:7px;padding:5px 10px;display:inline-block;margin-right:6px}
 .controls-inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
 .statline{font-size:11px;color:#b7cbd5}
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
@@ -100,7 +100,7 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
 if(st.phase==='shop'){body+='<section class="panel"><h2>Item shop · ₽'+(1000-used)+' remaining</h2><p>Items are unique across your XI. Changes are fully refundable until lock. 30 standard items plus eligible ₽700 specials. Eviolite grants +20 to all six base stats to Pokémon that can evolve; a matching Mega Stone applies official Mega stats. Maximum one Mega per XI.</p><label>Tactics <select id="tactic">'+['balanced','attacking','defensive','press','counter','possession'].map(t=>'<option '+(st.tactic===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label><button class="primary" id="lock">Lock Final XI</button></section>'}
 if(st.phase==='locked'){
  const boss=BOSSES[st.round]||BOSSES[0];
- body+='<section class="panel"><span class="pfc-eyebrow">GAUNTLET MATCH '+(st.round+1)+' / 6</span><h2>NEXT: '+esc(boss?.leader||'LORELEI')+'</h2><p>'+esc((boss?.formation||'5-3-2')+' · '+(boss?.tactic||'Defensive')+' · fixed opponent XI · no substitutions or equipment changes')+'</p><p class="statline">Completed: '+st.history.length+' / 6 · '+(st.pool===4?'Classic':'National')+' · Legends '+(st.legends?'On':'Off')+'</p><button id="play" class="primary">QUICK SIM VS '+esc((boss?.leader||'Lorelei').toUpperCase())+' →</button> <a href="../play/" class="statline">Exhibition Watch mode ↗</a><p class="statline">Challenge watch-and-handoff integration is pending. Exhibition Watch is separate and does not advance this gauntlet.</p></section>';
+ body+='<section class="panel"><span class="pfc-eyebrow">GAUNTLET MATCH '+(st.round+1)+' / 6</span><h2>NEXT: '+esc(boss?.leader||'LORELEI')+'</h2><p>'+esc((boss?.formation||'5-3-2')+' · '+(boss?.tactic||'Defensive')+' · fixed opponent XI · no substitutions or equipment changes')+'</p><p class="statline">Completed: '+st.history.length+' / 6 · '+(st.pool===4?'Classic':'National')+' · Legends '+(st.legends?'On':'Off')+'</p><button id="play" class="primary">QUICK SIM VS '+esc((boss?.leader||'Lorelei').toUpperCase())+' →</button> <a class="primary watch-challenge" href="../play/?challenge=1">WATCH MATCH · TACTICMESH ↗</a><p class="statline">Watch the same locked XI and boss with genuine TacticMesh physics. Pause or hand off to Quick Sim at any moment. The verified result is recorded against this Challenge attempt.</p></section>';
 }
 if(st.phase==='result'||st.phase==='finished'){
  const win=st.result?.outcome==='Victory';
