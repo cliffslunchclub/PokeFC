@@ -305,7 +305,7 @@ function runStats(){
 }
 function runShareText(){
  const r=runStats();
- const roster=r.line.map((id,i)=>FORMS[r.formation][i]+' '+(BY.get(id)?.name||'Unknown')).join(', ');
+ const roster=r.line.map((id,i)=>FORMS[r.formation][i]+' '+displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name).join(', ');
  const equipment=(st.locked?.items||st.items).map((item,i)=>item?(BY.get(r.line[i])?.name||'Pokémon')+': '+item:null).filter(Boolean);
  return [
   '⚽ PokéFC CHALLENGE · '+(r.champion?'CHAMPION RUN':'RUN COMPLETE'),
