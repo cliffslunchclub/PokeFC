@@ -55,7 +55,7 @@ function setItem(i,value){
  el.value=value;
  el.onchange();
 }
-const ovr=()=>Number(app.innerHTML.match(/Porygon2<\\/button><small> ([\d.]+) OVR/)?.[1]);
+const ovr=()=>Number(app.innerHTML.match(new RegExp('Porygon2</button><small> ([0-9.]+) OVR'))?.[1]);
 const before=ovr();assert(Number.isFinite(before),'Porygon2 OVR visible');
 setItem(0,'Eviolite');
 assert.equal(state().items[0],'Eviolite');
