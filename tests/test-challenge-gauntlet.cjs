@@ -11,8 +11,15 @@ const captured=[];
 const context=vm.createContext({window:{},document:{getElementById:id=>id==='app'?app:(elems[id]??={value:'balanced'})},
  localStorage:{getItem:key=>key==='pokefc-challenge-alpha-1'?stored:null,setItem:(key,v)=>{if(key==='pokefc-challenge-alpha-1')stored=v}},
  crypto:{getRandomValues(a){a[0]=12345;return a}},console,confirm:()=>true,alert:e=>{throw Error(e)}});
-for(const name of ['national-species.js','challenge/special-items-data.js','play/opponents.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name});
-context.window.FXI_QUICK={simulate(preview){captured.push(preview);return {score:[2,0],stats:[{shots:8,passes:320},{shots:4,passes:210}],events:[]}},
+for(const name of ['national-species.js','challenge/special-items-data.js','challenge/match-report.js','play/opponents.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name});
+context.window.FXI_QUICK={simulate(preview){
+ captured.push(preview);
+ return {score:[2,0],stats:[{shots:8,shotsOnTarget:5,passes:320,possession:56.2},{shots:4,shotsOnTarget:2,passes:210,possession:43.8}],
+ events:[
+ {type:'goal',team:preview.home.id,player:preview.home.lineup[9].id,assist:preview.home.lineup[8].id,minute:16.7,minuteLabel:'17',origin:'quick-sim'},
+ {type:'goal',team:preview.home.id,player:preview.home.lineup[10].id,minute:72.3,minuteLabel:'73',origin:'quick-sim'}
+ ]};
+ }},
  randomizer:()=>()=>0.3};
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),context,{filename:'challenge-inline',timeout:20000});
@@ -24,6 +31,14 @@ for(let i=0;i<6;i++){
  elems.play.onclick();
  assert.equal(state().history.length,i+1,'Exactly one recorded match');
  assert.equal(state().result.boss,names[i]);
+ assert.equal(state().result.report.status,'complete','Quick Sim goal ledger is persisted');
+ assert.equal(state().result.report.goals.length,2);
+ assert.equal(state().result.report.goals[0].minuteLabel,'17');
+ assert.equal(state().result.report.goals[0].player,'Dragonite');
+ assert.equal(state().result.report.goals[0].assist,'Gengar');
+ assert.equal(state().result.report.stats.shotsOnTarget[0],5);
+ assert.match(app.innerHTML,/GOALS &amp; MATCH MINUTES/);
+ assert.match(app.innerHTML,/Dragonite/);
  assert.deepEqual(Array.from(state().locked.roster),ids,'Final XI remains unchanged');
  assert.equal(state().locked.items[0],'Eviolite','Items cannot be changed after lock');
  if(i<5){assert.equal(state().phase,'result');elems.next.onclick();}else assert.equal(state().phase,'finished');
