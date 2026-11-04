@@ -33,7 +33,7 @@ assert.equal(board.rankings('national-standard',storage).length,1,'No cross-cate
 assert.equal(board.archive({...lossy,phase:'locked'},storage),null,'Only completed attempts archived');
 assert.equal(board.rankings('invalid-category',storage).length,0);
 const saved=JSON.parse(store.get(board.KEY));
-assert.deepEqual(Object.keys(saved).sort(),board.CATEGORIES.map(c=>c.id).sort());
+assert.deepEqual(Object.keys(saved).sort(),Array.from(board.CATEGORIES,c=>c.id).sort());
 assert(saved['national-legends'][0].roster.length===11);
 store.set(board.KEY,'{invalid-json');
 assert.equal(board.rankings('classic-standard',storage).length,0,'Corrupt storage safely treated as empty');
