@@ -1,0 +1,75 @@
+name: Deploy PokéFC Challenge to SiteGround
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "challenge/**"
+      - "species.js"
+      - "quick-sim.js"
+      - "calibration-profile.js"
+      - "scripts/build-challenge-pages.sh"
+      - ".github/workflows/deploy-siteground.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pfc-siteground-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and publish pfc.cliffslunchclub.com
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out private source
+        uses: actions/checkout@v4
+
+      - name: Build the isolated browser test
+        run: bash scripts/build-challenge-pages.sh
+
+      - name: Validate public output
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html challenge/index.html species.js quick-sim.js calibration-profile.js; do
+            test -s "dist/$file"
+          done
+          test ! -e dist/.git
+          test ! -e dist/career.js
+          echo "Challenge-only build validated."
+
+      - name: Check deployment credentials
+        id: ftp
+        shell: bash
+        env:
+          HOST: ${{ secrets.SG_FTP_HOST }}
+          USERNAME: ${{ secrets.SG_FTP_USER }}
+          PASSWORD: ${{ secrets.SG_FTP_PASSWORD }}
+        run: |
+          if [[ -n "$HOST" && -n "$USERNAME" && -n "$PASSWORD" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Add SG_FTP_HOST, SG_FTP_USER and SG_FTP_PASSWORD as Actions secrets to enable SiteGround publishing."
+          fi
+
+      # FTP account must be scoped in SiteGround to *only* the pfc subdomain's
+      # document root. ./ is relative to that scoped FTP account's home.
+      # Explicit FTPS + certificate validation: never silently use plain FTP.
+      - name: Deploy to pfc.cliffslunchclub.com
+        if: steps.ftp.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.SG_FTP_HOST }}
+          username: ${{ secrets.SG_FTP_USER }}
+          password: ${{ secrets.SG_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          security: strict
+          local-dir: ./dist/
+          server-dir: ./
+          dangerous-clean-slate: false
+          log-level: standard
