@@ -55,7 +55,7 @@ assert(!/legacy-v07c|legacy-v05|Arcade/.test(html),'retired mode should not be a
 const franchise=fs.readFileSync(path.join(root,'franchise/index.html'),'utf8');
 assert(franchise.includes('../challenge/'));
 assert(franchise.includes('../play/'));
-assert(franchise.includes('Franchise · 32 Gyms'));
+assert(franchise.includes('BUILD YOUR DYNASTY.'));
 const challenge=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 assert(challenge.includes('../franchise/'));
 assert(challenge.includes('../play/'));
