@@ -129,7 +129,7 @@ function shopMarkup(used){
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
  const eligible=itemTargets(name),held=st.items.indexOf(name);
  const selected=eligible.find(x=>x.i===held)||eligible[0];
- const options=eligible.map(x=>'<option value="'+x.i+'">'+esc(FORMS[st.formation][x.i]+' · '+x.pokemon.name)+(st.items[x.i]&&st.items[x.i]!==name?' · replacing '+esc(st.items[x.i]):'')+'</option>').join('');
+ const options=eligible.map(x=>'<option value="'+x.i+'" '+(x.i===selected?.i?'selected':'')+'>'+esc(FORMS[st.formation][x.i]+' · '+x.pokemon.name)+(st.items[x.i]&&st.items[x.i]!==name?' · replacing '+esc(st.items[x.i]):'')+'</option>').join('');
  const assigned=st.items.map((n,i)=>n?'<div class="shop-equipped-row"><span>'+esc(BY.get(st.roster[i]).name)+' <small>('+FORMS[st.formation][i]+')</small></span><b>'+esc(n)+'</b><button data-shop-clear="'+i+'" type="button" aria-label="Remove '+esc(n)+' from '+esc(BY.get(st.roster[i]).name)+'">×</button></div>':'').filter(Boolean).join('');
  return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
