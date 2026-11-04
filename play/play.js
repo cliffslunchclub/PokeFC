@@ -184,7 +184,7 @@ function saveChallengeResult(result){
   outcome=a>b?'Victory':'Defeat';
   tiebreak='Penalty shootout '+a+'–'+b+' · provisional draw resolver (full extra-time engine pending)';
  }
- const record={boss:preview.opponent.leader,round:challenge.round+1,score:result.score.slice(),shots:result.stats.map(x=>x.shots),passes:result.stats.map(x=>x.passes),outcome,tiebreak,seed:preview.seed,origin:result.origin};
+ const record={boss:preview.opponent.leader,round:challenge.round+1,score:result.score.slice(),shots:result.stats.map(x=>x.shots),passes:result.stats.map(x=>x.passes),outcome,tiebreak,seed:preview.seed,origin:result.origin,report:window.PFC_MATCH_REPORT?.fromResult(result,preview)||null};
  challenge.history=Array.isArray(challenge.history)?challenge.history:[];
  challenge.result=record;challenge.history.push({...record});
  challenge.phase=outcome!=='Victory'||challenge.round===5?'finished':'result';
