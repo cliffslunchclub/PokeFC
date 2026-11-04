@@ -47,10 +47,10 @@ function launch(champion){
  assert.match(lost.app.innerHTML,/id="copyRunSummary"/);
  assert.match(lost.app.innerHTML,/id="postTwitter"[^>]*disabled/,'Direct posting remains unavailable');
  assert.match(lost.app.innerHTML,/LOCAL RECORDS|RUN COMPLETE/);
- const share=lost.elements.shareRun,preview=lost.elements.runSharePanel;
+ const share=lost.elements.shareRun;
  assert(share?.onclick,'Share opens preview');
  share.onclick();
- assert.equal(preview.hidden,false);
+ assert.equal(lost.elements.runSharePanel.hidden,false);
  assert.equal(share['aria-expanded'],'true');
  lost.elements.copyRunSummary.onclick();
  await Promise.resolve();
