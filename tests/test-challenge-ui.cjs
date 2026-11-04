@@ -1,0 +1,41 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const root=path.resolve(__dirname,'..'),controls=new Map();
+const app={innerHTML:'',querySelectorAll(selector){
+ if(selector==='[data-pick]')return [...this.innerHTML.matchAll(/data-pick="(\d+)"/g)].map(x=>({dataset:{pick:x[1]},onclick:null}));
+ return [];
+}};
+const document={getElementById(id){if(id==='app')return app;
+ if(!controls.has(id))controls.set(id,{value:id==='pool'?'4':id==='form'?'4-3-3':id==='leg'?'off':'',setAttribute(){},onclick:null,onchange:null});
+ return controls.get(id);}};
+const saves=new Map(),ctx=vm.createContext({window:{},document,localStorage:{getItem:k=>saves.get(k)||null,setItem:(k,v)=>saves.set(k,v)},crypto:{getRandomValues(a){a[0]=832199;}},console,confirm:()=>true,alert:()=>{}});
+for(const p of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','play/opponents.js']){
+ vm.runInContext(fs.readFileSync(path.join(root,p),'utf8'),ctx,{filename:p,timeout:20000});
+}
+const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
+assert(html.includes('class="challenge-hero"'));
+assert(html.includes('href="./challenge.css?v=1"'));
+assert(css.includes('.challenge-pitch')&&css.includes('.challenge-pick-grid'));
+vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),ctx,{filename:'challenge-inline',timeout:15000});
+assert(app.innerHTML.includes('challenge-hub'),'Setup uses dashboard grid');
+assert(app.innerHTML.includes('challenge-options'),'Classic vs National selector');
+assert(app.innerHTML.includes('challenge-record-list'),'Local leaderboard panel');
+assert(app.innerHTML.includes('id="classicMode"')&&app.innerHTML.includes('id="nationalMode"'));
+controls.get('nationalMode').onclick();
+assert.equal(controls.get('pool').value,'9','National mode card selects 1,025 Pokémon');
+controls.get('leg').value='on';
+controls.get('start').onclick();
+const state=()=>JSON.parse(saves.get('pokefc-challenge-alpha-1'));
+assert.equal(state().phase,'draft');
+assert.equal(state().pool,9);
+assert.equal(state().legends,true);
+assert(app.innerHTML.includes('challenge-scorebug'),'Draft scorebug');
+assert(app.innerHTML.includes('challenge-run-layout'),'Pitch and picker columns');
+assert(app.innerHTML.includes('challenge-pitch'),'Football pitch for 11 Pokémon');
+assert(app.innerHTML.includes('challenge-draft-panel'),'Separate draft room');
+assert(app.innerHTML.includes('challenge-pick-grid'),'Pokémon cards in pick grid');
+assert.equal((app.innerHTML.match(/data-slot="\d+"/g)||[]).length,11);
+assert.equal((app.innerHTML.match(/style="left:\d+%;top:\d+%"/g)||[]).length,11);
+assert(app.innerHTML.includes('id="typeR"')&&app.innerHTML.includes('id="genR"'));
+const pathToMatch=['../play/','../franchise/'];for(const link of pathToMatch)assert(html.includes(link));
+console.log('PASS Challenge game UI: Classic/National selector, record board, 11-player pitch, scorebug, draft room, rerolls');
