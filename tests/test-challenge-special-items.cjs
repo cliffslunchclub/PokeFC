@@ -31,6 +31,8 @@ vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</sc
 const state=()=>JSON.parse(stored);
 assert.match(app.innerHTML,/id="shopCatalog"/);
 assert.match(app.innerHTML,/id="shopTarget"/);
+assert.match(app.innerHTML,/LORELEI · OPPONENT XI/,'Show first opponent pitch while selecting equipment');
+assert.equal((app.innerHTML.match(/data-opponent-id="\d+"/g)||[]).length,11,'Show all Lorelei Pokémon during equipment shopping');
 assert.match(app.innerHTML,/data-shop-pick="Leftovers"/);
 assert.match(app.innerHTML,/data-shop-pick="Eviolite"/);
 assert.match(app.innerHTML,/data-shop-pick="Charizardite X"/);
