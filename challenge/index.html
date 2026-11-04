@@ -359,6 +359,15 @@ function render(){const app=document.getElementById('app');
  poolSelect.onchange=sync;
  document.getElementById('start').onclick=()=>{st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
+const draftTierCache=new Map();
+const rankTier={S:0,A:1,B:2,C:3,D:4};
+const roleGroup=pos=>pos==='GK'?'GK':['CB','LB','RB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
+const cachedDraftTier=(pokemon,pos)=>{
+ const key=pokemon.id+':'+roleGroup(pos);
+ if(!draftTierCache.has(key))draftTierCache.set(key,tierFor(pokemon,pos));
+ return draftTierCache.get(key);
+};
+const draftCompare=(a,b,pos)=>rankTier[cachedDraftTier(a,pos)]-rankTier[cachedDraftTier(b,pos)]||a.name.localeCompare(b.name)||a.id-b.id;
 const legendCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
 const posMap={
  '4-3-3':[[50,89],[14,73],[38,75],[62,75],[86,73],[24,54],[50,52],[76,54],[19,26],[50,17],[81,26]],
@@ -392,9 +401,7 @@ body+=slots.map((pos,i)=>{
 }).join('');
 body+='</div><div class="challenge-roster-footer"><span>'+(isDraft?'Draft each Pokémon into an open position.':isShop?'Shop budget: ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div></section><div class="challenge-side-stack">';
 if(st.phase==='draft'){
- const tierOrder={S:0,A:1,B:2,C:3,D:4};
- const sortPicks=(a,b,pos)=>tierOrder[tierFor(a,pos)]-tierOrder[tierFor(b,pos)]||a.name.localeCompare(b.name)||a.id-b.id;
- const opts=eligible().sort((a,b)=>sortPicks(a,b,slots[st.selected]));
+ const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
  body+='<section class="panel challenge-draft-panel"><div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2>MAKE YOUR PICK</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
  '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
@@ -406,7 +413,7 @@ if(st.phase==='draft'){
  '<p>Hover to preview another position. Click/tap an empty spot to select it and sort the choices by positional tier.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType?'disabled':'')+'>↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen?'disabled':'')+'>↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
- '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map(s=>'<div class="pick" data-species-id="'+s.id+'"><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tierFor(s,slots[st.selected]).toLowerCase()+'" data-position-tier="'+s.id+'">'+tierFor(s,slots[st.selected])+' TIER</span></small></span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>').join('')+'</div></section>';
+ '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map(s=>'<div class="pick" data-species-id="'+s.id+'"><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+cachedDraftTier(s,slots[st.selected]).toLowerCase()+'" data-position-tier="'+s.id+'">'+cachedDraftTier(s,slots[st.selected])+' TIER</span></small></span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>').join('')+'</div></section>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
  body+='<section class="panel"><h2>ONE-TIME DRAFT ADJUSTMENTS</h2><p>These resources expire when the Final XI is locked.</p>';
@@ -445,11 +452,71 @@ if(st.phase==='draft'){
   },{animate:wasTriggered,pool:st.pool,onDone:()=>{slotAnimationBusy=false}});
  }else slotAnimationBusy=false;
 }else{SLOT?.cancel();slotAnimationBusy=false;pendingRollAnimation=false}
+// Per-render role cache and badge references keep hover light; committed clicks
+// reorder the grid in ONE DOM replacement, then animate only visible cards.
+let showingRole=roleGroup(slots[st.selected]);
+const draftPickButtons=st.phase==='draft'?Array.from(app.querySelectorAll('[data-pick]')):[];
+const draftBadges=draftPickButtons.map(button=>({
+ pokemon:BY.get(Number(button.dataset.pick)),
+ badge:button.closest?.('.pick')?.querySelector?.('[data-position-tier]')
+}));
 function displayDraftPosition(index,commit){
  if(st.phase!=='draft'||!Number.isInteger(index)||index<0||index>=st.roster.length||st.roster[index])return;
- if(commit){st.selected=index;save()}
- const currentRole=FORMS[st.formation][index];
+ const changed=st.selected!==index;
+ if(commit&&changed){st.selected=index;save()}
+ const currentRole=FORMS[st.formation][index],group=roleGroup(currentRole);
  app.querySelectorAll('[data-slot-card]').forEach(card=>{
+  if(!card.classList)return;
+  const selected=Number(card.dataset.slotCard)===st.selected;
+  card.classList.toggle('active',selected);
+  card.classList.toggle('preview',!commit&&Number(card.dataset.slotCard)===index&&!selected);
+ });
+ const tag=document.getElementById('selectedDraftPosition');
+ if(tag)tag.textContent=currentRole+' POSITION'+(!commit&&index!==st.selected?' · PREVIEW':'');
+ if(showingRole!==group){
+  for(const {pokemon,badge} of draftBadges){
+   if(!pokemon||!badge)continue;
+   const tier=cachedDraftTier(pokemon,currentRole);
+   if(badge.textContent!==tier+' TIER')badge.textContent=tier+' TIER';
+   const className='pick-tier tier-'+tier.toLowerCase();
+   if(badge.className!==className)badge.className=className;
+  }
+  showingRole=group;
+ }
+ if(!commit||!changed)return;
+ const grid=document.getElementById('challengePickGrid');
+ if(!grid||!grid.children||typeof grid.appendChild!=='function')return;
+ const previous=Array.from(grid.children).filter(node=>node?.dataset?.speciesId);
+ const cards=previous.slice().sort((a,b)=>{
+  const first=BY.get(Number(a.dataset.speciesId)),second=BY.get(Number(b.dataset.speciesId));
+  return first&&second?draftCompare(first,second,currentRole):0;
+ });
+ const changedOrder=cards.some((node,i)=>node!==previous[i]);
+ if(changedOrder){
+  // Avoid one costly layout update per card; preserve each card and its event handler.
+  if(typeof document.createDocumentFragment==='function'&&typeof grid.replaceChildren==='function'){
+   const batch=document.createDocumentFragment();
+   cards.forEach(node=>batch.appendChild(node));
+   grid.replaceChildren(batch);
+  }else cards.forEach(node=>grid.appendChild(node));
+  // A short, optional shuffle that never blocks drafting or re-roll controls.
+  // No geometry reads, timers, or forced paint; compositor-only transform/opacity.
+  if(!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){
+   const before=new Map(previous.map((node,i)=>[node,i]));
+   cards.slice(0,12).forEach((node,i)=>{
+    const from=before.get(node);
+    if(from===i||typeof node.animate!=='function')return;
+    const distance=Math.max(-32,Math.min(32,(from-i)*12));
+    node.animate([
+     {transform:'translateY('+distance+'px) scale(.985)',opacity:.67},
+     {transform:'translateY(0px) scale(1)',opacity:1}
+    ],{duration:235,delay:Math.min(i,5)*13,easing:'cubic-bezier(.22,1,.36,1)'});
+   });
+  }
+ }
+ grid.scrollTop=0;
+}
+app.querySelectorAll('[data-slot-card]').forEach(card=>{
   if(!card.classList)return;
   const selected=Number(card.dataset.slotCard)===st.selected;
   card.classList.toggle('active',selected);
@@ -490,7 +557,7 @@ app.querySelectorAll('[data-slot]').forEach(b=>{
  b.onfocus=()=>displayDraftPosition(index,false);
  b.onblur=()=>displayDraftPosition(st.selected,false);
 });
-app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{if(slotAnimationBusy||st.roster[st.selected])return;const s=BY.get(+b.dataset.pick);if(!eligible().some(x=>x.id===s.id))return;if(s.legendary&&st.roster.filter(id=>BY.get(id)?.legendary).length>=2)return;st.roster[st.selected]=s.id;if(st.roster.every(Boolean))st.phase='shop';else{st.selected=st.roster.findIndex(x=>!x);roll()}save();render()});
+draftPickButtons.forEach(b=>b.onclick=()=>{if(slotAnimationBusy||st.roster[st.selected])return;const s=BY.get(+b.dataset.pick);if(!eligible().some(x=>x.id===s.id))return;if(s.legendary&&st.roster.filter(id=>BY.get(id)?.legendary).length>=2)return;st.roster[st.selected]=s.id;if(st.roster.every(Boolean))st.phase='shop';else{st.selected=st.roster.findIndex(x=>!x);roll()}save();render()});
 if(st.phase==='shop'){
  const restore=document.getElementById('shopCatalog');
  if(restore)restore.scrollTop=shopScrollTop;
