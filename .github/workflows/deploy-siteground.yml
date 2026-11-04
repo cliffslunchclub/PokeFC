@@ -56,8 +56,8 @@ jobs:
             echo "::notice::Add SG_FTP_HOST, SG_FTP_USER and SG_FTP_PASSWORD as Actions secrets to enable SiteGround publishing."
           fi
 
-      # FTP account must be scoped in SiteGround to *only* the pfc subdomain's
-      # document root. ./ is relative to that scoped FTP account's home.
+      # FTP home must be the pfc subdomain folder, one level above public_html.
+      # Publishing is restricted to public_html within that dedicated subdomain.
       # Explicit FTPS + certificate validation: never silently use plain FTP.
       - name: Deploy to pfc.cliffslunchclub.com
         if: steps.ftp.outputs.ready == 'true'
@@ -70,6 +70,6 @@ jobs:
           protocol: ftps
           security: strict
           local-dir: ./dist/
-          server-dir: ./
+          server-dir: ./public_html/
           dangerous-clean-slate: false
           log-level: standard
