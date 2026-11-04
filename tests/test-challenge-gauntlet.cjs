@@ -19,7 +19,7 @@ context.window.FXI_QUICK={simulate(preview){
  {type:'goal',team:preview.home.id,player:preview.home.lineup[9].id,assist:preview.home.lineup[8].id,minute:16.7,minuteLabel:'17',origin:'quick-sim'},
  {type:'goal',team:preview.home.id,player:preview.home.lineup[10].id,minute:72.3,minuteLabel:'73',origin:'quick-sim'}
  ]};
- }},
+ },
  randomizer:()=>()=>0.3};
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),context,{filename:'challenge-inline',timeout:20000});
