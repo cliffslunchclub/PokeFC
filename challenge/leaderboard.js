@@ -38,7 +38,7 @@
    roster:st.locked.roster.slice(),items:Array.isArray(st.locked.items)?st.locked.items.slice():[],
    matches:history.map(m=>({
     boss:String(m.boss||'Unknown'),score:[finite(m.score?.[0]),finite(m.score?.[1])],
-    outcome:String(m.outcome||'Defeat'),origin:String(m.origin||'quick-sim')
+    outcome:String(m.outcome||'Defeat'),origin:String(m.origin||'quick-sim'),report:m.report||null
    })),finishedAt:new Date().toISOString()
   };
  }
