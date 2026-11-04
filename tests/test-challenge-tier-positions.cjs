@@ -21,10 +21,14 @@ const app={innerHTML:'',querySelectorAll(sel){
  bound.set(sel,elements);return elements;
 }};
 const animations=[];let batches=0,reducedMotion=false;
-const makeCard=id=>({dataset:{speciesId:id},animate(frames,options){animations.push({id,frames,options})}});
+const makeCard=(id,initialTier)=>{const classes=new Set(['pick',...(initialTier?['tier-group-start']:[])]);return {
+ dataset:{speciesId:id,...(initialTier?{tierGroup:initialTier}: {})},
+ classList:{contains:k=>classes.has(k),add:k=>classes.add(k),remove:k=>classes.delete(k)},
+ animate(frames,options){animations.push({id,frames,options})}
+}};
 const grid={
  scrollTop:123,list:null,
- get children(){if(this.list===null)this.list=[...app.innerHTML.matchAll(/<div class="pick" data-species-id="(\d+)"/g)].map(x=>makeCard(x[1]));return this.list},
+ get children(){if(this.list===null)this.list=[...app.innerHTML.matchAll(/<div class="pick( tier-group-start)?" data-species-id="(\d+)"(?: data-tier-group="([A-D S]+)")?>/g)].map(x=>makeCard(x[2],x[3]));return this.list},
  appendChild(card){const i=this.list.indexOf(card);if(i>=0)this.list.splice(i,1);this.list.push(card)},
  replaceChildren(fragment){batches++;this.list=fragment.contents.slice()}
 };
@@ -79,7 +83,14 @@ slots[1].onclick(); // LB is different rating family
 assert.equal(animations.length,animationsBefore,'Reduced-motion preference skips shuffling entirely');
 assert.equal(JSON.parse(saved).selected,1,'Reduced-motion selection still commits successfully');
 assert.match(app.innerHTML,/SORTED BY POSITION FIT/);
-assert.doesNotMatch(app.innerHTML,/HP \d+ · ATK/,'draft cards no longer show full six raw stats');
+const staticCards=app.innerHTML;
+for(const key of ['HP','ATK','DEF','SpA','SpD','SPE'])
+ assert.match(staticCards,new RegExp('<b>'+key+'</b> \\d+'),key+' base stat visible in draft');
+assert.match(staticCards,/class="pick tier-group-start" data-species-id="/,'Tier category heading present');
+const groups=grid.children.filter(x=>x.classList.contains('tier-group-start'));
+const uniqueTiers=[...new Set(ordered.map(x=>tiers.tier(score(x))))];
+assert.equal(groups.length,[...new Set(grid.children.map(x=>x.dataset.tierGroup).filter(Boolean))].length,'Each tier has one heading');
+assert.equal(app.innerHTML,staticCards,'Position switching reuses existing cards and static base stats');
 slots[0].onmouseenter();
 assert.equal(JSON.parse(saved).selected,1,'occupied slot not treated as new draft destination');
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
