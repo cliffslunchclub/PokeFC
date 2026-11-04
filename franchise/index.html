@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081b1b"><title>PokéFC · Franchise (32 Gyms)</title><meta name="description" content="PokeFC: an unofficial Pokémon football management prototype."><link rel="stylesheet" href="./career.css?v=8"><style>
+.site-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0 15px;border-bottom:1px solid #2a4c48;margin-bottom:9px}
+.site-switch a{display:inline-flex;align-items:center;min-height:38px;padding:9px 15px;border:1px solid #2a4c48;border-radius:10px;color:#b5d0c7;font-size:.89rem;font-weight:700;text-decoration:none}
+.site-switch a.active,.site-switch a:hover{background:#276d54;border-color:#4d9675;color:#fff}
+</style></head><body>
+<div class="shell"><header class="top"><a class="logo" href="../index.html"><span class="logo-dot">✦</span> Poke<em>FC</em><small>32-GYM FRANCHISE</small></a><div class="top-right"><span class="tiny-chip">GEN I–IV · 493 SPECIES</span><span class="tiny-chip">BROWSER PLAYTEST</span><button id="exportBtn" class="subtle">Export save</button><label class="subtle file-label">Import save<input id="importFile" type="file" accept="application/json" hidden></label></div></header>
+<nav class="site-switch" aria-label="Main site navigation">
+  <a href="../index.html">Home / Free Builder</a>
+  <a href="../challenge/">Challenges</a>
+  <a class="active" aria-current="page" href="./index.html">Franchise · 32 Gyms</a>
+</nav>
+<nav class="nav" aria-label="Main navigation"><button data-view="dashboard" class="active">Overview</button><button data-view="roster">Roster</button><button data-view="tactical">Tactical Viewer <span class="soon">HYBRID ENGINE</span></button><button data-view="schedule">League</button><button data-view="scouting">Scouting</button><button data-view="draft">Fantasy Draft</button></nav>
+<main id="app"><div class="welcome"><h1>Build your <em>Pokémon football dynasty.</em></h1><p>32 gyms. Kanto, Johto, Hoenn &amp; Sinnoh. Distinct Pokémon careers, scouting and instant match simulation.</p></div><div class="card"><p>Loading franchise setup…</p></div></main>
+<footer>PokeFC is an unofficial fan-made prototype, not affiliated with Nintendo, Game Freak or The Pokémon Company. Franchise saves stay in this browser unless exported..</footer></div>
+<script src="./species.js?v=8"></script><script src="./calibration-profile.js?v=8"></script><script src="./quick-sim.js?v=8b1"></script><script src="./hybrid-sim.js?v=8b1"></script><script src="./tm-engine-bridge.js?v=8b1"></script><script src="./tactical-viewer.js?v=8b1"></script><script src="./career.js?v=8"></script></body></html>
