@@ -147,3 +147,50 @@
 .challenge-pitch .slot:has(button[data-slot]:not(:disabled)){cursor:pointer}
 .challenge-pitch .slot:has(button[data-slot]:not(:disabled)):hover{border-color:#f3d992!important}
 @media(max-width:560px){.challenge-pitch .slot:has(.held-item-badge){height:84px}.challenge-pitch .held-item-badge{font-size:7px}}
+
+/* Completed-run scorecard, share preview and local-ranking future slot. */
+.challenge-leaderboard-teaser{margin-top:17px;padding:15px;border:1px solid #4c5f6a;border-radius:9px;background:linear-gradient(135deg,#182c3b,#243242)}
+.challenge-leaderboard-teaser .leaderboard-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.challenge-leaderboard-teaser .leaderboard-top h3{font-size:14px;margin:0;color:#f3f7f9}
+.challenge-leaderboard-teaser .leaderboard-top span{color:#f5d78d;border:1px solid #807353;padding:4px 7px;border-radius:5px;letter-spacing:.075em;font-size:9px;font-weight:900}
+.challenge-leaderboard-teaser p{margin:8px 0 0;font-size:11px!important;color:#b8ced6}
+.challenge-complete-panel{padding:20px!important}
+.challenge-complete-panel .run-result-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.challenge-complete-panel .run-outcome{font-size:9px;font-weight:900;letter-spacing:.1em;border:1px solid #82704b;border-radius:5px;padding:5px 8px;color:#f6d99c}
+.challenge-complete-panel .run-outcome.success{border-color:#55866a;color:#a0f1b2}
+.challenge-complete-panel h2{font-size:27px!important;margin:10px 0 7px!important;line-height:1.12!important}
+.challenge-complete-panel>p{margin:6px 0 10px}
+.run-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid #3f596b;border-radius:9px;overflow:hidden;gap:1px;background:#476071;margin:16px 0 9px}
+.run-metrics>div{background:#192f41;padding:10px 12px;min-width:0}
+.run-metrics>div span{font-size:9px;color:#aecbd7;letter-spacing:.1em;font-weight:950;display:block}
+.run-metrics>div strong{font-size:25px;font-weight:1000;letter-spacing:-.035em;line-height:1.3;color:#f4f9fb;display:block;margin-top:4px}
+.run-metrics>div:first-child strong{color:#a6f4ba}
+.challenge-complete-panel .run-category{font-size:10px!important;letter-spacing:.06em;font-weight:800;color:#e4d69f!important}
+.run-match-recap{margin-top:16px;border-top:1px solid #38556b;padding-top:12px}
+.run-match-recap h3{font-size:11px;margin:0 0 8px;letter-spacing:.11em}
+.run-match{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:7px 9px;background:#192c3c;border:1px solid #2f4758;border-radius:6px;margin-top:5px;font-size:11px}
+.run-match span{font-weight:850}
+.run-match strong{color:#f4f9fd}
+.run-match small{font-size:10px;font-weight:900;min-width:55px;text-align:right}
+.run-match.won small{color:#a6eeba}
+.run-match.lost small{color:#f1a9a6}
+.run-roster-details{margin:13px 0;border:1px solid #3d5565;border-radius:8px;overflow:hidden}
+.run-roster-details summary{cursor:pointer;padding:11px;color:#e6f0f7;font-size:11px;font-weight:900;letter-spacing:.06em;background:#1b3142}
+.run-roster-details summary:focus-visible{outline:2px solid #f3d589;outline-offset:-3px}
+.run-roster-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:6px}
+.run-roster-list span{font-size:10px;padding:6px 8px;border-radius:5px;background:#1f3848;color:#dcebf3}
+.run-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.run-actions button{min-height:42px}
+.run-actions button:first-child{flex:1}
+.challenge-complete-panel .run-restart{background:#1d4550!important;border:1px solid #548375!important;color:#eafaf3!important;padding:12px 15px!important;font-weight:950}
+.run-share-panel{margin-top:14px;padding:14px;border:1px solid #537965;border-radius:10px;background:#162d36}
+.run-share-panel[hidden]{display:none!important}
+.run-share-panel h3{font-size:15px;margin:0 0 7px}
+.run-share-panel p{font-size:11px!important;margin:5px 0 12px}
+.run-share-preview{white-space:pre-wrap;word-wrap:break-word;font:11px/1.6 ui-monospace,monospace;color:#d9f2e2;border-radius:6px;border:1px solid #395b57;background:#0b1c26;padding:12px;max-height:260px;overflow:auto;margin:9px 0}
+.run-share-actions{display:flex;gap:8px;flex-wrap:wrap}
+.run-share-actions button{font-size:11px!important;min-height:37px;padding:9px 11px!important}
+.run-share-actions #copyRunSummary{background:#c7eeb1!important;border:1px solid #c7eeb1!important;color:#11281d!important}
+.run-share-actions #postTwitter:disabled{color:#bac6ce!important;background:#263945!important;opacity:.68;cursor:not-allowed}
+#runShareStatus{min-height:16px;font-size:11px!important;color:#c6f1cc}
+@media(max-width:560px){.challenge-complete-panel{padding:15px!important}.run-metrics>div strong{font-size:22px}.run-actions button{width:100%}.run-roster-list{grid-template-columns:1fr}.run-share-actions button{width:100%}}
