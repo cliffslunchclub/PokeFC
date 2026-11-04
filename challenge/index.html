@@ -413,7 +413,13 @@ if(st.phase==='draft'){
  '<p>Hover to preview another position. Click/tap an empty spot to select it and sort the choices by positional tier.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType?'disabled':'')+'>↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen?'disabled':'')+'>↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
- '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map(s=>'<div class="pick" data-species-id="'+s.id+'"><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+cachedDraftTier(s,slots[st.selected]).toLowerCase()+'" data-position-tier="'+s.id+'">'+cachedDraftTier(s,slots[st.selected])+' TIER</span></small></span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>').join('')+'</div></section>';
+ '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
+ const tier=cachedDraftTier(s,slots[st.selected]);
+ const first=i===0||cachedDraftTier(opts[i-1],slots[st.selected])!==tier;
+ const stats=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
+ const statText=stats.map(([short,key])=>'<span><b>'+short+'</b> '+s.baseStats[key]+'</span>').join('');
+ return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
+}).join('')+'</div></section>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
  body+='<section class="panel"><h2>ONE-TIME DRAFT ADJUSTMENTS</h2><p>These resources expire when the Final XI is locked.</p>';
@@ -460,6 +466,8 @@ const draftBadges=draftPickButtons.map(button=>({
  pokemon:BY.get(Number(button.dataset.pick)),
  badge:button.closest?.('.pick')?.querySelector?.('[data-position-tier]')
 }));
+const initialDraftGrid=document.getElementById('challengePickGrid');
+let tierGroupStarts=initialDraftGrid?.children?Array.from(initialDraftGrid.children).filter(node=>node.classList?.contains('tier-group-start')):[];
 function displayDraftPosition(index,commit){
  if(st.phase!=='draft'||!Number.isInteger(index)||index<0||index>=st.roster.length||st.roster[index])return;
  const changed=st.selected!==index;
@@ -493,6 +501,23 @@ function displayDraftPosition(index,commit){
  });
  const changedOrder=cards.some((node,i)=>node!==previous[i]);
  if(changedOrder){
+  // Update only the previous and next tier boundaries (at most five each).
+  // Keep the six base stats untouched: only position tiers are recalculated.
+  tierGroupStarts.forEach(node=>{
+   node.classList?.remove('tier-group-start');
+   if(node.dataset)delete node.dataset.tierGroup;
+  });
+  tierGroupStarts=[];
+  let previousTier=null;
+  for(const node of cards){
+   const pokemon=BY.get(Number(node.dataset.speciesId));
+   const tier=pokemon?cachedDraftTier(pokemon,currentRole):null;
+   if(!tier||tier===previousTier)continue;
+   node.classList?.add('tier-group-start');
+   if(node.dataset)node.dataset.tierGroup=tier+' TIER';
+   tierGroupStarts.push(node);
+   previousTier=tier;
+  }
   // Avoid one costly layout update per card; preserve each card and its event handler.
   if(typeof document.createDocumentFragment==='function'&&typeof grid.replaceChildren==='function'){
    const batch=document.createDocumentFragment();
