@@ -457,7 +457,7 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
  body+='</section>';
 }
 if(st.phase==='shop')body+=shopMarkup(used);
-if(['locked','result','finished'].includes(st.phase)){
+if(['shop','locked','result','finished'].includes(st.phase)){
  const opponent=BOSSES[st.round];
  if(opponent&&Array.isArray(opponent.roster)&&opponent.roster.length===11){
   const enemyFormation=FORMS[opponent.formation]?opponent.formation:'4-3-3';
@@ -497,7 +497,7 @@ if(['locked','result','finished'].includes(st.phase)){
    '<details class="opponent-roster-details"><summary>VIEW ALL 11 POKÉMON &amp; STATS</summary><div class="opponent-roster-list">'+opponentRows+'</div></details>'+
    '</section>';
  }
- body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
+ if(st.phase!=='shop')body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
  '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>'<div class="'+(i<st.history.length?'done':i===st.round?'current':'')+'"><strong>'+esc(boss.leader.toUpperCase())+'</strong><span>'+(i<st.history.length?(st.history[i]?.outcome==='Victory'?'✓':'×'):i===st.round?'●':'–')+'</span></div>').join('')+'</div>'+
  '<p class="statline">Win every match with your locked Final XI. Your progress is saved in this browser.</p>'+matchHistoryHtml(st.phase==='finished'?[]:st.phase==='result'?st.history.slice(0,-1):st.history)+'</section>';
 }
