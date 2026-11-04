@@ -12,13 +12,13 @@
 <span class="pfc-beta">OPEN ALPHA</span>
 </div></header>
 <main class="pfc-shell">
-<section class="play-intro"><span class="pfc-eyebrow">EXHIBITION MODE · NO CONTRACTS · NO LEAGUE SAVE</span><h1 class="pfc-mode-title">TAKE THE PITCH.</h1>
-<p class="pfc-mode-intro">Bring your Free Builder XI. Face any of 32 gyms across four regions, or challenge the Elite Four and Champions. Watch a genuine TacticMesh match or get an instant Quick Sim result.</p></section>
+<section class="play-intro"><span id="playIntroLabel" class="pfc-eyebrow">EXHIBITION MODE · NO CONTRACTS · NO LEAGUE SAVE</span><h1 id="playIntroHeading" class="pfc-mode-title">TAKE THE PITCH.</h1>
+<p id="playIntroText" class="pfc-mode-intro">Bring your Free Builder XI. Face any of 32 gyms across four regions, or challenge the Elite Four and Champions. Watch a genuine TacticMesh match or get an instant Quick Sim result.</p></section>
 <div class="play-layout">
  <section class="play-panel setup-panel" aria-labelledby="setupTitle">
   <div class="play-panel-title"><span class="section-number">01</span><h2 id="setupTitle">MATCH SETUP</h2><span class="tiny-label">HOME XI</span></div>
   <div id="xiStatus" class="xi-status" role="status">Loading your Free Builder XI…</div>
-  <div class="team-actions"><a href="../#builder" class="play-btn subtle">Edit XI in Builder ↗</a><button id="fillXI" class="play-btn subtle" type="button">Auto-fill empty slots</button></div>
+  <div id="teamActions" class="team-actions"><a href="../#builder" class="play-btn subtle">Edit XI in Builder ↗</a><button id="fillXI" class="play-btn subtle" type="button">Auto-fill empty slots</button></div>
   <div id="homePreview" class="team-preview" aria-label="Your starting lineup"></div>
   <div class="play-divider"></div>
   <label class="play-label" for="region">Opponent category</label>
@@ -42,13 +42,14 @@
   <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
   <p id="engineStatus" class="engine-status" role="status">Choose Quick Sim for an instant result or Watch for real TacticMesh ball and player movement.</p>
   <div id="matchResult" class="match-result"><div class="empty-state"><span>⚽</span><strong>YOUR NEXT FIXTURE</strong><p>Build your eleven, select a gym, then kick off.</p></div></div>
+  <a id="returnChallenge" class="play-btn watch return-challenge" href="../challenge/" hidden>RETURN TO CHALLENGES ↗</a>
  </section>
 </div>
 </main>
 <footer class="pfc-shell pfc-page-footer">PokéFC · Independent fan project · Pokémon characters belong to their respective owners. Match models are developmental and uncalibrated.</footer>
 <script src="../national-species.js?v=1"></script>
 <script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script>
-<script src="./opponents.js?v=1"></script>
+<script src="./opponents.js?v=1"></script><script src="../challenge/special-items-data.js"></script>
 <script src="./hybrid-sim.js"></script><script src="./tm-engine-bridge.js"></script>
 <script src="./play.js?v=1"></script>
 </body></html>
