@@ -1,0 +1,33 @@
+name: Challenge PR regression tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "challenge/**"
+      - "tests/test-challenge-*.cjs"
+      - "scripts/build-siteground.sh"
+      - ".github/workflows/challenges-pr-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  challenge-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Challenge JavaScript
+        run: |
+          node --check challenge/drag-drop.js
+          node --check challenge/performance.js
+          node --check challenge/run-card.js
+      - name: Run Challenge regressions
+        run: |
+          for file in tests/test-challenge-*.cjs; do
+            echo "Testing $file"
+            node "$file"
+          done
+      - name: Validate build packaging
+        run: bash scripts/build-siteground.sh
