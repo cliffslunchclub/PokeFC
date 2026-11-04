@@ -138,3 +138,12 @@
 @media(max-width:1030px){.challenge-run-layout{grid-template-columns:minmax(0,1fr) minmax(300px,.86fr)}.challenge-pitch{height:620px}.challenge-hero{grid-template-columns:minmax(0,1fr) 240px}.challenge-hero-art .hero-poke-one{left:0}.challenge-hero-art .hero-poke-two{right:-15px}}
 @media(max-width:810px){.challenge-hub,.challenge-run-layout{grid-template-columns:1fr}.challenge-roster-panel{position:static!important}.challenge-pitch{height:660px;max-width:620px;margin:auto}.challenge-hero{grid-template-columns:1fr 170px}.challenge-hero-art .hero-poke-one{height:130px}.challenge-hero-art .hero-poke-two{height:120px}.challenge-hero-art{height:150px}}
 @media(max-width:560px){.challenge-frame{padding:14px 12px 40px!important}.challenge-hero{padding:20px 16px;grid-template-columns:1fr;min-height:0}.challenge-hero h1{font-size:37px!important}.challenge-hero-art{display:none}.challenge-scorebug{grid-template-columns:repeat(2,minmax(0,1fr))}.challenge-scorebug .metric{padding:10px 12px}.challenge-scorebug .metric strong{font-size:18px}.challenge-hub{gap:12px}.challenge-options{gap:7px}.challenge-option{height:114px;padding:12px!important}.challenge-option strong{font-size:18px}.challenge-pitch{height:580px}.challenge-pitch .slot{width:20%;height:77px;padding:3px 2px!important}.challenge-pitch .slot .slot-sprite{width:28px;height:28px}.challenge-pitch .slot button[data-slot]{font-size:8px!important}.challenge-pitch .slot small{font-size:8px}.challenge-shop-grid{grid-template-columns:1fr}.challenge-gauntlet-track{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Keep held-item controls in the shopping team sheet, not on the match pitch. */
+.challenge-pitch .item-holder{display:none}
+.challenge-pitch .slot:has(.held-item-badge){height:104px}
+.challenge-pitch .held-item-badge{display:block;max-width:96%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;font-weight:950;letter-spacing:.01em;color:#192d26;background:#f3d589;border-radius:3px;padding:1px 4px}
+.challenge-pitch .slot{cursor:default}
+.challenge-pitch .slot:has(button[data-slot]:not(:disabled)){cursor:pointer}
+.challenge-pitch .slot:has(button[data-slot]:not(:disabled)):hover{border-color:#f3d992!important}
+@media(max-width:560px){.challenge-pitch .slot:has(.held-item-badge){height:84px}.challenge-pitch .held-item-badge{font-size:7px}}
