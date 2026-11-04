@@ -23,11 +23,13 @@
    category:(st.pool===4?'CLASSIC · GEN I–IV':'NATIONAL · GEN I–IX')+' / LEGENDS '+(st.legends?'ON':'OFF'),
    champions:played===6&&wins===6,teamScore:Number(st.locked.score)||0,
    formation,tactic:st.locked.tactic||st.tactic||'balanced',wins,losses:played-wins,played,
-   players:line.map((id,i)=>({
-    id,role:positions[i],name:String(byId.get(id)?.name||'Unknown'),
-    item:String(st.locked.items?.[i]||'')
-   })),
-   results:st.history.map(m=>({boss:String(m.boss||''),score:Array.isArray(m.score)?m.score.slice(0,2):[0,0],outcome:String(m.outcome||'Defeat')})),
+   players:line.map((id,i)=>{
+    const item=String(st.locked.items?.[i]||''),base=String(byId.get(id)?.name||'Unknown');
+    const mega=(root.PFC_CHALLENGE_SPECIAL?.megas?.[id]||[]).find(x=>x.stone===item),suffix=mega?.form?.split('-mega')[1]||'';
+    return {id,role:positions[i],name:mega?'Mega '+base+(suffix?' '+suffix.replace(/^-/, '').toUpperCase():''):base,
+     spriteId:mega?root.PFC_CHALLENGE_MEGA_SPRITES?.[mega.form]||id:id,item};
+   }),
+   results:st.history.map(m=>({boss:String(m.boss||''),score:Array.isArray(m.score)?m.score.slice(0,2):[0,0],outcome:String(m.outcome||'Defeat'),shootout:m.shootout?{home:Number(m.shootout.home)||0,away:Number(m.shootout.away)||0}:null})),
    createdAt:new Date().toISOString().slice(0,10)
   };
  }
@@ -97,7 +99,8 @@
    const game=data.results[i];
    round(ctx,x,y,346,97,10,game?(game.outcome==='Victory'?'#1e473a':'#473037'):'#152c39','#3a5965');
    line(ctx,'0'+(i+1)+'  '+name,x+14,y+31,18,'#eaf9f5',900,300);
-   line(ctx,game?game.score.join(' – '):'NOT PLAYED',x+14,y+73,27,game?'#f5f7f8':'#91a8b3',950);
+   line(ctx,game?game.score.join(' – '):'NOT PLAYED',x+14,y+(game?.shootout?60:73),27,game?'#f5f7f8':'#91a8b3',950);
+   if(game?.shootout)line(ctx,'PENS '+game.shootout.home+'–'+game.shootout.away,x+14,y+87,13,'#f5d893',900);
    if(game)line(ctx,game.outcome.toUpperCase(),x+240,y+73,14,game.outcome==='Victory'?'#a5f5b8':'#ffb6ae',900,95);
   });
   rect(ctx,66,1468,1068,2,'#45606b');
@@ -119,7 +122,10 @@
  }
  async function loadSprites(data,ImageCtor){
   const ids=[...new Set(data.players.map(p=>p.id))];
-  const images=await Promise.all(ids.map(id=>fetchSprite(id,ImageCtor||root.Image)));
+  const images=await Promise.all(ids.map(async id=>{
+   const player=data.players.find(p=>p.id===id);
+   return await fetchSprite(player.spriteId||id,ImageCtor||root.Image)||await fetchSprite(id,ImageCtor||root.Image);
+  }));
   const map={};ids.forEach((id,i)=>{if(images[i])map[id]=images[i]});
   return map;
  }
