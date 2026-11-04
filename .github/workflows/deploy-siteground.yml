@@ -40,6 +40,7 @@ on:
       - "tests/test-challenge-v1-flow.cjs"
       - "tests/test-challenge-watch-v1.cjs"
       - "tests/test-challenge-slot-reels.cjs"
+      - "tests/test-challenge-tier-positions.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
@@ -69,6 +70,7 @@ jobs:
           node --check challenge/leaderboard.js
           node --check challenge/run-card.js
           node --check challenge/slot-reels.js
+          node --check challenge/tiers.js
           node tests/test-national-dex.cjs
           node tests/test-play.cjs
           node tests/test-challenge-play.cjs
@@ -80,6 +82,7 @@ jobs:
           node tests/test-challenge-v1-flow.cjs
           node tests/test-challenge-watch-v1.cjs
           node tests/test-challenge-slot-reels.cjs
+          node tests/test-challenge-tier-positions.cjs
           node tests/test-free-builder.cjs
           node tests/test-branding.cjs
           node tests/test-challenge-special-items.cjs
@@ -93,7 +96,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
+          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
             test -s "dist/$file"
           done
           test -s dist/.htaccess
