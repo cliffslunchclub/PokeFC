@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build a minimal static test site for Cloudflare Pages.
+# Build a minimal static Challenge test site for SiteGround (or another static host).
 # Only the Challenge UI and its required browser libraries are published.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf dist
 mkdir -p dist/challenge
-cp challenge/index.html dist/challenge/index.html
+cp challenge/index.html challenge/special-items-data.js dist/challenge/
 cp species.js quick-sim.js calibration-profile.js dist/
 cat > dist/index.html <<'HTML'
 <!doctype html>
