@@ -47,7 +47,7 @@ assert(before.length>2,'Multiple scouted Pokémon available');
 slots[9].onmouseenter();
 assert.deepEqual(Array.from(grid.children,x=>Number(x.dataset.speciesId)),before,'Hover previews grade without shuffling the list');
 assert.equal(grid.scrollTop,123,'Hover does not reset scroll');
-assert.equal(controls.get('selectedDraftPosition').textContent,'ST POSITION');
+assert.equal(controls.get('selectedDraftPosition').textContent,'ST POSITION · PREVIEW');
 assert.equal(JSON.parse(saved).selected,1,'hover is a transient preview until clicked');
 slots[9].onclick();
 assert.equal(JSON.parse(saved).selected,9,'click anywhere on the tile commits the position');
