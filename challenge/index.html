@@ -165,6 +165,7 @@ body+=slots.map((pos,i)=>{
  return '<div class="slot '+(st.selected===i?'active':'')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
  '<button data-slot="'+i+'" '+(!['draft','shop'].includes(st.phase)?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'">'+pos+' · '+(s?esc(s.name):'Open')+'</button>'+
  (s?'<small> '+rating(s,pos,st.items[i]).toFixed(1)+' OVR</small>':'<small>EMPTY</small>')+
+ (s&&st.phase!=='draft'&&st.phase!=='shop'&&st.items[i]?'<span class="held-item-badge" title="'+esc(st.items[i])+'">'+esc(st.items[i])+'</span>':'')+
  (s&&st.phase!=='draft'?'<div class="item-holder"><select data-item="'+i+'" '+(st.phase!=='shop'?'disabled':'')+' aria-label="Held item for '+esc(s.name)+'"><option value="">No item</option>'+
  offeredItems(s).map(it=>'<option value="'+esc(it[0])+'" '+(st.items[i]===it[0]?'selected':'')+'>'+esc(it[0])+' · ₽'+it[1]+(it[0]==='Eviolite'?' · +20 each base stat':megaForm(s,it[0])?' · Mega':'')+'</option>').join('')+
  '</select></div>':'')+'</div>';
