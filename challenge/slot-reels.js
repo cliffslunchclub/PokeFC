@@ -35,7 +35,7 @@
  }
  function mount(el,result,opts={}){
   cancel();
-  if(!el||typeof el.querySelector!=='function')return;
+  if(!el||typeof el.querySelector!=='function'){if(typeof opts.onDone==='function')opts.onDone();return}
   const onDone=typeof opts.onDone==='function'?opts.onDone:()=>{};
   const region=REGIONS[(Math.max(1,Number(result.gen)||1)-1)%REGIONS.length];
   const data={region,type:String(result.type||'NORMAL').toUpperCase(),count:Math.max(0,Number(result.count)||0)};
@@ -60,14 +60,16 @@
    setAnimationClass(node?.closest('.slot-reel'),true);
    let tick=(data.region.charCodeAt(0)+field.name.length)%field.sequence.length;
    setText(node,field.sequence[tick]);
-   slot.timers.push(setInterval(()=>{
+   const timer=setInterval(()=>{
     if(slot.cancelled)return;
     tick=(tick+1)%field.sequence.length;
     setText(node,field.sequence[tick]);
-   },75));
+   },75);
+   slot.timers.push(timer);
    // Staggered reel stops create the arcade feel.
    slot.timeouts.push(setTimeout(()=>{
     if(slot.cancelled)return;
+    clearInterval(timer);
     setText(node,field.name==='pool'?data.count+' ELIGIBLE':data[field.name]);
     setAnimationClass(node?.closest('.slot-reel'),false);
    },field.delay));
