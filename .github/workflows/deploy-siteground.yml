@@ -1,16 +1,27 @@
-name: Deploy PokéFC Challenge to SiteGround
+name: Deploy PokéFC Playtest to SiteGround
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - "challenge/**"
+      - "index.html"
+      - "career.css"
+      - "career.js"
       - "species.js"
       - "quick-sim.js"
       - "calibration-profile.js"
-      - "scripts/build-challenge-pages.sh"
+      - "hybrid-sim.js"
+      - "tm-engine-bridge.js"
+      - "tactical-viewer.js"
+      - "tm-worker.js"
+      - "challenge/**"
+      - "legacy-v07c/**"
+      - "tacticmesh/vendor/**"
+      - "scripts/build-siteground.sh"
       - "tests/test-challenge-special-items.cjs"
+      - "tests/test-v08-league.cjs"
+      - "tests/test-hybrid.cjs"
       - ".github/workflows/deploy-siteground.yml"
 
 permissions:
@@ -28,21 +39,26 @@ jobs:
       - name: Check out private source
         uses: actions/checkout@v4
 
-      - name: Test Challenge special items and Lorelei Quick Sim
-        run: node tests/test-challenge-special-items.cjs
+      - name: Test Challenge and Franchise gameplay
+        run: |
+          node tests/test-challenge-special-items.cjs
+          node tests/test-v08-league.cjs
+          node tests/test-hybrid.cjs
 
-      - name: Build the isolated browser test
-        run: bash scripts/build-challenge-pages.sh
+      - name: Build the public playtest
+        run: bash scripts/build-siteground.sh
 
       - name: Validate public output
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html challenge/index.html challenge/special-items-data.js species.js quick-sim.js calibration-profile.js; do
+          for file in index.html career.js career.css hybrid-sim.js tm-engine-bridge.js tm-worker.js tactical-viewer.js challenge/index.html challenge/special-items-data.js species.js quick-sim.js calibration-profile.js legacy-v07c/index.html legacy-v07c/career.js tacticmesh/vendor/installed.json legacy-v07c/tacticmesh/vendor/installed.json; do
             test -s "dist/$file"
           done
           test ! -e dist/.git
-          test ! -e dist/career.js
+          test ! -e dist/legacy-v05
+          test ! -e dist/calibration
+          test ! -e dist/tests
           echo "Challenge-only build validated."
 
       - name: Check deployment credentials
