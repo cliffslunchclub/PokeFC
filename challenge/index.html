@@ -191,14 +191,14 @@ function leaderboardMarkup(){
   '<button class="leaderboard-category '+(c.id===selected.id?'active':'')+'" id="lb-'+c.id+'" type="button" aria-pressed="'+(c.id===selected.id?'true':'false')+'">'+esc(c.label)+'</button>').join('');
  const listing=rows.length?rows.map((run,i)=>{
    const players=(run.roster||[]).map(id=>BY.get(id)?.name||'Unknown').join(' · ');
-   const matches=(run.matches||[]).map(m=>esc(m.boss)+' '+esc(m.score.join('–'))).join(' · ');
+   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(m.boss)+' '+esc(m.score.join('–'))+'</summary>'+matchReportHtml(m)+'</details>').join('');
    return '<div class="leaderboard-row">'+
     '<span class="lb-rank">#'+(i+1)+'</span><div class="lb-identity"><strong>'+(run.champion?'🏆 CHAMPION RUN':'INDIGO RUN')+'</strong><small>'+
     esc(run.formation||'4-3-3')+' · '+esc(String(run.finishedAt||'').slice(0,10))+'</small></div>'+
     '<strong class="lb-record">'+Number(run.wins||0)+'W–'+Number(run.losses||0)+'L</strong>'+
     '<strong class="lb-score">'+Number(run.teamScore||0).toFixed(1)+'</strong>'+
     '<span class="lb-gd">'+(Number(run.goalDifference||0)>=0?'+':'')+Number(run.goalDifference||0)+' GD</span>'+
-    '<details class="lb-details"><summary>View XI &amp; matches</summary><p>'+esc(players)+'</p><p>'+matches+'</p></details></div>';
+    '<details class="lb-details"><summary>View XI &amp; matches</summary><p>'+esc(players)+'</p><div>'+matches+'</div></details></div>';
   }).join(''):'<div class="leaderboard-empty"><strong>NO COMPLETED RUNS YET</strong><p>Finish a Challenge in this category to appear here. Results are saved only in this browser.</p><button id="leaderboardStart" type="button">START A CHALLENGE →</button></div>';
  return '<section class="panel challenge-leaderboard-panel">'+
   '<div class="lb-heading"><div><span class="pfc-eyebrow">CHALLENGES · PERSONAL HALL OF FAME</span>'+
