@@ -61,6 +61,14 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
  <button id="challengeTabRankings" type="button">LEADERBOARDS <span>LOCAL BETA</span></button>
 </nav>
 <main id="app"></main>
+<dialog id="challengeMessageModal" class="challenge-dialog challenge-message-modal" aria-labelledby="challengeMessageTitle" aria-describedby="challengeMessageText">
+ <div class="challenge-message-content">
+  <span class="challenge-dialog-kicker">POKÉFC · CHALLENGES</span>
+  <h2 id="challengeMessageTitle">MESSAGE</h2><p id="challengeMessageText"></p>
+  <textarea id="challengeMessageCopy" readonly hidden aria-label="Text to copy manually"></textarea>
+  <div class="challenge-message-actions"><button type="button" id="challengeMessageCancel">CANCEL</button><button type="button" id="challengeMessageConfirm" class="primary">OK</button></div>
+ </div>
+</dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
 <script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
@@ -183,7 +191,34 @@ let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
 const MATCH_REPORT=window.PFC_MATCH_REPORT;
-let challengeView='run',boardCategory='classic-standard';
+let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false;
+function openDialog(d){
+ if(!d)return;
+ if(typeof d.showModal==='function'){if(!d.open)d.showModal()}
+ else{d.setAttribute?.('open','');d.open=true}
+}
+function closeDialog(d){
+ if(!d)return;
+ if(typeof d.close==='function'){if(d.open)d.close()}
+ else{d.removeAttribute?.('open');d.open=false}
+}
+function showChallengeMessage(title,message,options={}){
+ const d=document.getElementById('challengeMessageModal');
+ if(!d)return;
+ const cancel=document.getElementById('challengeMessageCancel'),ok=document.getElementById('challengeMessageConfirm'),copy=document.getElementById('challengeMessageCopy');
+ document.getElementById('challengeMessageTitle').textContent=title;
+ document.getElementById('challengeMessageText').textContent=message;
+ const needsConfirm=typeof options.onConfirm==='function';
+ cancel.hidden=!needsConfirm;
+ ok.textContent=options.confirmLabel||(needsConfirm?'CONFIRM':'OK');
+ ok.classList?.toggle?.('is-destructive',Boolean(options.destructive));
+ if(copy){copy.hidden=typeof options.copyText!=='string';copy.value=options.copyText||''}
+ cancel.onclick=()=>closeDialog(d);
+ ok.onclick=()=>{closeDialog(d);if(needsConfirm)options.onConfirm()};
+ openDialog(d);
+ if(options.copyText&&typeof copy?.select==='function')copy.select();
+}
+
 function syncChallengeNav(){
  const run=document.getElementById('challengeTabRun'),board=document.getElementById('challengeTabRankings');
  run.className=challengeView==='run'?'active':'';
@@ -309,7 +344,7 @@ function completedRunCard(){
  const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–'))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
-  '<h2>'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
+  '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
   '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Save your squad and results or try another draft.')+'</p>'+
   '<div class="run-metrics"><div><span>TEAM SCORE</span><strong>'+r.score.toFixed(1)+'</strong></div>'+
   '<div><span>RECORD</span><strong>'+r.wins+'W · '+r.lost+'L</strong></div>'+
@@ -514,7 +549,10 @@ if(st.phase==='result'){
  (win?'<button id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button>':'')+
  '</section>';
 }
-if(st.phase==='finished')body+=completedRunCard();
+if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><div><strong>RUN COMPLETE</strong><p>Your finished Gauntlet results are saved in this browser.</p></div><button type="button" id="openRunModal" class="primary">VIEW RUN RESULTS →</button></section>'+
+ '<dialog id="runCompleteModal" class="challenge-dialog challenge-run-dialog" aria-labelledby="runResultTitle">'+
+ '<div class="challenge-dialog-bar"><span>POKÉFC · GAUNTLET RESULTS</span><button type="button" id="closeRunModal" aria-label="Close run results">✕ CLOSE</button></div>'+
+ completedRunCard()+'</dialog>';
 body+='</div></div><section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
 if(st.phase==='draft'){
  const wasTriggered=pendingRollAnimation;
@@ -658,11 +696,18 @@ if((st.phase==='draft'||st.phase==='shop')&&st.formationChanges>0){
 if(st.phase==='draft'&&st.moves>0&&filled>0&&filled<11){
  document.getElementById('movePick').onclick=()=>{const from=+document.getElementById('moveFrom').value,to=+document.getElementById('moveTo').value;if(!Number.isInteger(from)||!Number.isInteger(to)||!st.roster[from]||st.roster[to]!==null||from===to)return;st.roster[to]=st.roster[from];st.roster[from]=null;st.selected=from;st.moves--;save();render()};
 }
-if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{if(st.roster.some(x=>!x)||used>1000)return;if(!confirm('Lock your XI, positions, tactics and items for the gauntlet?'))return;st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));save();render()}}
+if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{
+ if(st.roster.some(x=>!x)||used>1000)return;
+ showChallengeMessage('LOCK FINAL XI?','Your XI, formation, tactics and held items will be locked for all six Gauntlet matches.',{confirmLabel:'LOCK MY XI',onConfirm:()=>{
+  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;
+  st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));
+  save();render();
+ }});
+}}
 if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
  st.result=playBoss();st.history.push({...st.result});
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
- if(st.phase==='finished'){savePersonalRecord();BOARD?.archive(st,localStorage)}
+ if(st.phase==='finished'){runRecapDismissed=false;savePersonalRecord();BOARD?.archive(st,localStorage)}
  save();render()
 }catch(e){alert('Quick Sim error: '+e.message)}};
 if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
@@ -717,7 +762,7 @@ if(st.phase==='finished'){
  };
 }
 
-document.getElementById('reset').onclick=()=>{if(confirm('Abandon this local Challenge run?')){st=initial();save();render()}}}
+document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
  const key='pokefc-challenge-personal-records-v1';
