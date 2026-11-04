@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#08130f" />
+<meta name="description" content="PokeFC is a fan-made Pokémon soccer lineup builder, fantasy draft and football franchise simulator. Draft your impossible starting XI." />
+<title>PokeFC · Build your impossible starting eleven</title>
+<link rel="stylesheet" href="./styles.css?v=5" />
+<link rel="stylesheet" href="./arcade.css?v=5" />
+<link rel="stylesheet" href="./franchise.css?v=5" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<script src="./pokemon.js?v=5" defer></script>
+<script src="./draft.js?v=5" defer></script>
+<script src="./app.js?v=5" defer></script>
+<script src="./arcade.js?v=5" defer></script>
+<script src="./franchise.js?v=5" defer></script>
+</head>
+<body>
+<div class="app-shell">
+<header class="site-header">
+  <div class="brand" role="banner"><span class="brand-mark" aria-hidden="true">✦</span><span class="brand-type">Poke<span class="brand-em">FC</span><small>MONSTER FOOTBALL CLUB</small></span></div>
+  <nav class="main-nav" aria-label="Main navigation">
+    <button class="nav-link active" data-page="builder"><span class="nav-index">01</span> Builder</button>
+    <button class="nav-link" data-page="draft"><span class="nav-index">02</span> Draft</button>
+    <button class="nav-link" data-page="franchise"><span class="nav-index">03</span> Franchise</button>
+    <button class="nav-link" data-page="match"><span class="nav-index">04</span> Simulate</button>
+    <button class="nav-link" data-page="arcade"><span class="nav-index">05</span> Arcade</button>
+    <button class="nav-link" data-page="teams"><span class="nav-index">06</span> My Teams</button>
+  </nav>
+  <div class="header-end"><span class="online-dot"></span><span>LOCAL SAVE · GEN I STATS</span></div>
+</header>
+
+<main>
+<section id="builderPage" class="page active" aria-labelledby="builderTitle">
+  <div class="page-heading">
+    <div><p class="eyebrow"><span class="eyebrow-line"></span> THE WORLD'S MOST UNLIKELY FOOTBALL CLUB</p><h1 id="builderTitle">Build your <em>impossible</em> XI<span class="period">.</span></h1><p class="page-subtitle">Eleven positions. One pitch. 151 Pokémon to choose from. Make every pick count.</p></div>
+    <div class="heading-actions"><button class="btn btn-ghost" id="randomBtn">↻ &nbsp; Random XI</button><button class="btn btn-primary" id="saveBtn">＋ &nbsp; Save Club</button></div>
+  </div>
+  <div class="club-bar"><div class="team-name-group"><label for="teamName">CLUB NAME</label><input id="teamName" type="text" maxlength="34" value="Indigo Athletic" aria-label="Club name" /></div>
+    <div class="formation-group"><span class="small-label">FORMATION</span><div class="formation-controls" id="formationControls" role="group" aria-label="Formation"></div></div>
+    <div class="club-score"><span class="small-label">SQUAD RATING</span><strong id="teamRating">—</strong><span class="filled-tag" id="filledTag">0/11 PLAYERS</span></div>
+  </div>
+  <div class="builder-grid">
+    <div class="pitch-panel">
+      <div class="panel-cap"><span><span class="live-pin"></span> STARTING LINEUP</span><span id="pitchCaption">4-3-3 · CLICK A POSITION TO EDIT</span></div>
+      <div class="pitch" id="pitch" aria-label="Interactive soccer lineup"><div class="pitch-half"></div><div class="center-circle"></div><div class="center-dot"></div><div class="box-top"></div><div class="goal-top"></div><div class="arc-top"></div><div class="box-bottom"></div><div class="goal-bottom"></div><div class="arc-bottom"></div><div id="pitchSlots"></div></div>
+      <div class="pitch-footer"><span>◉ <strong id="chemistry">0</strong> CHEMISTRY</span><span>⚡ <strong id="avgPace">—</strong> AVG PACE</span><span>◈ <strong id="avgDefense">—</strong> AVG DEFENSE</span><span class="footer-hint">Tap a slot to edit • Click to assign</span></div>
+    </div>
+    <aside class="scout-panel" aria-label="Pokémon scouting">
+      <div class="scout-head"><div><p class="eyebrow small">SCOUTING DEPARTMENT</p><h2 id="scoutHeading">Select a position</h2><p id="scoutExplanation">Tap a marker on the pitch to begin building.</p></div><span class="position-pill" id="selectedPositionTag">XI</span></div>
+      <div class="selected-player" id="selectedPlayer"></div><div class="selected-base-stats" id="selectedBaseStats"></div>
+      <div class="scout-controls"><label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" autocomplete="off" placeholder="Search Pokémon or #..." aria-label="Search Pokémon" /></label><select id="typeFilter" aria-label="Filter by type"><option value="all">All types</option></select></div>
+      <div class="list-header"><span id="resultsCount">151 PROSPECTS</span><span id="sortHint">SORTED BY POSITION FIT ↓</span></div>
+      <div class="scout-list" id="scoutList"></div>
+      <div class="scout-bottom"><span>GEN I BASE STATS · POKÉAPI · FAN SOCCER CONVERSION</span><button id="clearSlot" class="btn-link">Clear selected slot ↗</button></div>
+    </aside>
+  </div>
+  <div class="utility-row"><button class="utility-btn" id="shareBtn"><span>↗</span><strong>Copy lineup link</strong><small>Share this exact starting XI</small></button><button class="utility-btn" id="pngBtn"><span>▣</span><strong>Export team poster</strong><small>Download a PNG of your club</small></button><button class="utility-btn" id="clearBtn"><span>×</span><strong>Clear pitch</strong><small>Start from an empty sheet</small></button><button class="utility-btn highlighted" id="playBtn"><span>⚽</span><strong>Take the field</strong><small>Play the arcade side quest</small></button></div>
+</section>
+
+<section id="draftPage" class="page" aria-labelledby="draftTitle">
+<div class="page-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> FOUR CLUBS · ELEVEN ROUNDS</p><h1 id="draftTitle">The <em>fantasy draft</em><span class="period">.</span></h1><p class="page-subtitle">Four-club snake draft. CPU managers compete for the same Pokémon, while you scout three prospects per round. Your draft auto-saves.</p></div><button class="btn btn-ghost" id="restartDraftBtn">↻ &nbsp; New draft</button></div>
+<div class="draft-layout"><div class="draft-main card-surface"><div class="draft-topline"><span class="eyebrow small" id="draftRound">ROUND 01 / 11</span><span class="draft-rerolls" id="rerollsLabel">3 REROLLS REMAINING</span></div><div class="draft-type-wrap"><p>YOUR SCOUTING ASSIGNMENT</p><div id="draftType" class="draft-type">ELECTRIC</div><p>Choose one Pokémon from this type for your squad. CPU rivals are drafting too.</p></div><div class="draft-offers" id="draftOffers"></div><div class="draft-actions"><button id="rerollDraftBtn" class="btn btn-ghost">↻ Reroll type</button><span>Every Pokémon is exclusive to one club.</span></div><div id="draftEnd" class="draft-end" hidden></div></div>
+<div class="draft-side card-surface"><div class="small-label">YOUR DRAFT BOARD</div><div class="draft-completion"><span id="draftCount">0</span><span>/11</span></div><div class="progress-track"><div id="draftProgress"></div></div><h3>Place your next pick</h3><p>Choose an empty position. We'll show its fit rating for every prospect.</p><div id="draftPositions" class="draft-positions"></div><div class="draft-tip"><strong>TIP FROM THE TOUCHLINE</strong><p>Draft by position fit. All four clubs share one pool, so a Pokémon picked by another manager is off the board.</p></div><div class="small-label draft-mini-heading">LIVE CLUB BOARDS</div><div id="draftRivals" class="draft-rivals"></div><div class="small-label draft-mini-heading">RECENT DRAFT PICKS</div><div id="draftFeed" class="draft-feed"></div></div></div>
+</section>
+
+
+<section id="franchisePage" class="page" aria-labelledby="franchiseTitle">
+ <div class="page-heading franchise-head"><div><p class="eyebrow"><span class="eyebrow-line"></span> MANAGER CAREER · INDIGO LEAGUE</p><h1 id="franchiseTitle">Build a <em>dynasty</em><span class="period">.</span></h1><p class="page-subtitle">Manage a Pokémon football club across seasons: fixtures, tactics, transfers, finances and development.</p></div><div class="heading-actions"><button class="btn btn-ghost" id="franchiseBuilderBtn">↖ Builder</button><button class="btn btn-ghost" id="franchiseBackupBtn">↓ Backup</button><button class="btn btn-ghost" id="franchiseImportBtn">↑ Restore</button><input type="file" id="franchiseImportInput" accept=".json,application/json" hidden><button class="btn btn-ghost" id="franchiseResetBtn">↻ New career</button></div></div>
+ <div id="franchiseStart" class="franchise-intro card-surface"><span class="eyebrow">CAREER MODE · SEASON 1</span><h2>Lead your Starting XI to glory.</h2><p>Your current Builder or Draft XI becomes your founding squad. Seven CPU clubs, 14 matchweeks, two transfer windows and a full league table. The game saves automatically in this browser.</p><div id="franchisePreview"></div><button id="franchiseStartBtn" class="btn btn-primary">Start Franchise →</button><p class="franchise-tip">You need 11 unique Pokémon in your Builder before starting. The original Builder remains a separate sandbox.</p></div>
+ <div id="franchiseDashboard" hidden>
+  <div class="franchise-metrics" id="franchiseMetrics"></div>
+  <div class="franchise-main">
+   <div class="franchise-panel card-surface"><div class="franchise-panel-head"><div><p class="eyebrow small">INDIGO LEAGUE</p><h2>League table</h2></div><span id="franchiseSeasonLabel" class="franchise-pill">SEASON 1</span></div><div class="franchise-scroll"><table class="franchise-table" id="franchiseTable"></table></div><div id="franchiseHistory" class="franchise-history"></div></div>
+   <div class="franchise-panel card-surface"><div class="franchise-panel-head"><div><p class="eyebrow small">THE TOUCHLINE</p><h2 id="franchiseNextTitle">Next fixture</h2></div><span class="franchise-pill" id="franchiseRoundLabel">MW 01 / 14</span></div><div class="franchise-match-card" id="franchiseNext"></div><label class="form-label" for="franchiseTactic">YOUR MATCH TACTIC</label><select id="franchiseTactic"><option value="balanced">Balanced</option><option value="attack">Attacking</option><option value="defend">Defensive</option><option value="counter">Counter-attack</option></select><button id="franchiseAdvanceBtn" class="btn btn-primary btn-wide">Simulate matchweek →</button><div class="franchise-fixtures" id="franchiseFixtures"></div></div>
+  </div>
+  <div class="franchise-lower">
+   <div class="franchise-panel card-surface"><div class="franchise-panel-head"><div><p class="eyebrow small">SQUAD MANAGEMENT</p><h2>Your squad &amp; XI</h2></div><button id="franchiseCopyBtn" class="btn btn-ghost">Send XI to Builder ↗</button></div><p class="franchise-muted">Choose a starter for each position. Swap players and use training points to boost their performance in your career.</p><div id="franchiseSquad"></div><div class="franchise-subhead">RESERVES &amp; TRAINING</div><div id="franchiseBench"></div></div>
+   <div class="franchise-panel card-surface"><div class="franchise-panel-head"><div><p class="eyebrow small">TRANSFER CENTER</p><h2>Scout the market</h2></div><span class="franchise-pill" id="franchiseMarketBadge">WINDOW OPEN</span></div><div class="franchise-market-filter"><input type="search" id="franchiseSearch" placeholder="Search Pokémon..." autocomplete="off"/><select id="franchiseFilter"><option value="all">Any role</option><option value="GK">Goalkeeper</option><option value="CB">Defender</option><option value="CM">Midfielder</option><option value="ST">Forward</option></select></div><div id="franchiseMarket"></div><div class="franchise-subhead">CLUB FINANCES</div><div id="franchiseFinances"></div></div>
+  </div>
+  <div class="franchise-panel card-surface franchise-feed"><div class="franchise-panel-head"><div><p class="eyebrow small">CLUB BULLETIN</p><h2>Manager's inbox</h2></div><span class="franchise-pill">AUTO-SAVED</span></div><div id="franchiseNews"></div></div>
+ </div>
+</section>
+
+<section id="arcadePage" class="page" aria-labelledby="arcadeTitle">
+  <div class="page-heading arcade-heading">
+    <div><p class="eyebrow"><span class="live-pin"></span> THE NEXT GENERATION · ARCADE ALPHA</p><h1 id="arcadeTitle">Play the <em>beautiful game</em><span class="period">.</span></h1><p class="page-subtitle">Your actual Starting XI, on a live 11v11 field. Take control, pass, press, and score.</p></div>
+    <div class="heading-actions"><button id="arcadeEditBtn" class="btn btn-ghost">↖ Edit your XI</button><button id="arcadeRandomBtn" class="btn btn-ghost">↻ Random lineup</button></div>
+  </div>
+  <div class="arcade-top">
+    <div class="arcade-scoreboard"><span class="arcade-badge">✦ F XI</span><span class="arcade-club" id="arcadeHome">INDIGO ATHLETIC</span><span class="arcade-count" id="arcadeHomeScore">0</span><span class="arcade-divider">:</span><span class="arcade-count" id="arcadeAwayScore">0</span><span class="arcade-club" id="arcadeAway">PEWTER ROVERS</span><span class="arcade-clock" id="arcadeClock">00:00</span><span class="arcade-live" id="arcadeStatus">READY</span></div>
+    <div class="arcade-game-frame"><canvas id="arcadeCanvas" role="img" aria-label="Playable overhead soccer field with eleven Pokémon-inspired team markers on each side. Use keyboard or on-screen controls."></canvas>
+      <div class="arcade-touch-controls" id="arcadeTouchControls" aria-label="Touch controls"><div id="arcadeJoystick" class="arcade-joystick"><div class="arcade-joystick-ring"></div><div class="arcade-stick-knob" id="arcadeStickKnob"></div><span>MOVE</span></div>
+        <div class="arcade-touch-actions"><button data-arcade-action="switch" class="arcade-tap util-tap">SWITCH</button><button data-arcade-action="tackle" class="arcade-tap util-tap">TACKLE</button><button data-arcade-action="through" class="arcade-tap pass-tap">THROUGH</button><button data-arcade-action="pass" class="arcade-tap pass-tap">PASS</button><button data-arcade-action="shoot" class="arcade-tap shot-tap">SHOOT</button></div>
+      </div>
+    </div>
+    <div class="arcade-action-bar"><div class="arcade-current-player"><span class="arcade-player-icon">◉</span><div><span class="small-label">SELECTED PLAYER · <b id="arcadePlayerRole">ST</b></span><strong id="arcadePlayerName">—</strong><small id="arcadePlayerStat">PAC — · SHO — · PAS —</small></div></div>
+      <div class="arcade-kick"><div class="arcade-kick-head"><span>KICK POWER</span><span id="arcadeChargeLabel">READY</span></div><div class="arcade-kick-track"><div id="arcadeChargeBar"></div></div></div>
+      <div class="arcade-buttons"><button class="btn btn-primary" id="arcadeStartBtn">⚽ Kick off</button><button class="btn btn-outline" id="arcadeRestartBtn">↻ Restart</button></div></div>
+  </div>
+  <div class="arcade-lower-grid">
+    <div class="card-surface arcade-setup"><div class="arcade-card-head"><p class="eyebrow small">PRE-MATCH DESK</p><strong>01 / 03</strong></div><h2>Kickoff settings</h2><label class="form-label" for="arcadeOpponent">OPPONENT</label><select id="arcadeOpponent"></select><div class="arcade-substats"><div><span>SHOTS (HOME – AWAY)</span><b id="arcadeStatShots">0 – 0</b></div><div><span>PASSES ATTEMPTED</span><b id="arcadeStatPasses">0</b></div></div><p class="arcade-muted">Every Pokémon uses the pace, shot, passing, defending and physical ratings from your team builder. Unfilled positions use temporary squad stand-ins.</p></div>
+    <div class="card-surface arcade-guide"><div class="arcade-card-head"><p class="eyebrow small">HOW TO PLAY</p><strong>02 / 03</strong></div><h2>Controls</h2>
+      <div class="arcade-control-grid"><div><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd><span>Move</span></div><div><kbd>E</kbd><span>Sprint</span></div><div><kbd>S</kbd><span>Short pass</span></div><div><kbd>W</kbd><span>Through ball</span></div><div><kbd>D</kbd><span>Shoot / Tackle</span></div><div><kbd>A</kbd><span>Long pass</span></div><div><kbd>Q</kbd><span>Switch player</span></div><div><kbd>C</kbd><span>Pressure</span></div></div>
+      <p class="arcade-muted">Hold S, W, A or D for power, then release. Use the arrow keys to move. Space pauses the match. On touch screens, use the virtual joystick and buttons.</p>
+    </div>
+    <div class="card-surface arcade-feed"><div class="arcade-card-head"><p class="eyebrow small">TOUCHLINE REPORT</p><strong>03 / 03</strong></div><h2>Match commentary</h2><div id="arcadeEvents" class="arcade-feed-list"><div class="arcade-event"><b>00'</b><span>Build your lineup, then kick off.</span></div></div></div>
+  </div>
+  <div class="arcade-disclaimer">INDEPENDENT FAN PROJECT · ORIGINAL ARCADE PROTOTYPE · INSPIRED BY CLASSIC SOCCER GAMES · NOT THE OPEN SOCCER SOURCE ENGINE</div>
+</section>
+
+<section id="matchPage" class="page" aria-labelledby="matchTitle"><div class="page-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> STADIUM OPEN · KICKOFF READY</p><h1 id="matchTitle">It all comes down to <em>90 minutes</em><span class="period">.</span></h1><p class="page-subtitle">Put your XI through a single match or an 11-game league campaign.</p></div><button class="btn btn-ghost" data-page="builder">← &nbsp; Back to builder</button></div>
+<div class="match-grid"><div class="match-stage card-surface"><div class="match-marquee"><span>★ INDIGO LEAGUE</span><span>FULL-TIME SIMULATION</span></div><div class="match-scoreboard"><div class="team-identity"><div class="team-crest home-crest">XI</div><h3 id="homeClub">Indigo Athletic</h3><span>HOME</span></div><div class="main-score"><div class="score-numbers"><span id="homeGoals">–</span><small>:</small><span id="awayGoals">–</span></div><span class="score-caption" id="resultCaption">READY FOR KICKOFF</span></div><div class="team-identity"><div class="team-crest away-crest" id="awayCrest">FC</div><h3 id="awayClub">Pewter Rovers</h3><span>AWAY</span></div></div><div class="match-facts" id="matchFacts"><span>Possession <b>—</b></span><span>Shots <b>—</b></span><span>Expected goals <b>—</b></span></div><div class="match-events" id="matchEvents"><p class="empty-events">Select an opponent and kick off to see match commentary.</p></div></div>
+<div class="match-settings card-surface"><p class="eyebrow small">PRE-MATCH TACTICS</p><h2>Manage your match</h2><label class="form-label" for="opponentSelect">OPPONENT</label><select id="opponentSelect"></select><label class="form-label" for="tacticSelect">PLAYING STYLE</label><select id="tacticSelect"><option value="balanced">Balanced — control the game</option><option value="attack">Attacking — push high</option><option value="defend">Defensive — protect the goal</option><option value="counter">Counter-attack — break quickly</option></select><div class="match-team-stats"><div><span>STARTING XI</span><strong id="matchFilled">0 / 11</strong></div><div><span>TEAM RATING</span><strong id="matchRating">—</strong></div><div><span>CHEMISTRY</span><strong id="matchChem">—</strong></div></div><button class="btn btn-primary btn-wide" id="kickoffBtn">⚽ &nbsp; PLAY ONE MATCH</button><button class="btn btn-outline btn-wide" id="seasonBtn">🏆 &nbsp; SIMULATE 11-MATCH SEASON</button><p class="sim-disclaimer">Illustrative, randomized football outcomes—not a real-time action game.</p></div></div>
+<div class="season-results card-surface" id="seasonResults" hidden></div>
+</section>
+
+<section id="teamsPage" class="page" aria-labelledby="teamsTitle"><div class="page-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> THE CLUB ARCHIVES</p><h1 id="teamsTitle">Your <em>saved clubs</em><span class="period">.</span></h1><p class="page-subtitle">Keep multiple starting elevens, load your favorites, and test new formations.</p></div><button class="btn btn-primary" data-page="builder">＋ &nbsp; Create a club</button></div><div class="saved-clubs" id="savedClubs"></div></section>
+</main>
+<footer><div><strong>PokeFC</strong> <span>·</span> A FREE, UNOFFICIAL FAN GAME</div><div>Runs entirely on your SiteGround hosting. Club data stays in this browser unless shared.</div><p>Pokémon names belong to their respective owners. Not affiliated with or endorsed by Nintendo, Game Freak, Creatures, or The Pokémon Company. No copyrighted character images are included.</p></footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<canvas id="exportCanvas" hidden></canvas>
+</body>
+</html>

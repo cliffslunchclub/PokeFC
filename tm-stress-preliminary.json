@@ -1,0 +1,15 @@
+{
+  "description": "Observed genuine original-engine partial-duration stress in isolated execution environment on 2026-11-03. Not full-time calibration input.",
+  "originalEngineSource": "noddy703/tacticmesh",
+  "upstreamCommit": "603312dcf037bed0b0c817f8ba8a194eaebce8da",
+  "full90MinutesVerified": false,
+  "calibrationEligible": false,
+  "sourceOfInputs": "TacticMesh starter pack (fictional teams), not the new 32-gym FUTBOL XI bridge",
+  "simulationHz": 60,
+  "results": [
+    {"seed": 63716, "ticks": 7200, "gameSeconds": 120, "wallSeconds": 17.42, "ticksPerWallSecond": 413, "snapshotChecks": 12, "activePlayersPerSnapshot": 22, "events": 96, "goals": 0, "score": {"home": 0, "away": 0}, "status": "running"},
+    {"seed": 79243, "ticks": 7200, "gameSeconds": 120, "wallSeconds": 18.34, "ticksPerWallSecond": 393, "snapshotChecks": 12, "activePlayersPerSnapshot": 22, "events": 97, "goals": 0, "score": {"home": 0, "away": 0}, "status": "running"}
+  ],
+  "totalTicks": 14400,
+  "totalWallSeconds": 35.76
+}

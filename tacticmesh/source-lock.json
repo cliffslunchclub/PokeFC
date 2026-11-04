@@ -1,0 +1,20 @@
+{
+  "repository": "noddy703/tacticmesh",
+  "commit": "603312dcf037bed0b0c817f8ba8a194eaebce8da",
+  "hashAlgorithm": "git-blob-sha1",
+  "files": {
+    "src/core.js": "fdb0bc76fd7f3c1c3f65b6478dc158271b7b5a4f",
+    "src/analysis.js": "cc65543cd78e6fa1ef19d79a9d1d412b960bf91b",
+    "src/world.js": "0011811eec78681c9af4d8b1dd47392ded437422",
+    "src/tactics.js": "b8ff076e97f0d374c772936ac246ec4fdee1f855",
+    "src/intelligence.js": "917edc62429b056ac8d3974dd32ddf878fa839de",
+    "src/physics.js": "d544bebb1e70647d2a68f4be6253154f0887e0cb",
+    "src/rules.js": "addda051474f079375a9d8236d9b588cf174a114",
+    "src/telemetry.js": "6ee5e574d3b2da52b254b6a3e3f064ccb67a3d60",
+    "src/product-data.js": "d1d2d5c4a47e2b75188c89483c9f8402f3780d63",
+    "src/engine-facade.js": "3f150bbf71522183f0f322574a18c0241a83ffdd",
+    "src/product-reports.js": "b21d62b6b520c136a466485ade889c42de281263",
+    "LICENSE": "4ea8e3218eb98ce7ba2f7edad2129072d55bc184",
+    "THIRD_PARTY_NOTICES.md": "8fc06cef814d80c087a695d57e840442736a8f16"
+  }
+}

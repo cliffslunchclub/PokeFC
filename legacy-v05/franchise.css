@@ -1,0 +1,73 @@
+/* Franchise Mode — original, responsive club-management screen. */
+#franchisePage{--fx-border:#34533b;--fx-card:#15291f;--fx-lime:#def569}
+.franchise-intro{padding:42px 40px;background:linear-gradient(135deg,#1f4831,#102418);max-width:810px}
+.franchise-intro h2{font-size:clamp(29px,4vw,46px);letter-spacing:-1.5px;margin:12px 0}
+.franchise-intro p{max-width:650px;color:#b0c6b2;line-height:1.65}
+.franchise-preview{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:12px;border:1px solid #4b7a48;background:#162f20;padding:17px 19px;border-radius:12px;margin:25px 0;color:#e4f6df}
+.franchise-preview b{font-size:20px}.franchise-preview span{color:#a8d1ae;font-size:12px}
+.franchise-intro .franchise-tip{color:#789c86;font-size:12px;margin:18px 0 0}
+.franchise-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:17px}
+.franchise-metric{background:linear-gradient(155deg,#1d3a29,#12271c);border:1px solid var(--fx-border);border-radius:12px;padding:19px;display:flex;flex-direction:column;gap:9px}
+.franchise-metric>span{color:#94b199;font-size:10px;font-weight:900;letter-spacing:1.1px}
+.franchise-metric strong{font-size:clamp(20px,2.4vw,30px);letter-spacing:-.7px;color:var(--fx-lime);white-space:nowrap}
+.franchise-metric small{font-size:11px;color:#8fab95}
+.franchise-main{display:grid;grid-template-columns:1.05fr .95fr;gap:17px;margin-bottom:17px}
+.franchise-lower{display:grid;grid-template-columns:1.08fr .92fr;gap:17px;margin-bottom:17px}
+.franchise-panel{min-width:0;padding:25px}
+.franchise-panel-head{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:20px}
+.franchise-panel-head h2{font-size:clamp(21px,2vw,29px);letter-spacing:-.8px;margin:4px 0 0;color:#f1f9ec}
+.franchise-pill{display:inline-block;border:1px solid #42604a;border-radius:5px;padding:7px 9px;color:#a7c69a;font-size:10px;letter-spacing:.7px;white-space:nowrap;font-weight:800}
+.franchise-scroll{overflow:auto}
+.franchise-table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:12px}
+.franchise-table th{color:#91ae98;text-align:center;font-size:9px;letter-spacing:.7px;padding:12px 7px;border-bottom:1px solid #42634a}
+.franchise-table td{padding:13px 7px;text-align:center;border-bottom:1px solid #2a4533;color:#b6d1bb}
+.franchise-table td:nth-child(2),.franchise-table th:nth-child(2){text-align:left}
+.franchise-table td:nth-child(2){font-weight:800;color:#e2f0dc}
+.franchise-table td:last-child strong{color:var(--fx-lime);font-size:15px}
+.franchise-table .my-club{background:#36532b88}
+.franchise-table .my-club td:nth-child(2){color:#e9fcba}
+.franchise-history{font-size:11px;color:#829e89;margin-top:19px}
+.franchise-history strong{font-size:10px;letter-spacing:1px;color:var(--fx-lime)}
+.franchise-history>div{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.franchise-history>div>span{border:1px solid #3f5c45;border-radius:5px;padding:8px;color:#c8dfc9}
+.franchise-versus{display:grid;grid-template-columns:1fr auto 1fr;gap:15px;align-items:center;justify-items:center;text-align:center;min-height:106px}
+.franchise-versus>span{font-size:clamp(13px,1.6vw,22px);font-weight:900;color:#ecf7e8}
+.franchise-versus>b{font-weight:950;font-size:23px;color:var(--fx-lime)}
+.franchise-match-card{padding:15px 12px;border:1px solid #3d6b4a;background:radial-gradient(ellipse at center,#285337,#193326);border-radius:10px}
+.franchise-mini-meta{text-align:center;color:#a6c99f;font-size:10px;letter-spacing:1px;font-weight:850;margin-bottom:10px}
+#franchiseTactic{width:100%;max-width:none;padding:12px;background:#0e2118;color:#e2f6e3;border:1px solid #47664a;border-radius:7px;margin-bottom:13px}
+#franchiseAdvanceBtn{width:100%}
+.franchise-subhead{border-top:1px solid #35533c;padding-top:17px;margin:20px 0 11px;color:#a8c4a2;font-size:10px;letter-spacing:1px;font-weight:900}
+.franchise-fixture{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #27452e;font-size:11px;color:#adcbaf}
+.franchise-fixture span:last-child{text-align:right}
+.franchise-fixture b{color:#e0efda;font-size:14px;white-space:nowrap}
+.franchise-fixture.highlight{color:var(--fx-lime)}
+.franchise-muted{color:#9bb3a1;line-height:1.6;font-size:12px}
+.franchise-xi{display:grid;gap:6px;margin-top:18px}
+.franchise-squad-row{display:grid;grid-template-columns:45px 32px minmax(0,1fr) 38px 42px;align-items:center;gap:7px;border:1px solid #304b37;background:#142c1c;border-radius:7px;padding:7px}
+.franchise-role{color:var(--fx-lime);font-weight:900;font-size:12px}
+.franchise-squad-row select{min-width:0;max-width:none;width:100%;padding:9px 6px;background:#0e2016;color:#e3f0e0;font-size:12px;border-radius:5px;border:1px solid #365a40}
+.franchise-rating{text-align:right;font-weight:900;font-size:15px;color:#e6f9d4}
+.franchise-fitness{text-align:right;font-size:10px;color:#96b7a1}
+.franchise-squad-row .mini-mon,.franchise-bench-row .mini-mon,.franchise-market-row .mini-mon{width:30px;height:30px;margin:0;flex:0 0 30px;font-size:9px}
+.franchise-bench-row,.franchise-market-row{display:flex;align-items:center;gap:9px;padding:9px 2px;border-bottom:1px solid #2d4c35}
+.franchise-bench-info,.franchise-market-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.franchise-bench-info b,.franchise-market-info b{color:#e0f3df;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.franchise-bench-info small,.franchise-market-info small{color:#97ae98;font-size:10px}
+.franchise-tiny-btn{background:#314a35;color:#def3c9;border:1px solid #5b8558;padding:8px 9px;font-size:10px;font-weight:900;border-radius:5px;white-space:nowrap;min-height:30px}
+.franchise-tiny-btn:hover:not(:disabled){background:#4b6a46;border-color:var(--fx-lime)}
+.franchise-tiny-btn:disabled{opacity:.33;cursor:default}
+.franchise-tiny-btn.danger{color:#e9bdaf;border-color:#7a5149;background:#3f2724}
+.franchise-market-filter{display:grid;grid-template-columns:1fr 120px;gap:8px;margin:9px 0 16px}
+.franchise-market-filter input,.franchise-market-filter select{min-width:0;max-width:none;width:100%;background:#0f2418;color:#e3f4e2;border:1px solid #3f5e45;border-radius:7px;padding:10px;font-size:12px}
+#franchiseMarket{max-height:400px;overflow-y:auto;scrollbar-color:#60876c #13281d}
+.franchise-finance-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #294735;color:#a6c4ac;font-size:12px}
+.franchise-finance-row b{color:#e8f7dd;text-align:right}
+.franchise-feed{margin-bottom:30px}
+#franchiseNews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.franchise-news{border:1px solid #355641;border-radius:7px;background:#132b1e;padding:13px}
+.franchise-news>span{font-size:9px;letter-spacing:1px;font-weight:900;color:#b6d271}
+.franchise-news>p{color:#bcd0bc;font-size:12px;line-height:1.5;margin:7px 0 0}
+@media(max-width:1050px){.franchise-metrics{grid-template-columns:repeat(3,1fr)}.franchise-main,.franchise-lower{grid-template-columns:1fr}.franchise-panel{padding:20px}}
+@media(max-width:700px){.franchise-metrics{grid-template-columns:repeat(2,1fr)}.franchise-metric strong{font-size:23px}.franchise-intro{padding:27px 19px}.franchise-preview{align-items:start;flex-direction:column}.franchise-table th,.franchise-table td{padding:11px 5px;font-size:10px}.franchise-table td:last-child strong{font-size:11px}#franchiseNews{grid-template-columns:1fr}.franchise-head .heading-actions{display:flex;flex-wrap:wrap}.franchise-versus>span{font-size:14px}}
+@media(max-width:400px){.franchise-metrics{grid-template-columns:1fr 1fr;gap:7px}.franchise-metric{padding:14px}.franchise-squad-row{grid-template-columns:31px 26px minmax(0,1fr) 26px;gap:4px}.franchise-fitness{display:none}.franchise-squad-row .mini-mon{width:24px;height:24px;flex-basis:24px}.franchise-market-filter{grid-template-columns:1fr 104px}.franchise-panel{padding:13px}}

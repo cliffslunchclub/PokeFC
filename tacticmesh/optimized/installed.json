@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "603312dcf037bed0b0c817f8ba8a194eaebce8da",
+  "notes": "Experimental micro-optimization; source originals remain untouched under vendor/",
+  "files": {
+    "telemetry.js": "c20c66f04503e717acb8887f6052a775683fce43c1cd95014ced742dcee4a27f",
+    "analysis.js": "b9b63122427ae519ab7eea76cf26283bfa3430fad7fe7278f583c32b741f9d41",
+    "product-data.js": "213ce3af4aa5b67b027b17a014161ddfab3894608ceadd42937fa7e8f2f382cb",
+    "intelligence.js": "f407ef4fbf698759d6a7233c0600678108718bfc70dead8511c133256b581461",
+    "physics.js": "981df41becd7d96bae8d3b2559dde32b2a51551b42105042f754fc6f83b5890a",
+    "core.js": "66e155a7367aca54b996c4e763cf17171b4de8218d7f41afe6ad954b386afda7",
+    "world.js": "3324ad3f12cd3b2d2e6a90884bace0592c9b5d05bba209e50e87bc9f8bd96038",
+    "product-reports.js": "c6d933ada929d6fa43767da1e3629b7fcd7c413217300c7c00913fb215546193",
+    "tactics.js": "8a61cd470d27409613d2b0573914341af99bdef0217182ff2790d859087ed76b",
+    "rules.js": "e88afbe9f3a0ce8bd41d6030919c50daeb3882419692eda1f8878d0a9be335c7",
+    "engine-facade.js": "1bab8dec406d2ea03e4f7ce50dcb4fb529bc6bf0bbccd3852ba3f6ac89c3e16e"
+  }
+}
