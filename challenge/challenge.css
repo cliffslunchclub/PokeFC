@@ -379,3 +379,11 @@
 .lb-match-details summary{cursor:pointer;color:#b6efc7;font-weight:850;font-size:11px}
 .lb-match-details .gauntlet-match-report{margin:7px 0 0}
 @media(max-width:570px){.match-goal-event{grid-template-columns:34px 48px minmax(0,1fr);gap:5px;padding:8px 6px}.goal-minute{font-size:15px}.goal-club{font-size:8px}.goal-origin{grid-column:3;font-size:8px}.goal-info strong{font-size:11px}.match-stat-row{grid-template-columns:48px minmax(0,1fr) 48px}.match-report-heading strong{font-size:11px}.gauntlet-history-game summary{grid-template-columns:minmax(0,1fr) 38px 55px}}
+
+/* Tier-first draft list — clicking a position reorders cards S to D.
+   Hover updates fit badges only so the list never jumps under the cursor. */
+.challenge-pick-sort{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:11px 0 7px;padding:8px 10px;border:1px solid #38566a;border-radius:6px;background:#1b3545;color:#aac8d4;font-size:10px;letter-spacing:.06em;font-weight:850}
+.challenge-pick-sort strong{white-space:nowrap;color:#f4dc98;font-size:11px;letter-spacing:.08em}
+.challenge-pitch .slot.empty.preview{border-color:#a9efc0!important;background:#225447!important;box-shadow:0 0 0 2px #b7f7c055,0 5px 10px #0005!important}
+.challenge-pick-grid .pick{transition:background-color .12s ease}
+@media(max-width:560px){.challenge-pick-sort{font-size:9px;padding:7px 8px}.challenge-pick-sort strong{font-size:10px}}
