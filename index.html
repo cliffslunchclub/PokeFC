@@ -6,23 +6,24 @@
   <meta name="theme-color" content="#081a1c">
   <meta name="description" content="PokéFC: Build your free Pokémon football XI, play Challenges, or manage a 32-gym Franchise.">
   <title>PokéFC · Free XI Builder</title>
-  <link rel="stylesheet" href="./builder.css?v=2">
-  <link rel="stylesheet" href="./site.css?v=2">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg?v=1">
+  <link rel="stylesheet" href="./builder.css?v=3">
+  <link rel="stylesheet" href="./site.css?v=3">
   <script src="./national-species.js?v=1" defer></script>
-  <script src="./builder.js?v=2" defer></script>
+  <script src="./builder.js?v=3" defer></script>
 </head>
 <body>
   <header class="pfc-header">
-    <div class="pfc-shell pfc-head-row">
-      <a href="./" class="pfc-logo" aria-label="PokéFC — home"><span class="pfc-mark">⚽</span>POKÉ<b>FC</b></a>
-      <nav class="pfc-nav" aria-label="Game modes">
-        <a href="./play/">PLAY</a>
-        <a href="./challenge/">CHALLENGES</a>
-        <a href="./franchise/">FRANCHISE</a>
-      </nav>
-      <span class="pfc-beta">OPEN ALPHA</span>
-    </div>
-  </header>
+  <div class="pfc-shell pfc-head-row">
+    <a href="./" class="pfc-logo" aria-label="PokéFC home"><span class="pfc-mark"><img src="./favicon.svg?v=1" alt="" width="32" height="32"></span>POKÉ<b>FC</b></a>
+    <nav class="pfc-nav" aria-label="Game modes">
+      <a href="./play/">PLAY</a>
+      <a href="./challenge/">CHALLENGES</a>
+      <a href="./franchise/">FRANCHISE</a>
+    </nav>
+    <span class="pfc-beta">OPEN ALPHA</span>
+  </div>
+</header>
   <main class="shell">
     <section class="hero">
       <div class="hero-copy">
@@ -44,6 +45,7 @@
         <div><span class="eyebrow">FREE BUILDER · NATIONAL DEX · GEN I–IX</span><h2 id="builder-heading">Your Starting XI</h2></div>
         <span id="savedStatus" class="status-text" role="status">Autosaves in this browser</span>
       </div>
+      <p class="grading-guide">Scouting uses easy-to-read <strong>A–F position grades</strong> instead of numeric ratings. <a href="./ratings/">How are the grades calculated by position? ↗</a></p>
       <div class="setup-bar">
         <label>Club name <input id="clubName" maxlength="38" value="Indigo Athletic" aria-label="Club name"></label>
         <label>Formation <select id="formation" aria-label="Formation"><option>4-3-3</option><option>4-2-3-1</option><option>4-4-2</option><option>3-5-2</option><option>5-3-2</option></select></label>
@@ -51,7 +53,7 @@
       </div>
       <div class="workbench">
         <section class="field-panel" aria-label="Starting XI football pitch">
-          <div class="panel-heading"><div><b id="lineupName">Indigo Athletic</b><span id="lineupFormation">4-3-3 formation</span></div><div class="score-block"><strong id="teamScore">—</strong><span>AVG RATING</span></div></div>
+          <div class="panel-heading"><div><b id="lineupName">Indigo Athletic</b><span id="lineupFormation">4-3-3 formation</span></div><div class="score-block"><strong id="teamScore">—</strong><span>XI GRADE</span></div></div>
           <div id="pitch" class="pitch" aria-label="Select a position on the pitch">
             <div class="pitch-lines" aria-hidden="true"><div class="pitch-center"></div><div class="pitch-center-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div><div class="pitch-goal pitch-goal-top"></div><div class="pitch-goal pitch-goal-bottom"></div></div>
             <div id="pitchSlots"></div>
@@ -64,12 +66,12 @@
           <div class="filters"><label class="search-label">Search Pokémon <input type="search" id="search" placeholder="Name or Pokédex number..." autocomplete="off"></label>
           <label class="type-label">Generation <select id="genFilter" aria-label="Generation"><option value="">All 9</option><option value="1">Gen I</option><option value="2">Gen II</option><option value="3">Gen III</option><option value="4">Gen IV</option><option value="5">Gen V</option><option value="6">Gen VI</option><option value="7">Gen VII</option><option value="8">Gen VIII</option><option value="9">Gen IX</option></select></label>
           <label class="type-label">Type <select id="typeFilter"><option value="">All types</option></select></label></div>
-          <div class="prospect-bar"><span id="resultsCount">1,025 available</span><span>Best positional fit first</span></div>
+          <div class="prospect-bar"><span id="resultsCount">1,025 available</span><a class="ratings-link" href="./ratings/">How A–F grades work ↗</a></div>
           <div id="prospects" class="prospects" aria-live="polite"></div>
           <button id="more" class="btn btn-wide" hidden>Show more Pokémon</button>
         </section>
       </div>
-      <p class="disclaimer">Free Builder is unrestricted and unranked. The displayed positional ratings use a provisional formula while our shared gameplay rating model is being finalized. Default species forms are included; regional and cosmetic forms are not yet selectable. Your saved XI remains on this device.</p>
+      <p class="disclaimer">Free Builder is unrestricted and unranked. Grades indicate broad positional fit; underlying scoring details are intentionally not displayed while our gameplay model is being refined. Default species forms are included; regional and cosmetic forms are not yet selectable. Your saved XI remains on this device.</p>
     </section>
   </main>
   <footer class="site-footer shell"><span>PokéFC · An unofficial fan-made football project</span><span>Not affiliated with Nintendo, Game Freak or The Pokémon Company.</span></footer>
