@@ -709,9 +709,20 @@ if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
  if(st.phase==='finished'){runRecapDismissed=false;savePersonalRecord();BOARD?.archive(st,localStorage)}
  save();render()
-}catch(e){alert('Quick Sim error: '+e.message)}};
+}catch(e){showChallengeMessage('QUICK SIM ERROR',e?.message||'Unable to finish this match. Please try again.')}};
 if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
 if(st.phase==='finished'){
+ const runModal=document.getElementById('runCompleteModal');
+ const closeRecap=()=>{runRecapDismissed=true;closeDialog(runModal)};
+ const openRecap=()=>{runRecapDismissed=false;openDialog(runModal)};
+ document.getElementById('closeRunModal').onclick=closeRecap;
+ document.getElementById('openRunModal').onclick=openRecap;
+ if(runModal){
+  runModal.oncancel=()=>{runRecapDismissed=true};
+  runModal.onclose=()=>{runRecapDismissed=true};
+  runModal.onclick=e=>{if(e?.target===runModal)closeRecap()};
+  if(!runRecapDismissed)openRecap();
+ }
  const cardState=()=>{
   if(!RUN_CARD)throw new Error('Run card module unavailable.');
   return RUN_CARD.summary(st,BY);
@@ -736,7 +747,7 @@ if(st.phase==='finished'){
    if(status)status.textContent='Downloaded '+file;
   }catch(err){
    if(status)status.textContent='PNG download failed: '+err.message;
-   else alert('PNG download failed: '+err.message);
+   else showChallengeMessage('PNG DOWNLOAD FAILED',err?.message||'Could not download the run card.');
   }finally{button.disabled=false;button.textContent='↓ DOWNLOAD PNG CARD'}
  };
  document.getElementById('shareRun').onclick=()=>{
@@ -748,17 +759,17 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();Object.assign(st,config);st.phase='draft';roll();save();render();
+  st=initial();runRecapDismissed=false;Object.assign(st,config);st.phase='draft';roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
   if(typeof navigator!=='undefined'&&navigator.clipboard?.writeText){
    navigator.clipboard.writeText(value).then(()=>{status.textContent='Run summary copied to clipboard.'},()=>{
-    status.textContent='Select the run summary above to copy it.';
+    showChallengeMessage('COPY RUN SUMMARY','Clipboard access was denied. Select and copy the text below.',{copyText:value});
    });
-  }else if(typeof window.prompt==='function'){
-   window.prompt('Copy your run summary:',value);
-  }else{status.textContent='Select the run summary above to copy it.'}
+  }else{
+   showChallengeMessage('COPY RUN SUMMARY','Clipboard access is unavailable. Select and copy the text below.',{copyText:value});
+  }
  };
 }
 
