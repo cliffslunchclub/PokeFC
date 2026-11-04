@@ -120,7 +120,7 @@
   }
   return {home:teams[0].id,away:teams[1].id,score,stats,events,box,
    origin:'quick-sim',statsModel:phase9Variant?phase9Variant+'-experimental':opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
-   phase9PassingAccuracy:phase9PassAccuracy,
+   ...(phase9Variant?{phase9PassingAccuracy:phase9PassAccuracy}:{}),
    calibration:current.status==='calibrated'?{referenceMatches:current.referenceMatches,engineCommit:current.engineCommit}:null,
    methodology:{shotStops:'Approximate saves in Quick Sim; not directly comparable to TacticMesh shotStops.',shotsOnTarget:'Estimated; genuine TacticMesh reports this as unavailable.'}};
  }
