@@ -1,0 +1,140 @@
+/* PokéFC Challenge — original competitive sports-game presentation.
+   Shared masthead comes from site.css; these rules only affect challenge content. */
+:root{--challenge-bg:#0c1928;--challenge-border:#324c60;--challenge-gold:#f4cf79;--challenge-green:#91f2b8;--challenge-muted:#b1c6d5}
+.challenge-frame{max-width:1250px;margin:0 auto;padding:25px 24px 60px!important}
+.challenge-hero{display:grid;grid-template-columns:minmax(0,1fr) 355px;align-items:center;gap:20px;padding:29px 30px;min-height:235px;background:linear-gradient(107deg,#172d42 0%,#0f2335 50%,#172c39 100%);border:1px solid #3c5666;border-radius:15px;overflow:hidden;position:relative}
+.challenge-hero::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(132deg,transparent 0 60px,#ffffff05 60px 61px);pointer-events:none}
+.challenge-hero-copy{position:relative;z-index:1}
+.challenge-hero-copy .challenge-kicker{display:inline-block;background:#355d4b;color:#a8f6bf;padding:5px 10px;border-radius:4px;font-weight:900;font-size:10px;letter-spacing:.13em}
+.challenge-hero h1{font-size:clamp(32px,4.8vw,60px)!important;font-weight:1000;line-height:.98;letter-spacing:-.065em;margin:12px 0!important;color:#fff;text-transform:uppercase}
+.challenge-hero h1 em{color:#f6cf79;font-style:normal}
+.challenge-hero p{max-width:635px;font-size:13px;line-height:1.65;color:#bad0dd}
+.challenge-hero-stats{display:flex;gap:7px;flex-wrap:wrap;margin-top:15px}
+.challenge-hero-stats span{font-size:10px;font-weight:900;letter-spacing:.08em;color:#f3e6bf;border:1px solid #54606a;border-radius:5px;background:#1b3042;padding:6px 9px}
+.challenge-hero-art{height:205px;position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center}
+.challenge-hero-art::before{content:"";width:225px;height:225px;border:1px solid #bdebd132;border-radius:50%;position:absolute;box-shadow:0 0 0 32px #a6dfbd08,0 0 0 62px #a6dfbd07}
+.challenge-hero-art img{position:absolute;object-fit:contain;filter:drop-shadow(0 8px 14px #0008);image-rendering:pixelated}
+.challenge-hero-art .hero-poke-one{height:182px;left:20px;bottom:0;z-index:2}
+.challenge-hero-art .hero-poke-two{height:165px;right:0;bottom:17px;z-index:1}
+.challenge-hero-art .hero-number{font-weight:1000;font-style:italic;font-size:115px;letter-spacing:-.13em;position:absolute;color:#aaf3bf15;top:0;right:25px;line-height:1}
+.challenge-frame #app{display:block}
+.challenge-frame .panel{background:#111f2f!important;border:1px solid #355269!important;border-radius:12px!important;box-shadow:0 8px 25px #02060b26;margin:0}
+.challenge-frame .panel h2{font-size:21px;font-weight:950;letter-spacing:-.035em;line-height:1.13}
+.challenge-frame .panel h3{font-weight:900;letter-spacing:-.02em}
+.challenge-frame .panel p{font-size:12px;line-height:1.65;color:var(--challenge-muted)}
+.challenge-frame select{background:#101f30!important;border:1px solid #4b6578!important;color:#f2f8fa!important;border-radius:6px!important;min-height:40px}
+.challenge-frame button{transition:background-color .15s,border-color .15s,transform .15s;font-size:12px;font-weight:850}
+.challenge-frame button:hover:not(:disabled){background:#2a5360!important;border-color:#92d5ba!important}
+.challenge-frame button.primary,.challenge-frame .primary{background:#c9f0a7!important;border:1px solid #c9f0a7!important;color:#102a20!important;text-transform:uppercase;letter-spacing:.045em;padding:12px 18px;min-height:43px;font-weight:950}
+.challenge-frame button.primary:hover:not(:disabled){background:#e1ffd0!important}
+.challenge-frame button:focus-visible,.challenge-frame a:focus-visible,.challenge-frame select:focus-visible{outline:2px solid #f9d47b!important;outline-offset:3px}
+.challenge-frame .statline{font-size:11px;color:#b0c5d2}
+.challenge-hub{display:grid;grid-template-columns:minmax(0,1.44fr) minmax(310px,.78fr);align-items:start;gap:17px;margin-top:18px}
+.challenge-setup-panel,.challenge-records-panel{padding:21px!important}
+.challenge-heading-row{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.challenge-heading-row .challenge-step{font-size:11px;color:#152634;background:#f4cf79;font-weight:1000;min-width:31px;height:31px;display:grid;place-items:center;border-radius:6px}
+.challenge-heading-row h2{margin:0!important}
+.challenge-subtitle{margin:0 0 15px}
+.challenge-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.challenge-option{width:100%;height:125px;display:flex;align-items:start;flex-direction:column;justify-content:space-between;text-align:left;padding:15px!important;border:1px solid #4a6071!important;border-radius:9px!important;background:#182d41!important}
+.challenge-option:hover,.challenge-option.selected{border-color:#a1ebba!important;background:#204239!important}
+.challenge-option .option-top{font-size:10px;letter-spacing:.14em;color:#f0cb78;font-weight:950}
+.challenge-option strong{font-size:24px;font-weight:1000;letter-spacing:-.04em;line-height:1;color:#fff}
+.challenge-option small{font-size:11px;color:#adc9d5;line-height:1.3}
+.challenge-run-settings{padding:14px;border:1px solid #365365;background:#152b3c;border-radius:9px}
+.challenge-run-settings label{font-size:11px;letter-spacing:.03em;display:grid;gap:5px;margin:0!important;flex:1;min-width:190px;color:#aecaD7;font-weight:800}
+.challenge-run-settings .controls-inline{margin:0 0 5px}
+.challenge-run-settings select{width:100%}
+.challenge-start{margin-top:15px;width:100%;font-size:14px!important}
+.challenge-records-header{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.challenge-records-header h2{margin:0}
+.challenge-records-header span{font-size:10px;color:#b7c9d1;font-weight:850;letter-spacing:.08em}
+.challenge-record-list{display:grid;gap:9px;margin-top:17px}
+.challenge-record{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:12px;background:#1a2e40;border:1px solid #395268;border-radius:8px}
+.challenge-record .record-name{font-weight:850;font-size:12px;display:block;color:#f4f6fa}
+.challenge-record small{display:block;font-size:10px;color:#a9c0d1;margin-top:3px}
+.challenge-record strong{font-size:24px;letter-spacing:-.04em;color:#f1d086;line-height:1}
+.challenge-record strong small{font-size:9px;color:#99bac8;font-weight:850;letter-spacing:.1em;text-align:center}
+.challenge-steps{margin-top:17px;border-top:1px solid #344c5c;padding-top:14px}
+.challenge-steps h3{font-size:13px;margin:0 0 9px}
+.challenge-steps p{font-size:11px!important;margin:5px 0}
+.challenge-scorebug{margin-top:17px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border:1px solid #405769;border-radius:10px;background:#43596a;overflow:hidden}
+.challenge-scorebug .metric{background:#1a3042;padding:12px 15px}
+.challenge-scorebug .metric span{display:block;color:#b1c6d6;font-size:10px;letter-spacing:.11em;font-weight:950}
+.challenge-scorebug .metric strong{display:block;color:#f3fbfd;font-size:21px;line-height:1.25;letter-spacing:-.035em;margin-top:3px;font-weight:1000}
+.challenge-scorebug .metric.is-highlight{background:#25504a}
+.challenge-scorebug .metric.is-highlight strong{color:#b8ffcc}
+.challenge-progress{width:100%;height:4px;background:#253f4f;border-radius:4px;overflow:hidden;margin-top:7px}
+.challenge-progress>span{display:block;height:100%;background:#bdf3a8;transition:width .22s ease}
+.challenge-run-layout{display:grid;grid-template-columns:minmax(0,1.09fr) minmax(340px,.91fr);align-items:start;gap:16px;margin-top:16px}
+.challenge-roster-panel{padding:16px!important}
+.challenge-section-heading{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+.challenge-section-heading h2{margin:0!important;font-size:17px!important}
+.challenge-section-heading .formation-tag{font-size:10px;color:#e7d7a5;background:#314053;border:1px solid #56687c;border-radius:5px;padding:4px 7px;font-weight:900}
+.challenge-section-heading p{margin:5px 0}
+.challenge-side-stack{display:flex;flex-direction:column;gap:13px}
+.challenge-side-stack>.panel{padding:17px}
+.challenge-pitch{width:100%;height:668px;background:repeating-linear-gradient(0deg,#116247 0%,#116247 12.5%,#176f4f 12.5%,#176f4f 25%);border:3px solid #a5e3bc70;position:relative;border-radius:10px;overflow:hidden}
+.challenge-pitch::before{content:"";position:absolute;inset:3.2%;border:2px solid #d4fae179;pointer-events:none}
+.challenge-pitch .pitch-line{position:absolute;top:50%;left:3.2%;right:3.2%;height:2px;background:#d4fae170;pointer-events:none}
+.challenge-pitch .pitch-circle{position:absolute;top:50%;left:50%;width:25%;aspect-ratio:1;border:2px solid #d4fae170;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.challenge-pitch .pitch-box{position:absolute;left:27%;width:46%;height:15%;border:2px solid #d4fae170;pointer-events:none}
+.challenge-pitch .pitch-box-top{top:3.2%;border-top:0}
+.challenge-pitch .pitch-box-bottom{bottom:3.2%;border-bottom:0}
+.challenge-pitch .slot{position:absolute;transform:translate(-50%,-50%);width:clamp(64px,17%,100px);height:92px;min-width:0;display:flex;align-items:center;flex-direction:column;justify-content:center;gap:2px;padding:5px 3px!important;margin:0!important;background:#102f2de8!important;border:1px solid #daf9dd8c!important;border-radius:9px!important;z-index:2;box-shadow:0 5px 8px #0005}
+.challenge-pitch .slot.active{border:2px solid #ffe4a3!important;background:#234c3b!important;box-shadow:0 0 0 2px #ffdc8259,0 5px 10px #0004}
+.challenge-pitch .slot .slot-role{font-size:9px;font-weight:1000;color:#c7dfcf;line-height:1}
+.challenge-pitch .slot .slot-sprite{width:35px;height:35px;object-fit:contain;image-rendering:pixelated;display:block}
+.challenge-pitch .slot .slot-placeholder{color:#a8e2bb;font-size:25px;font-weight:300;line-height:30px}
+.challenge-pitch .slot button[data-slot]{display:block;border:0!important;background:transparent!important;font-size:9px!important;font-weight:900!important;line-height:1.2!important;padding:0!important;white-space:normal;word-break:normal;text-align:center;color:#f3faf7!important;max-width:100%;min-height:0;overflow-wrap:anywhere}
+.challenge-pitch .slot button[data-slot]:disabled{opacity:1}
+.challenge-pitch .slot small{font-size:9px;color:#f3d68d;line-height:1.1}
+.challenge-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.challenge-shop-grid .slot{display:grid;grid-template-columns:34px minmax(0,1fr);grid-template-rows:auto auto auto;align-items:center;column-gap:9px;background:#182f41;border:1px solid #3d596c;border-radius:8px;padding:8px!important;margin:0!important}
+.challenge-shop-grid .slot.active{border-color:#9de8b6}
+.challenge-shop-grid .slot .slot-role{grid-column:2;font-size:10px;color:#b7d0da;font-weight:900;line-height:1}
+.challenge-shop-grid .slot .slot-sprite{grid-column:1;grid-row:1/4;width:34px;height:34px;object-fit:contain}
+.challenge-shop-grid .slot button[data-slot]{grid-column:2;min-height:0;padding:0!important;margin:0;border:0!important;background:transparent!important;text-align:left;font-weight:850;color:#e9f6f9!important;font-size:12px!important;white-space:normal}
+.challenge-shop-grid .slot small{grid-column:2;font-size:10px;color:#edcc82}
+.challenge-shop-grid .slot .item-holder{grid-column:1/3;margin-top:7px}
+.challenge-shop-grid .slot .item-holder select{width:100%;font-size:11px;min-height:35px;padding:5px 6px}
+.challenge-shop-grid .slot .slot-placeholder{font-size:22px;color:#a4bac8;grid-column:1;grid-row:1/4}
+.challenge-roster-footer{font-size:11px!important;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:10px 2px 0;color:#b9cbd4}
+.challenge-draw{border:1px solid #4c6471;border-radius:9px;background:linear-gradient(135deg,#1d3b50,#223843);padding:13px;margin-bottom:12px}
+.challenge-draw span{display:block;font-weight:900;font-size:10px;color:#f5d68d;letter-spacing:.13em}
+.challenge-draw strong{display:block;color:#fff;font-size:24px;line-height:1.15;text-transform:uppercase;margin-top:5px;letter-spacing:-.04em}
+.challenge-draw small{display:block;font-size:11px;color:#bbd3dc;margin-top:5px}
+.challenge-side-stack .controls-inline button{flex:1;min-width:132px}
+.challenge-pick-grid{max-height:390px;overflow:auto;display:grid;gap:7px;padding:2px 5px 2px 0}
+.challenge-pick-grid .pick{display:flex;gap:9px;align-items:center;margin:0;padding:8px;border-radius:8px;background:#1a3040;border:1px solid #3d596a}
+.challenge-pick-grid .pick:hover{background:#244255}
+.challenge-pick-grid .pick img{width:51px;height:51px;flex:0 0 51px;object-fit:contain;image-rendering:pixelated}
+.challenge-pick-grid .pick .pick-info{min-width:0;flex:1}
+.challenge-pick-grid .pick .pick-info b{font-size:12px;display:block;color:#f2f9fb}
+.challenge-pick-grid .pick .pick-info small{font-size:10px;color:#b4ccd5;display:block;line-height:1.5;overflow-wrap:anywhere}
+.challenge-pick-grid .pick button{background:#2d6853!important;border:1px solid #60a781!important;padding:8px 10px!important;min-width:60px;flex:0 0 auto}
+.challenge-side-stack .panel>h2{margin:0 0 8px!important}
+.challenge-side-stack .panel>p{margin:7px 0}
+.challenge-side-stack .panel label{font-size:11px;color:#c3d6e1;font-weight:850}
+.challenge-side-stack .panel label select{display:block;width:100%;margin-top:5px}
+.challenge-side-stack .panel button.primary{margin-top:7px}
+.challenge-reset-panel{margin-top:15px!important;padding:14px 17px!important;display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;background:#111c2b!important}
+.challenge-reset-panel button{color:#e9babc;border:1px solid #826367;background:#302536}
+.challenge-reset-panel small{color:#adc5d2;font-size:11px}
+.challenge-gauntlet-track{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:10px 0 13px}
+.challenge-gauntlet-track>div{text-align:center;background:#1c3040;border:1px solid #3b5364;border-radius:6px;padding:8px 2px}
+.challenge-gauntlet-track>div strong{display:block;font-size:10px;color:#cfdfeb}
+.challenge-gauntlet-track>div span{font-size:16px;display:block;margin-top:2px;color:#d6e2e7}
+.challenge-gauntlet-track>div.done{border-color:#5f996e;background:#224735}
+.challenge-gauntlet-track>div.done span{color:#bdf5c4}
+.challenge-gauntlet-track>div.current{border-color:#ecc87a;background:#4a402c}
+.challenge-gauntlet-track>div.current span{color:#f7d87e}
+.challenge-final-score{text-align:center;padding:12px 0}
+.challenge-final-score h1{font-size:66px;font-weight:1000;color:#fff;margin:5px 0}
+.challenge-watch-link{display:inline-flex;padding:10px 13px;border:1px solid #e5c071!important;border-radius:7px;text-decoration:none;font-weight:950;font-size:11px;letter-spacing:.05em;background:#eec776;color:#172633!important}
+.challenge-watch-link:hover{background:#f6d995}
+.challenge-frame .panel select:disabled,.challenge-frame .panel button:disabled{opacity:.45}
+@media(min-width:901px){.challenge-roster-panel{position:sticky;top:82px}}
+@media(max-width:1030px){.challenge-run-layout{grid-template-columns:minmax(0,1fr) minmax(300px,.86fr)}.challenge-pitch{height:620px}.challenge-hero{grid-template-columns:minmax(0,1fr) 240px}.challenge-hero-art .hero-poke-one{left:0}.challenge-hero-art .hero-poke-two{right:-15px}}
+@media(max-width:810px){.challenge-hub,.challenge-run-layout{grid-template-columns:1fr}.challenge-roster-panel{position:static!important}.challenge-pitch{height:660px;max-width:620px;margin:auto}.challenge-hero{grid-template-columns:1fr 170px}.challenge-hero-art .hero-poke-one{height:130px}.challenge-hero-art .hero-poke-two{height:120px}.challenge-hero-art{height:150px}}
+@media(max-width:560px){.challenge-frame{padding:14px 12px 40px!important}.challenge-hero{padding:20px 16px;grid-template-columns:1fr;min-height:0}.challenge-hero h1{font-size:37px!important}.challenge-hero-art{display:none}.challenge-scorebug{grid-template-columns:repeat(2,minmax(0,1fr))}.challenge-scorebug .metric{padding:10px 12px}.challenge-scorebug .metric strong{font-size:18px}.challenge-hub{gap:12px}.challenge-options{gap:7px}.challenge-option{height:114px;padding:12px!important}.challenge-option strong{font-size:18px}.challenge-pitch{height:580px}.challenge-pitch .slot{width:20%;height:77px;padding:3px 2px!important}.challenge-pitch .slot .slot-sprite{width:28px;height:28px}.challenge-pitch .slot button[data-slot]{font-size:8px!important}.challenge-pitch .slot small{font-size:8px}.challenge-shop-grid{grid-template-columns:1fr}.challenge-gauntlet-track{grid-template-columns:repeat(3,minmax(0,1fr))}}
