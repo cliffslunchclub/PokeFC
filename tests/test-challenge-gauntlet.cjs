@@ -34,11 +34,11 @@ for(let i=0;i<6;i++){
  assert.equal(state().result.report.status,'complete','Quick Sim goal ledger is persisted');
  assert.equal(state().result.report.goals.length,2);
  assert.equal(state().result.report.goals[0].minuteLabel,'17');
- assert.equal(state().result.report.goals[0].player,'Dragonite');
- assert.equal(state().result.report.goals[0].assist,'Gengar');
+ assert.equal(state().result.report.goals[0].player,'Jolteon');
+ assert.equal(state().result.report.goals[0].assist,'Machamp');
  assert.equal(state().result.report.stats.shotsOnTarget[0],5);
  assert.match(app.innerHTML,/GOALS &amp; MATCH MINUTES/);
- assert.match(app.innerHTML,/Dragonite/);
+ assert.match(app.innerHTML,/Jolteon/);
  assert.deepEqual(Array.from(state().locked.roster),ids,'Final XI remains unchanged');
  assert.equal(state().locked.items[0],'Eviolite','Items cannot be changed after lock');
  if(i<5){assert.equal(state().phase,'result');elems.next.onclick();}else assert.equal(state().phase,'finished');
