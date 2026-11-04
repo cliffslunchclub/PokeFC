@@ -27,7 +27,7 @@ function launch(champion){
   navigator:{clipboard:{writeText:async s=>{clipboard.push(s)}}},
   crypto:{getRandomValues(a){a[0]=34567;return a}},
   console,confirm:()=>true,alert:e=>{throw Error(e)}});
- for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','play/opponents.js']){
+ for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/performance.js','play/opponents.js']){
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file,timeout:15000});
  }
  const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
@@ -44,6 +44,9 @@ function launch(champion){
  assert.match(lost.app.innerHTML,/FORMATION/);
  assert.match(lost.app.innerHTML,/id="shareRun"/);
  assert.match(lost.app.innerHTML,/id="quickRestart"/);
+ assert.match(lost.app.innerHTML,/BEST PLAYER OF THE TOURNAMENT/,'Tournament MVP shown in loss recap');
+ assert.equal((lost.app.innerHTML.match(/class="tournament-pokemon(?: tournament-top-player)?"/g)||[]).length,11,'Eleven Pokémon portraits in recap');
+ assert.match(lost.app.innerHTML,/TOURNAMENT STATS/);
  assert.match(lost.app.innerHTML,/<dialog id="runCompleteModal"/,'Completed run is rendered inside a dialog');
  assert.equal(lost.elements.runCompleteModal.open,true,'Loss opens run results modal');
  lost.elements.closeRunModal.onclick();
