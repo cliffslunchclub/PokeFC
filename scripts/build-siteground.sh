@@ -8,14 +8,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf dist
-mkdir -p dist/challenge dist/play/tacticmesh/vendor dist/franchise/tacticmesh/vendor
+mkdir -p dist/ratings dist/challenge dist/play/tacticmesh/vendor dist/franchise/tacticmesh/vendor
 
 # Apache cache policy scoped to this dedicated subdomain (not other sites).
 cp .htaccess dist/.htaccess
 
 # National free builder and shared Quick Sim library.
-cp index.html builder.css builder.js site.css national-species.js \
+cp index.html builder.css builder.js site.css favicon.svg national-species.js \
    quick-sim.js calibration-profile.js dist/
+
+# Ratings explainer is linked from the Free Builder, not a fourth game mode.
+cp ratings/index.html dist/ratings/
 
 # Challenge uses National species, special-item data, and Play opponent table.
 cp challenge/index.html challenge/special-items-data.js dist/challenge/
@@ -50,9 +53,9 @@ class Resources(HTMLParser):
     def handle_starttag(self,tag,attrs):
         d=dict(attrs)
         if tag=="script" and d.get("src"):self.refs.append(d["src"])
-        if tag=="link" and d.get("href") and d.get("rel") in ("stylesheet","manifest"):self.refs.append(d["href"])
+        if tag=="link" and d.get("href") and d.get("rel") in ("stylesheet","manifest","icon"):self.refs.append(d["href"])
 root=Path("dist").resolve()
-pages=[root/"index.html",root/"play/index.html",root/"challenge/index.html",root/"franchise/index.html"]
+pages=[root/"index.html",root/"ratings/index.html",root/"play/index.html",root/"challenge/index.html",root/"franchise/index.html"]
 for page in pages:
     if not page.is_file():raise SystemExit(f"Missing page: {page}")
     parser=Resources();parser.feed(page.read_text())
@@ -66,6 +69,13 @@ for page in pages:
     if h.count('class="pfc-nav"')!=1:raise SystemExit(f"Invalid global nav count: {page}")
     for word in ["PLAY","CHALLENGES","FRANCHISE"]:
         if word not in h:raise SystemExit(f"Missing global nav entry {word}: {page}")
+    expected='../' if page.parent!=root else './'
+    if f'href="{expected}favicon.svg?v=1"' not in h:
+        raise SystemExit(f"Missing shared favicon link: {page}")
+    if f'src="{expected}favicon.svg?v=1"' not in h:
+        raise SystemExit(f"Missing shared soccer-ball brand icon: {page}")
+    for mode in ["play","challenge","franchise"]:
+        if f'href="{expected}{mode}/"' not in h:raise SystemExit(f"Missing game mode link: {page}: {mode}")
 for mode in ["franchise","play"]:
     for f in ["tm-worker.js","tm-engine-bridge.js","tacticmesh/vendor/installed.json","tacticmesh/vendor/core.js","tacticmesh/vendor/engine-facade.js","tacticmesh/vendor/LICENSE"]:
         if not (root/mode/f).is_file():raise SystemExit("Missing real watched-match dependency: "+mode+"/"+f)
@@ -74,13 +84,15 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["national-species.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
 assert '1,025' in (root/"index.html").read_text()
+assert 'XI GRADE' in (root/"index.html").read_text()
+assert 'How are the grades calculated by position?' in (root/"index.html").read_text()
 assert 'NATIONAL' in (root/"challenge/index.html").read_text()
 assert 'WATCH MATCH' in (root/"play/index.html").read_text()
-print("PASS SiteGround build: Home, Play, Challenges, Franchise; exactly three mode links")
+print("PASS SiteGround build: Home, Ratings guide, Play, Challenges, Franchise; exactly three mode links, shared favicon")
 PY
 echo "Built PokéFC National Free Builder + Play + Challenges + 32-gym Franchise."
