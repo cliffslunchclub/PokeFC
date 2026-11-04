@@ -84,6 +84,19 @@ const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
 const EVOLVABLE=new Set(SPECIAL.evolvable);
 const EVIOLITE=['Eviolite',700,{hp:20,attack:20,defense:20,spAttack:20,spDefense:20,speed:20}];
 function megaForm(s,item){return s&&item?(SPECIAL.megas[s.id]||[]).find(m=>m.stone===item):null}
+function displayPokemon(s,item){
+ if(!s)return {name:'Unknown',spriteId:0,fallbackId:0,mega:false};
+ const form=megaForm(s,item),fallbackId=s.spriteId||s.id;
+ if(!form)return {name:s.name,spriteId:fallbackId,fallbackId,mega:false};
+ const variant=form.form.split('-mega')[1]||'';
+ const suffix=variant?' '+variant.replace(/^-/, '').toUpperCase():'';
+ return {name:'Mega '+s.name+suffix,spriteId:window.PFC_CHALLENGE_MEGA_SPRITES?.[form.form]||fallbackId,fallbackId,mega:true};
+}
+function displaySprite(s,item,cssClass=''){
+ const data=displayPokemon(s,item);
+ const root='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+ return '<img class="'+cssClass+'" loading="lazy" alt="" src="'+root+data.spriteId+'.png" onerror="this.onerror=null;this.src=\''+root+data.fallbackId+'.png\'">';
+}
 function itemFor(s,name){
  if(!s||!name)return null;
  if(name==='Eviolite')return EVOLVABLE.has(s.id)?EVIOLITE:null;
@@ -367,7 +380,7 @@ function matchHistoryHtml(history){
 }
 function completedRunCard(){
  const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
- const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(BY.get(id)?.name||'Unknown')+'</span>').join('');
+ const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name)+'</span>').join('');
  const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
@@ -519,15 +532,15 @@ body+='<div class="challenge-run-layout">'+
  '<div class="pitch-line"></div><div class="pitch-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div>';
 body+=slots.map((pos,i)=>{
  const s=BY.get(st.roster[i]),point=posMap[st.formation][i],style=' style="left:'+point[0]+'%;top:'+point[1]+'%"';
- const sprite=s?'<img class="slot-sprite" loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png">':'<span class="slot-placeholder" aria-hidden="true">+</span>';
+ const sprite=s?displaySprite(s,st.items[i],'slot-sprite'):'<span class="slot-placeholder" aria-hidden="true">+</span>';
  const item=st.items[i],letter=s?tierFor(s,pos,item):'—',effective=s?effectiveStats(s,item):null;
- const visibleStats=s?'<div class="slot-stats" aria-label="'+esc('Effective stats for '+s.name+(item?' with '+item:''))+'">'+
+ const visibleStats=s?'<div class="slot-stats" aria-label="'+esc('Effective stats for '+displayPokemon(s,item).name+(item?' with '+item:''))+'">'+
   [['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']].map(([label,key])=>{
    const value=effective[key],base=s.baseStats[key],diff=value-base;
    return '<span class="slot-stat'+(diff>0?' stat-up':diff<0?' stat-down':'')+'" title="'+esc(label+': '+value+(diff?' (base '+base+', '+(diff>0?'+':'')+diff+' via '+item+')':''))+'"><b>'+label+'</b><span>'+value+'</span></span>';
   }).join('')+'</div>':'';
  return '<div data-slot-card="'+i+'" class="slot '+(isDraft&&st.selected===i?'active ':'')+(s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
- '<span class="slot-name">'+(s?esc(s.name):'OPEN SLOT')+'</span>'+
+ '<span class="slot-name">'+(s?esc(displayPokemon(s,item).name):'OPEN SLOT')+'</span>'+
  '<button type="button" data-slot="'+i+'" '+(!isDraft||s?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'"></button>'+
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
  visibleStats+
@@ -585,21 +598,20 @@ if(['shop','locked','result','finished'].includes(st.phase)){
    return {id,species,pos,point,item,stats};
   });
   const opponentCards=opponentXI.map(({id,species,pos,point,item})=>{
-   const name=species?.name||'#'+id;
-   const spriteId=species?.spriteId||id;
+   const name=species?displayPokemon(species,item).name:'#'+id;
    return '<div class="opponent-slot'+(id===opponent.signature?' is-signature':'')+'" data-opponent-slot="'+esc(pos)+'" data-opponent-id="'+id+'" style="left:'+point[0]+'%;top:'+point[1]+'%" title="'+esc(pos+' · '+name+(item?' · '+item:''))+'">'+
     '<span class="opponent-slot-role">'+esc(pos)+'</span>'+
-    '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+spriteId+'.png">'+
+    (species?displaySprite(species,item):'')+
     '<span class="opponent-slot-name">'+esc(name)+'</span>'+
     (item?'<span class="opponent-held-tag">'+(item==='Light Ball'?'BALL':'MEGA')+'</span>':'')+
     '</div>';
   }).join('');
   const statNames=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
   const opponentRows=opponentXI.map(({id,species,pos,item,stats})=>{
-   const name=species?.name||'#'+id,types=species?.types?.join(' / ')||'Unknown';
+   const name=species?displayPokemon(species,item).name:'#'+id,types=species?.types?.join(' / ')||'Unknown';
    return '<div class="opponent-roster-row" data-opponent-roster-id="'+id+'">'+
     '<span class="opponent-row-position">'+esc(pos)+'</span>'+
-    '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(species?.spriteId||id)+'.png">'+
+    (species?displaySprite(species,item):'')+
     '<div class="opponent-row-info"><strong>'+esc(name)+'</strong><small>'+esc(types)+(item?' · '+esc(item):'')+'</small>'+
     (stats?'<span class="opponent-row-stats">'+statNames.map(([label,key])=>'<span><b>'+label+'</b> '+stats[key]+'</span>').join('')+'</span>':'')+
     '</div></div>';
@@ -957,7 +969,7 @@ function playBoss(){
   const b=matchEffectiveStats(s,item);
   const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
   const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
-  return {id:prefix+i+'-'+s.id,name:s.name,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+  return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
  };
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,role(FORMS[st.formation][i]),'c',st.items[i]))};
  const bossFormation=boss.formation||'4-3-3';
