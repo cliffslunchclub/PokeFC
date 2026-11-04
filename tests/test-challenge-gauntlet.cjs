@@ -72,6 +72,8 @@ for(let i=0;i<6;i++){
 }
 assert.equal(state().history.length,6);
 assert.match(app.innerHTML,/CHALLENGE CHAMPION/);
+assert.match(app.innerHTML,/<dialog id="runCompleteModal"/,'Champion results are modal');
+assert.equal(elems.runCompleteModal.open,true,'Completed six-boss run auto-opens results');
 assert.equal(captured.length,6);
 assert(captured.every(p=>p.home.lineup.length===11&&p.away.lineup.length===11));
 const blue=captured[4].away.lineup.find(p=>p.name==='Pidgeot');

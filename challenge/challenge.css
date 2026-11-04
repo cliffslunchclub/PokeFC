@@ -478,3 +478,39 @@
  .opponent-slot-role{font-size:7px}
  .opponent-pitch-legend{font-size:8px}
 }
+
+/* Native HTML dialogs replace browser alerts and on-page end-of-run cards. */
+.challenge-dialog{box-sizing:border-box;width:min(92vw,850px);max-width:850px;max-height:min(90dvh,920px);margin:auto;padding:0!important;background:#112638!important;color:#ecf7f6;border:1px solid #6a958b!important;border-radius:13px!important;box-shadow:0 28px 100px #000c,0 0 0 1px #c2ebba29;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.challenge-dialog:not([open]){display:none!important}
+.challenge-dialog::backdrop{background:rgba(3,13,21,.83);backdrop-filter:blur(5px)}
+.challenge-dialog button{cursor:pointer}
+.challenge-dialog button:focus-visible{outline:2px solid #e9d390;outline-offset:3px}
+.challenge-dialog-bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;background:#172f3c;border-bottom:1px solid #406474}
+.challenge-dialog-bar span,.challenge-dialog-kicker{color:#a7ddb8;font-size:10px;font-weight:950;letter-spacing:.1em}
+.challenge-dialog-bar button{padding:8px 12px!important;background:#294552!important;border:1px solid #57788b!important;color:#ebf5f7;font-size:11px!important;font-weight:950!important;white-space:nowrap}
+.challenge-run-dialog .challenge-complete-panel{margin:0!important;padding:20px 22px 23px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.challenge-run-dialog .run-share-panel{background:#142f3b}
+.challenge-recap-access{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px!important;background:#1b3743!important;border-color:#54816e!important}
+.challenge-recap-access strong{font-size:13px;letter-spacing:.075em;color:#d0f4c4}
+.challenge-recap-access p{font-size:11px!important;margin:3px 0 0;color:#b9cddb}
+.challenge-recap-access button{font-size:11px!important;font-weight:950!important;white-space:nowrap}
+.challenge-message-modal{width:min(92vw,480px);border-color:#6d927f!important}
+.challenge-message-content{padding:23px 24px 21px}
+.challenge-message-content h2{font-size:22px!important;letter-spacing:-.03em;line-height:1.2;margin:9px 0 8px;color:#f4f9f6}
+.challenge-message-content p{font-size:13px!important;line-height:1.6;color:#c2d4dc;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 17px}
+.challenge-message-content textarea{box-sizing:border-box;width:100%;height:145px;resize:vertical;margin-bottom:13px;padding:10px;color:#eff6fa;background:#0a1c29;border:1px solid #547888;border-radius:7px;font:11px/1.5 ui-monospace,monospace}
+.challenge-message-content textarea[hidden]{display:none!important}
+.challenge-message-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.challenge-message-actions button{min-width:97px;padding:10px 15px!important;font-size:11px!important;font-weight:950!important}
+.challenge-message-actions #challengeMessageCancel{color:#d4e5ed;background:#243d4b!important;border-color:#557181}
+.challenge-message-actions .is-destructive{color:#fff!important;background:#8b3e48!important;border-color:#cb7985!important}
+@media(max-width:560px){
+ .challenge-dialog{width:calc(100vw - 18px);max-height:92dvh}
+ .challenge-dialog-bar{padding:9px 11px}
+ .challenge-run-dialog .challenge-complete-panel{padding:15px 11px 20px!important}
+ .challenge-recap-access{flex-wrap:wrap}
+ .challenge-recap-access button{width:100%}
+ .challenge-message-content{padding:20px 16px 17px}
+ .challenge-message-actions button{flex:1}
+}
+@media(prefers-reduced-motion:reduce){.challenge-dialog,.challenge-dialog::backdrop{transition:none!important;animation:none!important}}

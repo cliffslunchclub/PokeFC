@@ -43,6 +43,7 @@ on:
       - "tests/test-challenge-tier-positions.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-challenge-match-report.cjs"
+      - "tests/test-challenge-modals.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
       - ".github/workflows/deploy-siteground.yml"
@@ -89,6 +90,7 @@ jobs:
           node tests/test-branding.cjs
           node tests/test-challenge-special-items.cjs
           node tests/test-challenge-match-report.cjs
+          node tests/test-challenge-modals.cjs
           node tests/test-v08-league.cjs
           node tests/test-hybrid.cjs
 
