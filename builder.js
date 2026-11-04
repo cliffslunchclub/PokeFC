@@ -21,6 +21,12 @@ function rating(s,role){
  const w=role==='GK'?WEIGHT_GK:['CB','LB','RB','LWB','RWB'].includes(role)?WEIGHT_DEF:['ST','LW','RW'].includes(role)?WEIGHT_ATTACK:WEIGHT_MID;
  return Math.min(100,20+.55*Object.entries(w).reduce((sum,[k,v])=>sum+s.baseStats[k]*v,0));
 }
+// The builder exposes broad grades instead of public numeric ratings or base attributes.
+function grade(n){
+ if(n==null || !Number.isFinite(n))return '—';
+ return n>=83?'A':n>=72?'B':n>=62?'C':n>=52?'D':n>=42?'E':'F';
+}
+function gradeFor(s,role){return s?grade(rating(s,role)):'—'}
 function escapeHtml(t){return String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 const $=id=>document.getElementById(id);
 const empty=()=>({version:1,name:'Indigo Athletic',formation:'4-3-3',lineup:Array(11).fill(null),selected:0,spriteStyle:'pixel'});
@@ -40,8 +46,7 @@ try{state=normalize(JSON.parse(localStorage.getItem(KEY)))}catch{state=empty()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));$('savedStatus').textContent='Saved in this browser'}catch{$('savedStatus').textContent='Local saving is unavailable'}}
 function sprite(id){const folder=state.spriteStyle==='art'?'other/official-artwork/':'';return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+folder+id+'.png'}
 function normalizeSearch(q){return String(q||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’'.:♀♂-]/g,'').replace(/\s+/g,'')}
-function details(s){return 'Gen '+(s.gen||'?')+' · '+s.height+' m · '+s.weight+' kg · BST '+Object.values(s.baseStats).reduce((a,b)=>a+b,0)}
-const statSummary=s=>[['HP','hp'],['ATK','attack'],['DEF','defense'],['SPA','spAttack'],['SPD','spDefense'],['SPE','speed']].map(([label,key])=>label+' '+s.baseStats[key]).join(' · ');
+function details(s){return 'Gen '+(s.gen||'?')+' · '+s.height+' m · '+s.weight+' kg'}
 function average(){const chosen=state.lineup.map((id,i)=>id?rating(BY.get(id),FORMATIONS[state.formation][i][0]):null).filter(v=>v!==null);return chosen.length?chosen.reduce((a,b)=>a+b,0)/chosen.length:null}
 function renderPitch(){
  const f=FORMATIONS[state.formation],filled=state.lineup.filter(Boolean).length;
@@ -49,12 +54,12 @@ function renderPitch(){
  $('lineupFormation').textContent=state.formation+' formation';
  $('formation').value=state.formation;
  $('filledCount').textContent=filled+' / 11 chosen';
- $('teamScore').textContent=average()===null?'—':average().toFixed(1);
+ $('teamScore').textContent=grade(average());
  $('pitchSlots').innerHTML=f.map(([role,x,y],i)=>{
   const p=BY.get(state.lineup[i]);
   return '<button type="button" class="pitch-slot '+(i===state.selected?'selected ':'')+(!p?'empty':'')+'" data-slot="'+i+'" style="left:'+x+'%;top:'+y+'%" aria-label="'+escapeHtml(role+' '+(p?p.name:'empty'))+'">'+
     '<span class="role">'+role+'</span>'+
-    (p?'<img alt="" loading="lazy" src="'+sprite(p.id)+'"><span class="name">'+escapeHtml(p.name)+'</span><span class="ovr">'+rating(p,role).toFixed(0)+' OVR</span>':
+    (p?'<img alt="" loading="lazy" src="'+sprite(p.id)+'"><span class="name">'+escapeHtml(p.name)+'</span><span class="ovr">'+gradeFor(p,role)+'</span>':
      '<span class="slot-plus">+</span><span class="name">OPEN</span>')+'</button>';
  }).join('');
 }
@@ -63,7 +68,7 @@ function renderProspects(){
  const role=FORMATIONS[state.formation][state.selected][0],current=BY.get(state.lineup[state.selected]),q=normalizeSearch($('search').value.trim()),type=$('typeFilter').value,gen=$('genFilter').value;
  $('scoutTitle').textContent=ROLES[role];$('selectedRole').textContent=role;
  $('currentPick').innerHTML=current?
-   '<strong>'+escapeHtml(current.name)+'</strong> · '+rating(current,role).toFixed(1)+' OVR <button id="removePick" class="btn" type="button" style="float:right;padding:4px 9px;min-height:26px;margin-top:-3px">Remove</button><span class="current-detail">'+escapeHtml(details(current))+'<br>'+escapeHtml(statSummary(current))+'</span>':
+   '<strong>'+escapeHtml(current.name)+'</strong> · '+gradeFor(current,role)+' '+role+' FIT <button id="removePick" class="btn" type="button" style="float:right;padding:4px 9px;min-height:26px;margin-top:-3px">Remove</button><span class="current-detail">'+escapeHtml(details(current))+'</span>':
    'Select a Pokémon to fill the '+escapeHtml(role)+' position.';
  const used=new Set(state.lineup.filter(Boolean));
  const opts=S.filter(p=>(!q||normalizeSearch(p.name).includes(q)||normalizeSearch(p.slug||'').includes(q)||String(p.id)===q||String(p.id).padStart(4,'0')===q)&&(!gen||String(p.gen)===gen)&&(!type||p.types.includes(type)))
@@ -73,8 +78,8 @@ function renderProspects(){
   const chosen=used.has(p.id),here=state.lineup[state.selected]===p.id;
   return '<button type="button" class="prospect '+(chosen?'chosen':'')+'" data-species="'+p.id+'" '+(chosen&&!here?'disabled':'')+'>'+
     '<img src="'+sprite(p.id)+'" alt="" loading="lazy">'+
-    '<span class="identity"><strong>'+escapeHtml(p.name)+'</strong><small>#'+String(p.id).padStart(4,'0')+' · '+p.types.map(escapeHtml).join(' / ')+'</small><small>'+escapeHtml(details(p))+'</small><small class="raw-stats">'+escapeHtml(statSummary(p))+'</small></span>'+
-    '<span class="overall"><b>'+rating(p,role).toFixed(1)+'</b><small>'+role+' FIT</small></span>'+
+    '<span class="identity"><strong>'+escapeHtml(p.name)+'</strong><small>#'+String(p.id).padStart(4,'0')+' · '+p.types.map(escapeHtml).join(' / ')+'</small><small>'+escapeHtml(details(p))+'</small></span>'+
+    '<span class="overall"><b>'+gradeFor(p,role)+'</b><small>'+role+' FIT</small></span>'+
     '<span class="select-marker">'+(here?'✓':chosen?'●':'+')+'</span></button>';
  }).join('') || '<p class="empty-results">No Pokémon matched. Try a different search or type.</p>';
  $('more').hidden=opts.length<=limit;
@@ -97,7 +102,7 @@ function randomize(){
 }
 async function copyXI(){
  const f=FORMATIONS[state.formation];
- const text=['PokéFC · '+(state.name||'Your XI')+' · '+state.formation,...f.map(([role],i)=>role+': '+(BY.get(state.lineup[i])?.name||'Open')),'Average positional rating: '+(average()===null?'—':average().toFixed(2))].join('\n');
+ const text=['PokéFC · '+(state.name||'Your XI')+' · '+state.formation,...f.map(([role],i)=>role+': '+(BY.get(state.lineup[i])?.name||'Open')),'Current XI grade: '+grade(average())].join('\n');
  try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(text);$('savedStatus').textContent='XI copied to clipboard'}catch{window.prompt('Copy your XI:',text)}
 }
 function wire(){
@@ -119,5 +124,5 @@ function wire(){
 }
 if(!S.length){$('prospects').innerHTML='<p class="empty-results">Pokémon data is unavailable. Reload the page.</p>';return}
 wire();render();save();
-window.PFC_BUILDER={rating,formations:FORMATIONS,getState:()=>JSON.parse(JSON.stringify(state))};
+window.PFC_BUILDER={gradeFor,formations:FORMATIONS,getState:()=>JSON.parse(JSON.stringify(state))};
 })();
