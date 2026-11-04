@@ -49,9 +49,10 @@ function runCase(pool,legends){
  assert.equal(get().phase,'shop');
  assert.equal(new Set(get().roster).size,11);
  assert.equal(get().roster.filter(Boolean).length,11);
- const item=(bound.get('[data-item]')||[])[0];
- assert(item,'Held-item selector exists');
- item.value='Leftovers';item.onchange();
+ assert.match(app.innerHTML,/data-shop-pick="Leftovers"/,'Item-first catalog includes Leftovers');
+ assert.match(app.innerHTML,/id="shopTarget"/,'Pokémon dropdown is available');
+ document.getElementById('shopTarget').value='0';
+ document.getElementById('equipShopItem').onclick();
  assert.equal(get().items[0],'Leftovers');
  document.getElementById('lock').onclick();
  assert.equal(get().phase,'locked');
