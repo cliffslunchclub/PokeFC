@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=4">
+<link rel="stylesheet" href="./challenge.css?v=5">
 </head>
 <body>
 <header class="pfc-header">
@@ -63,7 +63,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 <main id="app"></main>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
-<script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -170,6 +170,7 @@ let selectedShopItem=null,shopMessage="",shopScrollTop=0;
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
+const MATCH_REPORT=window.PFC_MATCH_REPORT;
 let challengeView='run',boardCategory='classic-standard';
 function syncChallengeNav(){
  const run=document.getElementById('challengeTabRun'),board=document.getElementById('challengeTabRankings');
@@ -248,10 +249,52 @@ function runShareText(){
   'Local browser run summary · Not an official leaderboard entry'
  ].join('\n');
 }
+function matchReportHtml(match){
+ if(!match)return '<p class="match-report-note">No game record available.</p>';
+ const report=match.report;
+ const label=String(match.origin||report?.origin||'quick-sim');
+ const source=label==='tacticmesh'?'WATCHED MATCH':label==='hybrid'?'WATCH → QUICK SIM':'QUICK SIM';
+ const score=Array.isArray(match.score)?match.score:[0,0];
+ const scoreText=esc(score.join(' – '));
+ const stats=report?.stats||{shots:match.shots,passes:match.passes};
+ const rows=[
+  ['SHOTS','shots',''],['SHOTS ON TARGET','shotsOnTarget',''],['POSSESSION','possession','%'],
+  ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['TACKLES WON','tackles',''],['SAVES','saves','']
+ ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
+ const table=rows.map(([label,key,unit])=>
+  '<div class="match-stat-row"><strong>'+esc(stats[key][0]??'—')+(stats[key][0]==null?'':unit)+'</strong><span>'+label+'</span><strong>'+
+  esc(stats[key][1]??'—')+(stats[key][1]==null?'':unit)+'</strong></div>').join('');
+ const goals=Array.isArray(report?.goals)?report.goals:[];
+ const goalFeed=goals.length?goals.map(goal=>{
+  const side=Number(goal.side)===0?'home':'away';
+  const player=esc(goal.player||'Scorer unavailable');
+  const assist=goal.assist?'<small>Assist: '+esc(goal.assist)+'</small>':'';
+  const eventOrigin=goal.origin==='tacticmesh'?'WATCHED':goal.origin==='quick-continuation'?'SIM TO END':'QUICK SIM';
+  const minute=String(goal.minuteLabel||'?').replace(/[^0-9+?]/g,'')||'?';
+  return '<li class="match-goal-event '+side+'"><span class="goal-minute">'+minute+'′</span>'+
+   '<span class="goal-club">'+(side==='home'?'YOUR XI':'OPPONENT')+'</span><div class="goal-info">'+
+   '<strong>⚽ '+player+'</strong>'+assist+'</div><span class="goal-origin">'+eventOrigin+'</span></li>';
+ }).join(''):'<li class="match-no-goals">'+(Number(score[0])===0&&Number(score[1])===0?'No goals in regulation.':'Goal scorer and minute details were not recorded for this match.')+'</li>';
+ const incomplete=report?.status&&report.status!=='complete'?'<p class="match-report-warning">'+esc(report.note||'Not all goal events were recorded.')+'</p>':!report&&score.some(x=>Number(x)>0)?'<p class="match-report-warning">This earlier game was saved before detailed goal logs were supported.</p>':'';
+ return '<div class="gauntlet-match-report">'+
+  '<div class="match-report-heading"><span class="pfc-eyebrow">'+esc(source)+'</span><strong>YOUR XI&nbsp; '+scoreText+'&nbsp; '+esc(match.boss||'OPPONENT')+'</strong></div>'+
+  '<h4>GOALS &amp; MATCH MINUTES</h4><ol class="match-goal-feed">'+goalFeed+'</ol>'+incomplete+
+  (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
+  '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
+  (match.tiebreak?'<p class="match-tiebreak">PENALTIES · '+esc(match.tiebreak)+'</p>':'')+
+ '</div>';
+}
+function matchHistoryHtml(history){
+ if(!history?.length)return '';
+ return '<div class="gauntlet-history"><h3>PREVIOUS MATCH REPORTS</h3>'+
+  history.map((m,i)=>'<details class="gauntlet-history-game"><summary><span>0'+(i+1)+' · '+esc(m.boss||'Opponent')+'</span>'+
+  '<strong>'+esc((m.score||[0,0]).join(' – '))+'</strong><small>'+esc(m.outcome||'—')+'</small></summary>'+
+  matchReportHtml(m)+'</details>').join('')+'</div>';
+}
 function completedRunCard(){
  const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
  const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(BY.get(id)?.name||'Unknown')+'</span>').join('');
- const matchList=r.matches.map((m,i)=>'<div class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–'))+'</strong><small>'+esc(m.outcome)+'</small></div>').join('');
+ const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–'))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
   '<h2>'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
@@ -372,7 +415,7 @@ if(st.phase==='shop')body+=shopMarkup(used);
 if(['locked','result','finished'].includes(st.phase)){
  body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
  '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>'<div class="'+(i<st.history.length?'done':i===st.round?'current':'')+'"><strong>'+esc(boss.leader.toUpperCase())+'</strong><span>'+(i<st.history.length?(st.history[i]?.outcome==='Victory'?'✓':'×'):i===st.round?'●':'–')+'</span></div>').join('')+'</div>'+
- '<p class="statline">Win every match with your locked Final XI. Your progress is saved in this browser.</p></section>';
+ '<p class="statline">Win every match with your locked Final XI. Your progress is saved in this browser.</p>'+matchHistoryHtml(st.phase==='finished'?[]:st.phase==='result'?st.history.slice(0,-1):st.history)+'</section>';
 }
 if(st.phase==='locked'){
  const boss=BOSSES[st.round]||BOSSES[0];
@@ -383,8 +426,7 @@ if(st.phase==='result'){
  body+='<section class="panel"><span class="pfc-eyebrow">MATCH '+(st.round+1)+' / 6</span>'+
  '<h2>'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'Result')+'</h2>'+
  '<div class="challenge-final-score"><h1>'+(st.result?.score||[0,0]).join(' – ')+'</h1></div>'+
- '<p>Shots '+(st.result?.shots||[]).join(' – ')+' · Passes '+(st.result?.passes||[]).join(' – ')+'</p>'+
- (st.result?.tiebreak?'<p class="warning">'+esc(st.result.tiebreak)+'</p>':'')+
+ matchReportHtml(st.result)+
  (win?'<button id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button>':'')+
  '</section>';
 }
@@ -564,7 +606,7 @@ function playBoss(){
   if(a===b){if(random()<.5)a++;else b++}
   outcome=a>b?'Victory':'Defeat';tiebreak='Penalty shootout '+a+'–'+b+' · provisional draw resolver (full extra-time engine pending)';
  }
- return {boss:boss.leader,round:st.round+1,score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome,tiebreak,seed,origin:'quick-sim'};
+ return {boss:boss.leader,round:st.round+1,score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome,tiebreak,seed,origin:'quick-sim',report:MATCH_REPORT?.fromResult(out,{home:ours,away:theirs})||null};
 }
 save();render();
 })();
