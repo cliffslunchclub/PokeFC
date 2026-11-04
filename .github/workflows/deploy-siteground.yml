@@ -28,6 +28,7 @@ on:
       - "tests/test-free-builder.cjs"
       - "tests/test-play.cjs"
       - "tests/test-challenge-play.cjs"
+      - "tests/test-challenge-gauntlet.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
@@ -57,6 +58,7 @@ jobs:
           node tests/test-national-dex.cjs
           node tests/test-play.cjs
           node tests/test-challenge-play.cjs
+          node tests/test-challenge-gauntlet.cjs
           node tests/test-free-builder.cjs
           node tests/test-challenge-special-items.cjs
           node tests/test-v08-league.cjs
