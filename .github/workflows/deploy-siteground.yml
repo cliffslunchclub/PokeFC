@@ -1,4 +1,4 @@
-name: Deploy PokéFC Playtest to SiteGround
+name: Deploy PokéFC Three-Section Site
 
 on:
   workflow_dispatch:
@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "builder.css"
+      - "builder.js"
+      - "franchise/**"
       - "career.css"
       - "career.js"
       - "species.js"
@@ -16,9 +19,9 @@ on:
       - "tactical-viewer.js"
       - "tm-worker.js"
       - "challenge/**"
-      - "legacy-v07c/**"
       - "tacticmesh/vendor/**"
       - "scripts/build-siteground.sh"
+      - "tests/test-free-builder.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
@@ -39,8 +42,10 @@ jobs:
       - name: Check out private source
         uses: actions/checkout@v4
 
-      - name: Test Challenge and Franchise gameplay
+      - name: Test Free Builder, Challenge and Franchise gameplay
         run: |
+          node --check builder.js
+          node tests/test-free-builder.cjs
           node tests/test-challenge-special-items.cjs
           node tests/test-v08-league.cjs
           node tests/test-hybrid.cjs
@@ -52,14 +57,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html career.js career.css hybrid-sim.js tm-engine-bridge.js tm-worker.js tactical-viewer.js challenge/index.html challenge/special-items-data.js species.js quick-sim.js calibration-profile.js legacy-v07c/index.html legacy-v07c/career.js tacticmesh/vendor/installed.json legacy-v07c/tacticmesh/vendor/installed.json; do
+          for file in index.html builder.js builder.css species.js quick-sim.js calibration-profile.js challenge/index.html challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
             test -s "dist/$file"
           done
           test ! -e dist/.git
           test ! -e dist/legacy-v05
+          test ! -e dist/legacy-v07c
+          test ! -e dist/career.js
+          test ! -e dist/tacticmesh/vendor
           test ! -e dist/calibration
           test ! -e dist/tests
-          echo "Challenge-only build validated."
+          echo "Clean PokéFC three-section public build validated."
 
       - name: Check deployment credentials
         id: ftp
