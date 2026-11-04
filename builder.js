@@ -23,11 +23,12 @@ function rating(s,role){
 }
 function escapeHtml(t){return String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 const $=id=>document.getElementById(id);
-const empty=()=>({version:1,name:'Indigo Athletic',formation:'4-3-3',lineup:Array(11).fill(null),selected:0});
+const empty=()=>({version:1,name:'Indigo Athletic',formation:'4-3-3',lineup:Array(11).fill(null),selected:0,spriteStyle:'pixel'});
 function normalize(value){
  const s=empty();
  if(!value||value.version!==1||!FORMATIONS[value.formation]||!Array.isArray(value.lineup)||value.lineup.length!==11)return s;
  s.name=typeof value.name==='string'?value.name.slice(0,38):s.name;
+ s.spriteStyle=value.spriteStyle==='art'?'art':'pixel';
  s.formation=value.formation;
  s.selected=Number.isInteger(value.selected)&&value.selected>=0&&value.selected<11?value.selected:0;
  const used=new Set();
@@ -37,7 +38,10 @@ function normalize(value){
 let state;
 try{state=normalize(JSON.parse(localStorage.getItem(KEY)))}catch{state=empty()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));$('savedStatus').textContent='Saved in this browser'}catch{$('savedStatus').textContent='Local saving is unavailable'}}
-function sprite(id){return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+id+'.png'}
+function sprite(id){const folder=state.spriteStyle==='art'?'other/official-artwork/':'';return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+folder+id+'.png'}
+function normalizeSearch(q){return String(q||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’'.:♀♂-]/g,'').replace(/\s+/g,'')}
+function details(s){return 'Gen '+(s.gen||'?')+' · '+s.height+' m · '+s.weight+' kg · BST '+Object.values(s.baseStats).reduce((a,b)=>a+b,0)}
+const statSummary=s=>[['HP','hp'],['ATK','attack'],['DEF','defense'],['SPA','spAttack'],['SPD','spDefense'],['SPE','speed']].map(([label,key])=>label+' '+s.baseStats[key]).join(' · ');
 function average(){const chosen=state.lineup.map((id,i)=>id?rating(BY.get(id),FORMATIONS[state.formation][i][0]):null).filter(v=>v!==null);return chosen.length?chosen.reduce((a,b)=>a+b,0)/chosen.length:null}
 function renderPitch(){
  const f=FORMATIONS[state.formation],filled=state.lineup.filter(Boolean).length;
@@ -56,20 +60,20 @@ function renderPitch(){
 }
 let limit=36;
 function renderProspects(){
- const role=FORMATIONS[state.formation][state.selected][0],current=BY.get(state.lineup[state.selected]),q=$('search').value.trim().toLowerCase(),type=$('typeFilter').value;
+ const role=FORMATIONS[state.formation][state.selected][0],current=BY.get(state.lineup[state.selected]),q=normalizeSearch($('search').value.trim()),type=$('typeFilter').value,gen=$('genFilter').value;
  $('scoutTitle').textContent=ROLES[role];$('selectedRole').textContent=role;
  $('currentPick').innerHTML=current?
-   '<strong>'+escapeHtml(current.name)+'</strong> · '+rating(current,role).toFixed(1)+' OVR <button id="removePick" class="btn" type="button" style="float:right;padding:4px 9px;min-height:26px;margin-top:-3px">Remove</button>':
+   '<strong>'+escapeHtml(current.name)+'</strong> · '+rating(current,role).toFixed(1)+' OVR <button id="removePick" class="btn" type="button" style="float:right;padding:4px 9px;min-height:26px;margin-top:-3px">Remove</button><span class="current-detail">'+escapeHtml(details(current))+'<br>'+escapeHtml(statSummary(current))+'</span>':
    'Select a Pokémon to fill the '+escapeHtml(role)+' position.';
  const used=new Set(state.lineup.filter(Boolean));
- const opts=S.filter(p=>(!q||p.name.toLowerCase().includes(q)||String(p.id)===q||String(p.id).padStart(3,'0')===q)&&(!type||p.types.includes(type)))
+ const opts=S.filter(p=>(!q||normalizeSearch(p.name).includes(q)||normalizeSearch(p.slug||'').includes(q)||String(p.id)===q||String(p.id).padStart(4,'0')===q)&&(!gen||String(p.gen)===gen)&&(!type||p.types.includes(type)))
    .sort((a,b)=>rating(b,role)-rating(a,role)||a.id-b.id);
  $('resultsCount').textContent=opts.length+' matching · '+S.length+' total';
  $('prospects').innerHTML=opts.slice(0,limit).map(p=>{
   const chosen=used.has(p.id),here=state.lineup[state.selected]===p.id;
   return '<button type="button" class="prospect '+(chosen?'chosen':'')+'" data-species="'+p.id+'" '+(chosen&&!here?'disabled':'')+'>'+
     '<img src="'+sprite(p.id)+'" alt="" loading="lazy">'+
-    '<span class="identity"><strong>'+escapeHtml(p.name)+'</strong><small>#'+String(p.id).padStart(3,'0')+' · '+p.types.map(escapeHtml).join(' / ')+'</small></span>'+
+    '<span class="identity"><strong>'+escapeHtml(p.name)+'</strong><small>#'+String(p.id).padStart(4,'0')+' · '+p.types.map(escapeHtml).join(' / ')+'</small><small>'+escapeHtml(details(p))+'</small><small class="raw-stats">'+escapeHtml(statSummary(p))+'</small></span>'+
     '<span class="overall"><b>'+rating(p,role).toFixed(1)+'</b><small>'+role+' FIT</small></span>'+
     '<span class="select-marker">'+(here?'✓':chosen?'●':'+')+'</span></button>';
  }).join('') || '<p class="empty-results">No Pokémon matched. Try a different search or type.</p>';
@@ -100,6 +104,8 @@ function wire(){
  const types=[...new Set(S.flatMap(p=>p.types))].sort();
  $('typeFilter').innerHTML='<option value="">All types</option>'+types.map(t=>'<option value="'+escapeHtml(t)+'">'+t[0].toUpperCase()+t.slice(1)+'</option>').join('');
  $('clubName').value=state.name;
+ $('spriteStyle').value=state.spriteStyle;
+ $('spriteStyle').addEventListener('change',e=>{state.spriteStyle=e.target.value==='art'?'art':'pixel';save();render()});
  $('clubName').addEventListener('input',e=>{state.name=e.target.value.slice(0,38);$('lineupName').textContent=state.name||'Your XI';save()});
  $('formation').addEventListener('change',e=>{if(!FORMATIONS[e.target.value])return;state.formation=e.target.value;save();render()});
  $('randomize').addEventListener('click',()=>{if(state.lineup.some(Boolean)&&!confirm('Replace the current lineup with random Pokémon?'))return;randomize()});
@@ -108,7 +114,7 @@ function wire(){
  $('pitchSlots').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;state.selected=Number(b.dataset.slot);save();render()});
  $('prospects').addEventListener('click',e=>{const b=e.target.closest('[data-species]');if(!b||b.disabled)return;pickSpecies(Number(b.dataset.species))});
  $('currentPick').addEventListener('click',e=>{if(e.target.id!=='removePick')return;state.lineup[state.selected]=null;save();render()});
- for(const id of ['search','typeFilter'])$(id).addEventListener(id==='search'?'input':'change',()=>{limit=36;renderProspects()});
+ for(const id of ['search','typeFilter','genFilter'])$(id).addEventListener(id==='search'?'input':'change',()=>{limit=36;renderProspects()});
  $('more').addEventListener('click',()=>{limit+=36;renderProspects()});
 }
 if(!S.length){$('prospects').innerHTML='<p class="empty-results">Pokémon data is unavailable. Reload the page.</p>';return}
