@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=1">
+<link rel="stylesheet" href="./challenge.css?v=2">
 </head>
 <body>
 <header class="pfc-header">
@@ -56,9 +56,14 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
     <img class="hero-poke-two" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png" alt="">
   </div>
 </section>
+<nav class="challenge-subnav" aria-label="Challenge sections">
+ <button id="challengeTabRun" type="button" class="active" aria-current="page">PLAY CHALLENGE</button>
+ <button id="challengeTabRankings" type="button">LEADERBOARDS <span>LOCAL BETA</span></button>
+</nav>
 <main id="app"></main>
 </div>
-<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script><script src="../play/opponents.js"></script><script>
+<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
+<script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -101,6 +106,59 @@ function rating(s,pos,item){if(!s)return 0;const b=effectiveStats(s,item);const 
 const teamScore=()=>st.roster.reduce((a,id,i)=>a+rating(BY.get(id),FORMS[st.formation][i],st.items[i]),0)/11;
 function roll(){const a=pool();if(!a.length){st.roll=null;return}const types=[...new Set(a.flatMap(s=>s.types))],valid=[];for(const type of types)for(let g=1;g<=st.pool;g++)if(a.some(s=>s.types.includes(type)&&(s.gen||gen(s.id))===g))valid.push({type,gen:g});st.roll=valid[Math.floor(next()*valid.length)]}
 function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rerollGen)return;const a=pool(),old=st.roll;if(!old)return;const opts=which==='type'?[...new Set(a.filter(s=>(s.gen||gen(s.id))===old.gen).flatMap(s=>s.types))].filter(x=>x!==old.type).map(type=>({type,gen:old.gen})):Array.from({length:st.pool},(_,i)=>i+1).filter(g=>g!==old.gen&&a.some(s=>gen(s.id)===g&&s.types.includes(old.type))).map(gen=>({type:old.type,gen}));if(!opts.length)return;st.roll=opts[Math.floor(next()*opts.length)];if(which==='type')st.rerollType--;else st.rerollGen--}
+const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
+const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
+let challengeView='run',boardCategory='classic-standard';
+function syncChallengeNav(){
+ const run=document.getElementById('challengeTabRun'),board=document.getElementById('challengeTabRankings');
+ run.className=challengeView==='run'?'active':'';
+ board.className=challengeView==='leaderboard'?'active':'';
+ if(run.setAttribute)run.setAttribute('aria-current',challengeView==='run'?'page':'false');
+ if(board.setAttribute)board.setAttribute('aria-current',challengeView==='leaderboard'?'page':'false');
+ run.onclick=()=>{challengeView='run';render()};
+ board.onclick=()=>{challengeView='leaderboard';boardCategory=BOARD?.categoryOf(st)||boardCategory;render()};
+}
+function leaderboardMarkup(){
+ const categories=BOARD?.CATEGORIES||[];
+ const selected=categories.find(c=>c.id===boardCategory)||categories[0];
+ if(!selected)return '<section class="panel">Local rankings unavailable. Reload this page.</section>';
+ const rows=BOARD.rankings(selected.id,localStorage);
+ const summary=BOARD.stats(selected.id,localStorage);
+ const filter=categories.map(c=>
+  '<button class="leaderboard-category '+(c.id===selected.id?'active':'')+'" id="lb-'+c.id+'" type="button" aria-pressed="'+(c.id===selected.id?'true':'false')+'">'+esc(c.label)+'</button>').join('');
+ const listing=rows.length?rows.map((run,i)=>{
+   const players=(run.roster||[]).map(id=>BY.get(id)?.name||'Unknown').join(' · ');
+   const matches=(run.matches||[]).map(m=>esc(m.boss)+' '+esc(m.score.join('–'))).join(' · ');
+   return '<div class="leaderboard-row">'+
+    '<span class="lb-rank">#'+(i+1)+'</span><div class="lb-identity"><strong>'+(run.champion?'🏆 CHAMPION RUN':'INDIGO RUN')+'</strong><small>'+
+    esc(run.formation||'4-3-3')+' · '+esc(String(run.finishedAt||'').slice(0,10))+'</small></div>'+
+    '<strong class="lb-record">'+Number(run.wins||0)+'W–'+Number(run.losses||0)+'L</strong>'+
+    '<strong class="lb-score">'+Number(run.teamScore||0).toFixed(1)+'</strong>'+
+    '<span class="lb-gd">'+(Number(run.goalDifference||0)>=0?'+':'')+Number(run.goalDifference||0)+' GD</span>'+
+    '<details class="lb-details"><summary>View XI &amp; matches</summary><p>'+esc(players)+'</p><p>'+matches+'</p></details></div>';
+  }).join(''):'<div class="leaderboard-empty"><strong>NO COMPLETED RUNS YET</strong><p>Finish a Challenge in this category to appear here. Results are saved only in this browser.</p><button id="leaderboardStart" type="button">START A CHALLENGE →</button></div>';
+ return '<section class="panel challenge-leaderboard-panel">'+
+  '<div class="lb-heading"><div><span class="pfc-eyebrow">CHALLENGES · PERSONAL HALL OF FAME</span>'+
+   '<h2>LEADERBOARDS</h2><p>Only completed runs from this browser are listed. No global profiles or verified rankings yet.</p></div>'+
+   '<span class="lb-local-tag">LOCAL BETA · UNVERIFIED</span></div>'+
+  '<div class="leaderboard-categories" role="group" aria-label="Challenge division">'+filter+'</div>'+
+  '<div class="lb-stats"><div><span>RECORDED RUNS</span><strong>'+summary.runs+'</strong></div>'+
+    '<div><span>CHAMPIONS</span><strong>'+summary.champions+'</strong></div>'+
+    '<div><span>BEST WINS</span><strong>'+summary.bestWins+' / 6</strong></div>'+
+    '<div><span>BEST TEAM SCORE</span><strong>'+(summary.bestScore==null?'—':summary.bestScore.toFixed(1))+'</strong></div></div>'+
+  '<p class="lb-sort-note">Sorted by champion status, victories, goal difference and team score. Saved locally; results can be edited using browser tools.</p>'+
+  '<div class="leaderboard-list"><div class="leaderboard-header"><span>RANK / RUN</span><span>W–L</span><span>TEAM</span><span>GD</span></div>'+listing+'</div>'+
+  '<div class="leaderboard-coming"><h3>GLOBAL LEADERBOARDS</h3><p>COMING LATER · Real player rankings will require accounts and server-verified match results.</p></div>'+
+  '</section>';
+}
+function renderLeaderboards(app){
+ app.innerHTML=leaderboardMarkup();
+ for(const cat of BOARD?.CATEGORIES||[]){
+  document.getElementById('lb-'+cat.id).onclick=()=>{boardCategory=cat.id;render()};
+ }
+ const start=document.getElementById('leaderboardStart');
+ if(start)start.onclick=()=>{challengeView='run';render()};
+}
 function runStats(){
  const matches=Array.isArray(st.history)?st.history:[];
  const wins=matches.filter(m=>m.outcome==='Victory').length;
@@ -152,7 +210,11 @@ function completedRunCard(){
   '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '</section>';
 }
-function render(){const app=document.getElementById('app');if(st.phase==='setup'){
+function render(){const app=document.getElementById('app');
+ if(st.phase==='finished')BOARD?.archive(st,localStorage);
+ syncChallengeNav();
+ if(challengeView==='leaderboard'){renderLeaderboards(app);return}
+ if(st.phase==='setup'){
  let records={};try{records=JSON.parse(localStorage.getItem('pokefc-challenge-personal-records-v1'))||{}}catch{}
  const categories=[['classic-standard','CLASSIC / STANDARD'],['classic-legends','CLASSIC / LEGENDS'],['national-standard','NATIONAL / STANDARD'],['national-legends','NATIONAL / LEGENDS']];
  const recordsHtml=categories.map(([key,label])=>{
@@ -177,7 +239,8 @@ function render(){const app=document.getElementById('app');if(st.phase==='setup'
  '<p>01 / Draft eleven Pokémon using type and generation rolls.</p>'+
  '<p>02 / Spend your budget and lock the same Final XI for all matches.</p>'+
  '<p>03 / Beat Lorelei → Bruno → Agatha → Lance → Blue → Red.</p>'+
- '<p>Personal records stay in this browser. No online leaderboard yet.</p></div>'+ '<div class="challenge-leaderboard-teaser"><div class="leaderboard-top"><h3>GLOBAL LEADERBOARDS</h3><span>COMING SOON</span></div>'+ '<p>Four divisions: Classic Standard, Classic Legends, National Standard and National Legends.</p>'+ '<p>Your best local results are shown above. Online rankings will appear here when verified submissions launch.</p></div></aside></div>';
+ '<p>Personal records stay in this browser. No online leaderboard yet.</p></div>'+ '<div class="challenge-leaderboard-teaser"><div class="leaderboard-top"><h3>LEADERBOARDS</h3><span>LOCAL BETA</span></div>'+ '<p>Four divisions: Classic Standard, Classic Legends, National Standard and National Legends.</p>'+ '<button id="openLeaderboards" type="button">VIEW LEADERBOARDS →</button><p>Global rankings require verified match results and will launch separately.</p></div></aside></div>';
+ document.getElementById('openLeaderboards').onclick=()=>{challengeView='leaderboard';boardCategory=BOARD?.categoryOf(st)||boardCategory;render()};
  const poolSelect=document.getElementById('pool');
  const sync=()=>{for(const [id,val] of [['classicMode','4'],['nationalMode','9']]){
   const node=document.getElementById(id),selected=poolSelect.value===val;
@@ -273,7 +336,7 @@ if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e
 if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
  st.result=playBoss();st.history.push({...st.result});
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
- if(st.phase==='finished')savePersonalRecord();
+ if(st.phase==='finished'){savePersonalRecord();BOARD?.archive(st,localStorage)}
  save();render()
 }catch(e){alert('Quick Sim error: '+e.message)}};
 if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
