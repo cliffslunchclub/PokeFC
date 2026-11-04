@@ -21,7 +21,8 @@ cp index.html builder.css builder.js site.css favicon.svg national-species.js \
 cp ratings/index.html dist/ratings/
 
 # Challenge uses National species, special-item data, and Play opponent table.
-cp challenge/index.html challenge/challenge.css challenge/special-items-data.js dist/challenge/
+cp challenge/index.html challenge/challenge.css challenge/special-items-data.js \
+   challenge/leaderboard.js challenge/run-card.js dist/challenge/
 
 # Exhibition: its own watched-match worker and TacticMesh bridge; all resources
 # are relative to /play/ so Franchise and Play can independently start workers.
@@ -84,7 +85,7 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/leaderboard.js","challenge/run-card.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
@@ -93,6 +94,8 @@ assert 'XI GRADE' in (root/"index.html").read_text()
 assert 'How are the grades calculated by position?' in (root/"index.html").read_text()
 assert 'NATIONAL' in (root/"challenge/index.html").read_text()
 assert 'class="challenge-hero"' in (root/"challenge/index.html").read_text()
+assert 'id="challengeTabRankings"' in (root/"challenge/index.html").read_text()
+assert 'id="downloadRunCard"' in (root/"challenge/index.html").read_text()
 assert (root/"challenge/challenge.css").is_file()
 assert 'WATCH MATCH' in (root/"play/index.html").read_text()
 print("PASS SiteGround build: Home, Ratings guide, Play, Challenges, Franchise; exactly three mode links, shared favicon")
