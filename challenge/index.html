@@ -517,35 +517,6 @@ function displayDraftPosition(index,commit){
  grid.scrollTop=0;
 }
 app.querySelectorAll('[data-slot-card]').forEach(card=>{
-  if(!card.classList)return;
-  const selected=Number(card.dataset.slotCard)===st.selected;
-  card.classList.toggle('active',selected);
-  card.classList.toggle('preview',!commit&&Number(card.dataset.slotCard)===index&&!selected);
- });
- const tag=document.getElementById('selectedDraftPosition');
- if(tag)tag.textContent=currentRole+' POSITION'+(!commit&&index!==st.selected?' · PREVIEW':'');
- app.querySelectorAll('[data-pick]').forEach(card=>{
-  const pokemon=BY.get(Number(card.dataset.pick));
-  const badge=card.closest?.('.pick')?.querySelector?.('[data-position-tier]');
-  if(badge&&pokemon){
-   const tier=tierFor(pokemon,currentRole);
-   badge.textContent=tier+' TIER';badge.className='pick-tier tier-'+tier.toLowerCase();
-  }
- });
- if(!commit)return;
- const grid=document.getElementById('challengePickGrid');
- if(!grid||!grid.children||typeof grid.appendChild!=='function')return;
- const order={S:0,A:1,B:2,C:3,D:4};
- const cards=Array.from(grid.children).filter(node=>node?.dataset?.speciesId);
- cards.sort((a,b)=>{
-  const first=BY.get(Number(a.dataset.speciesId)),second=BY.get(Number(b.dataset.speciesId));
-  if(!first||!second)return 0;
-  return order[tierFor(first,currentRole)]-order[tierFor(second,currentRole)]||first.name.localeCompare(second.name)||first.id-second.id;
- });
- cards.forEach(node=>grid.appendChild(node));
- grid.scrollTop=0;
-}
-app.querySelectorAll('[data-slot-card]').forEach(card=>{
  const index=Number(card.dataset.slotCard);
  card.onmouseenter=()=>displayDraftPosition(index,false);
  card.onmouseleave=()=>displayDraftPosition(st.selected,false);
