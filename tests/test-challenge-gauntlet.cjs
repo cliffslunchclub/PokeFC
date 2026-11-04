@@ -31,8 +31,8 @@ function assertOpponentPitch(boss,phase){
  assert(html.includes('aria-label="'+boss.leader+' football pitch, '+boss.formation+' formation"'),'Boss formation is rendered');
  const pitch=[...html.matchAll(/data-opponent-id="(\d+)"/g)].map(x=>Number(x[1]));
  const roster=[...html.matchAll(/data-opponent-roster-id="(\d+)"/g)].map(x=>Number(x[1]));
- assert.deepEqual(pitch,boss.roster,'Opponent pitch follows canonical fixed XI');
- assert.deepEqual(roster,boss.roster,'Full roster follows canonical fixed XI');
+ assert.deepEqual(pitch,Array.from(boss.roster),'Opponent pitch follows canonical fixed XI');
+ assert.deepEqual(roster,Array.from(boss.roster),'Full roster follows canonical fixed XI');
  assert.equal((html.match(/class="opponent-slot-role"/g)||[]).length,11,'Eleven role labels');
  assert.equal((html.match(/class="opponent-slot-name"/g)||[]).length,11,'Eleven names');
  assert(html.includes('VIEW ALL 11 POKÉMON &amp; STATS'),'Detailed roster expander available');
