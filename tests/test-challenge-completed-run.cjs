@@ -44,6 +44,12 @@ function launch(champion){
  assert.match(lost.app.innerHTML,/FORMATION/);
  assert.match(lost.app.innerHTML,/id="shareRun"/);
  assert.match(lost.app.innerHTML,/id="quickRestart"/);
+ assert.match(lost.app.innerHTML,/<dialog id="runCompleteModal"/,'Completed run is rendered inside a dialog');
+ assert.equal(lost.elements.runCompleteModal.open,true,'Loss opens run results modal');
+ lost.elements.closeRunModal.onclick();
+ assert.equal(lost.elements.runCompleteModal.open,false,'Run results modal closes');
+ lost.elements.openRunModal.onclick();
+ assert.equal(lost.elements.runCompleteModal.open,true,'Run results modal reopens');
  assert.match(lost.app.innerHTML,/id="copyRunSummary"/);
  assert.match(lost.app.innerHTML,/id="postTwitter"[^>]*disabled/,'Direct posting remains unavailable');
  assert.match(lost.app.innerHTML,/LOCAL RECORDS|RUN COMPLETE/);
@@ -79,6 +85,7 @@ function launch(champion){
  assert.match(lost.app.innerHTML,/challenge-draft-panel/,'Restart begins another draft');
  const won=launch(true);
  assert.match(won.app.innerHTML,/CHALLENGE CHAMPION/);
+ assert.equal(won.elements.runCompleteModal.open,true,'Champion completion opens results modal');
  assert.match(won.app.innerHTML,/6W · 0L/);
  assert.match(won.app.innerHTML,/6 \/ 6/);
  console.log('PASS Challenge completed-run recap, share/copy summary, future X placeholder, Quick Restart, champion/defeat');
