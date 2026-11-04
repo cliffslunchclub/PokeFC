@@ -23,7 +23,7 @@ assert(app.innerHTML.includes('challenge-record-list'),'Local leaderboard panel'
 assert(app.innerHTML.includes('id="classicMode"')&&app.innerHTML.includes('id="nationalMode"'));
 controls.get('nationalMode').onclick();
 assert.equal(controls.get('pool').value,'9','National mode card selects 1,025 Pokémon');
-controls.get('leg').value='on';
+document.getElementById('leg').value='on';
 controls.get('start').onclick();
 const state=()=>JSON.parse(saves.get('pokefc-challenge-alpha-1'));
 assert.equal(state().phase,'draft');
