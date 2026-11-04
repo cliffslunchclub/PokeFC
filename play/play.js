@@ -199,6 +199,7 @@ function saveChallengeResult(result){
    localStorage.setItem(key,JSON.stringify(board));
   }
  }catch(e){$('engineStatus').textContent='Match complete, but Challenge save failed: '+e.message;return null}
+ if(challenge.phase==='finished')window.PFC_CHALLENGE_LEADERBOARD?.archive(challenge,localStorage);
  $('returnChallenge').hidden=false;
  return record;
 }
