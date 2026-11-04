@@ -21,7 +21,7 @@ cp index.html builder.css builder.js site.css favicon.svg national-species.js \
 cp ratings/index.html dist/ratings/
 
 # Challenge uses National species, special-item data, and Play opponent table.
-cp challenge/index.html challenge/special-items-data.js dist/challenge/
+cp challenge/index.html challenge/challenge.css challenge/special-items-data.js dist/challenge/
 
 # Exhibition: its own watched-match worker and TacticMesh bridge; all resources
 # are relative to /play/ so Franchise and Play can independently start workers.
@@ -67,7 +67,7 @@ for page in pages:
             raise SystemExit(f"Missing or unsafe local resource: {page}: {ref}")
     h=page.read_text()
     if h.count('class="pfc-nav"')!=1:raise SystemExit(f"Invalid global nav count: {page}")
-    for word in ["PLAY","CHALLENGES","FRANCHISE"]:
+    for word in ["QUICK PLAY","CHALLENGES","FRANCHISE"]:
         if word not in h:raise SystemExit(f"Missing global nav entry {word}: {page}")
     expected='../' if page.parent!=root else './'
     if f'href="{expected}favicon.svg?v=1"' not in h:
@@ -92,6 +92,8 @@ assert '1,025' in (root/"index.html").read_text()
 assert 'XI GRADE' in (root/"index.html").read_text()
 assert 'How are the grades calculated by position?' in (root/"index.html").read_text()
 assert 'NATIONAL' in (root/"challenge/index.html").read_text()
+assert 'class="challenge-hero"' in (root/"challenge/index.html").read_text()
+assert (root/"challenge/challenge.css").is_file()
 assert 'WATCH MATCH' in (root/"play/index.html").read_text()
 print("PASS SiteGround build: Home, Ratings guide, Play, Challenges, Franchise; exactly three mode links, shared favicon")
 PY
