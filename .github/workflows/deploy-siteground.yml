@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "favicon.svg"
+      - "ratings/**"
       - ".htaccess"
       - "builder.css"
       - "builder.js"
@@ -27,6 +29,7 @@ on:
       - "scripts/build-siteground.sh"
       - "tests/test-national-dex.cjs"
       - "tests/test-free-builder.cjs"
+      - "tests/test-branding.cjs"
       - "tests/test-play.cjs"
       - "tests/test-challenge-play.cjs"
       - "tests/test-challenge-gauntlet.cjs"
@@ -61,6 +64,7 @@ jobs:
           node tests/test-challenge-play.cjs
           node tests/test-challenge-gauntlet.cjs
           node tests/test-free-builder.cjs
+          node tests/test-branding.cjs
           node tests/test-challenge-special-items.cjs
           node tests/test-v08-league.cjs
           node tests/test-hybrid.cjs
@@ -72,7 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
+          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
             test -s "dist/$file"
           done
           test -s dist/.htaccess
@@ -84,7 +88,7 @@ jobs:
           test ! -e dist/tacticmesh/vendor
           test ! -e dist/calibration
           test ! -e dist/tests
-          echo "All four pages validated: Home plus three modes (Play, Challenges, Franchise)."
+          echo "All five pages validated: Home, Ratings guide and three modes (Play, Challenges, Franchise)."
 
       - name: Check deployment credentials
         id: ftp
