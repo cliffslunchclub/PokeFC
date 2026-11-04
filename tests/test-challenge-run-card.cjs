@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const ctx=vm.createContext({window:{},Date,console,setTimeout,clearTimeout});
+vm.runInContext(fs.readFileSync(path.join(root,'challenge/special-items-data.js'),'utf8'),ctx,{filename:'special-items-data.js'});
 vm.runInContext(fs.readFileSync(path.join(root,'challenge/run-card.js'),'utf8'),ctx,{filename:'run-card.js'});
 const card=ctx.window.PFC_CHALLENGE_RUN_CARD;
 assert(card,'run card module loaded');
@@ -16,6 +17,10 @@ assert.equal(data.players.length,11);
 assert.equal(data.results.length,6);
 assert.equal(data.teamScore,72.9);
 assert.equal(data.players[0].item,'Eviolite');
+const megaState={...state,locked:{...state.locked,items:['Eviolite','Charizardite X',...Array(9).fill(null)]}};
+const megaData=card.summary(megaState,map);
+assert.equal(megaData.players[1].spriteId,10034,'Mega Charizard X uses PokeAPI form sprite');
+assert.match(megaData.players[1].name,/Mega Pokémon #6 X/,'Mega form is named correctly with mock species');
 assert.equal(data.champions,true);
 assert.match(data.category,/NATIONAL/);
 let draws=[],labels=[];
