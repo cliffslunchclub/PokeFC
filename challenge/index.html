@@ -135,7 +135,7 @@ function shopMarkup(used){
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
   '<p>Choose an item, then assign it to a Pokémon. Each item can be held by one Pokémon at a time; replacing or removing an item refunds its cost.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
-  '<div class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
+  '<div id="shopCatalog" class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
    const n=it[0],holder=st.items.indexOf(n),targets=itemTargets(n),active=n===selectedShopItem;
    return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
     '<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span><small>'+esc(itemEffect(it))+'</small>'+
@@ -429,7 +429,35 @@ app.querySelectorAll('[data-slot]').forEach(b=>{
  b.onfocus=()=>selectDraftSlot(Number(b.dataset.slot),false);
 });
 app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{if(slotAnimationBusy||st.roster[st.selected])return;const s=BY.get(+b.dataset.pick);if(!eligible().some(x=>x.id===s.id))return;if(s.legendary&&st.roster.filter(id=>BY.get(id)?.legendary).length>=2)return;st.roster[st.selected]=s.id;if(st.roster.every(Boolean))st.phase='shop';else{st.selected=st.roster.findIndex(x=>!x);roll()}save();render()});
-app.querySelectorAll('[data-item]').forEach(sel=>sel.onchange=()=>{const i=+sel.dataset.item,s=BY.get(st.roster[i]),name=sel.value,it=itemFor(s,name),prior=itemFor(s,st.items[i]);const anotherMega=st.items.some((x,j)=>j!==i&&megaForm(BY.get(st.roster[j]),x));if(name&&(!it||st.items.some((x,j)=>x===name&&j!==i)||used-(prior?.[1]||0)+it[1]>1000||(megaForm(s,name)&&anotherMega))){alert(!it?'Item unavailable for this Pokémon':megaForm(s,name)&&anotherMega?'Only one Mega Evolution is allowed per team.':'Item already used or over the ₽1,000 budget.');render();return}st.items[i]=name||null;save();render()});
+if(st.phase==='shop'){
+ const restore=document.getElementById('shopCatalog');
+ if(restore)restore.scrollTop=shopScrollTop;
+ app.querySelectorAll('[data-shop-pick]').forEach(b=>b.onclick=()=>{
+  const el=document.getElementById('shopCatalog');
+  shopScrollTop=el?.scrollTop||0;
+  selectedShopItem=b.dataset.shopPick;shopMessage='';render();
+ });
+ const equip=document.getElementById('equipShopItem');
+ if(equip)equip.onclick=()=>{
+  const target=document.getElementById('shopTarget');
+  const result=equipShopItem(selectedShopItem,target?.value);
+  shopMessage=result.ok?'Equipped '+selectedShopItem+' successfully.':result.error;
+  if(!result.ok){const status=document.getElementById('shopFeedback');if(status)status.textContent=result.error;return}
+  render();
+ };
+ const remove=document.getElementById('removeSelectedItem');
+ if(remove)remove.onclick=()=>{
+  const current=st.items.indexOf(selectedShopItem);
+  if(current<0)return;
+  const result=equipShopItem(null,current);
+  shopMessage=result.ok?'Item removed and refunded.':result.error;
+  render();
+ };
+ app.querySelectorAll('[data-shop-clear]').forEach(b=>b.onclick=()=>{
+  const i=Number(b.dataset.shopClear),result=equipShopItem(null,i);
+  shopMessage=result.ok?'Item removed and refunded.':result.error;render();
+ });
+}
 if(st.phase==='draft'){document.getElementById('typeR').onclick=()=>{if(slotAnimationBusy)return;reroll('type');save();render()};document.getElementById('genR').onclick=()=>{if(slotAnimationBusy)return;reroll('gen');save();render()}}
 if((st.phase==='draft'||st.phase==='shop')&&st.formationChanges>0){
  document.getElementById('applyFormation').onclick=()=>{const choice=document.getElementById('formationChange').value;if(!FORMS[choice]||choice===st.formation)return;st.formation=choice;st.formationChanges--;save();render()};
@@ -437,7 +465,7 @@ if((st.phase==='draft'||st.phase==='shop')&&st.formationChanges>0){
 if(st.phase==='draft'&&st.moves>0&&filled>0&&filled<11){
  document.getElementById('movePick').onclick=()=>{const from=+document.getElementById('moveFrom').value,to=+document.getElementById('moveTo').value;if(!Number.isInteger(from)||!Number.isInteger(to)||!st.roster[from]||st.roster[to]!==null||from===to)return;st.roster[to]=st.roster[from];st.roster[from]=null;st.selected=from;st.moves--;save();render()};
 }
-if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{if(st.roster.some(x=>!x)||used>1000)return;if(!confirm('Lock your XI, positions, tactics and items for the gauntlet?'))return;st.phase='locked';st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));save();render()}}
+if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{if(st.roster.some(x=>!x)||used>1000)return;if(!confirm('Lock your XI, positions, tactics and items for the gauntlet?'))return;st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));save();render()}}
 if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
  st.result=playBoss();st.history.push({...st.result});
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
