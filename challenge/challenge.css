@@ -440,3 +440,41 @@
  .challenge-fit-guide summary small{font-size:8px}
  .challenge-fit-guide .fit-role-row{grid-template-columns:1fr;gap:2px}
 }
+
+/* Fixed boss scouting XI: opponent pitch matches the exact lineup and formation Quick Sim uses. */
+.challenge-opponent-panel{background:linear-gradient(145deg,#222b3f,#131f30)!important}
+.challenge-opponent-panel .challenge-section-heading p{font-size:11px!important;color:#c3cbd7}
+.challenge-opponent-panel .challenge-section-heading h2{color:#f6e4d5}
+.opponent-pitch{height:640px;background:repeating-linear-gradient(0deg,#374b57 0%,#374b57 12.5%,#405463 12.5%,#405463 25%);border-color:#d3a89d99}
+.opponent-pitch::before,.opponent-pitch .pitch-circle,.opponent-pitch .pitch-box{border-color:#e3e5e48c}
+.opponent-pitch .pitch-line{background:#e3e5e48c}
+.opponent-slot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:clamp(47px,13%,68px);height:57px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2px 1px;background:#1b2d3df2;border:1px solid #a3c2cb88;border-radius:7px;box-shadow:0 3px 8px #0008;z-index:2;text-align:center;pointer-events:auto}
+.opponent-slot.is-signature{border-color:#efc485!important;box-shadow:0 0 0 1px #e8ba72a8,0 3px 8px #0008}
+.opponent-slot-role{font-size:8px;line-height:1;font-weight:1000;color:#d4e0e8}
+.opponent-slot img{display:block;width:28px;height:28px;object-fit:contain;image-rendering:pixelated}
+.opponent-slot-name{font-size:8px;font-weight:950;line-height:1.05;white-space:normal;overflow-wrap:anywhere;max-height:18px;overflow:hidden;color:#f5f6f3}
+.opponent-held-tag{position:absolute;right:-4px;top:-7px;font-size:7px;font-weight:1000;line-height:1;padding:3px;border:1px solid #f0c58d;border-radius:4px;background:#60452f;color:#ffdf9f}
+.opponent-pitch-legend{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px 10px;color:#b6cbd5;font-size:9px;font-weight:800;margin:9px 1px}
+.opponent-signature-marker{color:#f5d695;font-size:14px}
+.opponent-roster-details{margin-top:10px;border:1px solid #496175;background:#182b3b;border-radius:7px;overflow:hidden}
+.opponent-roster-details summary{cursor:pointer;padding:11px 12px;color:#f5dcad;font-size:11px;letter-spacing:.04em;font-weight:950}
+.opponent-roster-details[open] summary{border-bottom:1px solid #476175}
+.opponent-roster-list{display:grid;gap:0;padding:0 9px 4px}
+.opponent-roster-row{display:grid;grid-template-columns:34px 32px minmax(0,1fr);gap:5px;align-items:center;padding:8px 0;border-bottom:1px solid #3a5261}
+.opponent-roster-row:last-child{border-bottom:0}
+.opponent-row-position{font-size:9px;font-weight:1000;color:#eed5af}
+.opponent-roster-row img{width:31px;height:31px;object-fit:contain;image-rendering:pixelated}
+.opponent-row-info{display:flex;flex-direction:column;min-width:0;line-height:1.25;gap:4px}
+.opponent-row-info strong{font-size:11px;color:#f5f9fb}
+.opponent-row-info small{font-size:9px;color:#bfccd6}
+.opponent-row-stats{display:flex;flex-wrap:wrap;gap:3px 8px;font-size:9px;color:#e1ebe9;font-variant-numeric:tabular-nums}
+.opponent-row-stats span{white-space:nowrap}
+.opponent-row-stats b{font-weight:950;color:#9cbdc8}
+@media(max-width:560px){
+ .opponent-pitch{height:605px}
+ .opponent-slot{width:clamp(42px,13%,65px);height:54px;padding:2px 0}
+ .opponent-slot img{width:25px;height:25px}
+ .opponent-slot-name{font-size:7px}
+ .opponent-slot-role{font-size:7px}
+ .opponent-pitch-legend{font-size:8px}
+}

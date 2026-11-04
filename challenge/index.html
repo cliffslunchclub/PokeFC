@@ -90,6 +90,18 @@ function effectiveStats(s,item){
  if(it)for(const [k,v] of Object.entries(it[2]))b[k]+=v;
  return b;
 }
+// Fixed opponent item rules shared between the scouting UI and Quick Sim.
+function opponentHeldItem(boss,id){
+ if(boss?.key==='champion-blue'&&id===18)return 'Pidgeotite';
+ if(boss?.key==='champion-red'&&id===6)return 'Charizardite X';
+ if(boss?.key==='champion-red'&&id===25)return 'Light Ball';
+ return null;
+}
+function matchEffectiveStats(s,item){
+ const b=effectiveStats(s,item);
+ if(b&&item==='Light Ball'&&s.id===25){b.attack*=2;b.spAttack*=2}
+ return b;
+}
 function offeredItems(s){
  return [...ITEMS,...(EVOLVABLE.has(s.id)?[EVIOLITE]:[]),...(SPECIAL.megas[s.id]||[]).map(m=>[m.stone,700,{}])];
 }
@@ -445,8 +457,47 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
  body+='</section>';
 }
 if(st.phase==='shop')body+=shopMarkup(used);
-if(['locked','result','finished'].includes(st.phase)){
- body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
+if(['shop','locked','result','finished'].includes(st.phase)){
+ const opponent=BOSSES[st.round];
+ if(opponent&&Array.isArray(opponent.roster)&&opponent.roster.length===11){
+  const enemyFormation=FORMS[opponent.formation]?opponent.formation:'4-3-3';
+  const opponentXI=opponent.roster.map((id,i)=>{
+   const species=BY.get(id),pos=FORMS[enemyFormation][i],point=posMap[enemyFormation][i];
+   const item=opponentHeldItem(opponent,id),stats=species?matchEffectiveStats(species,item):null;
+   return {id,species,pos,point,item,stats};
+  });
+  const opponentCards=opponentXI.map(({id,species,pos,point,item})=>{
+   const name=species?.name||'#'+id;
+   const spriteId=species?.spriteId||id;
+   return '<div class="opponent-slot'+(id===opponent.signature?' is-signature':'')+'" data-opponent-slot="'+esc(pos)+'" data-opponent-id="'+id+'" style="left:'+point[0]+'%;top:'+point[1]+'%" title="'+esc(pos+' · '+name+(item?' · '+item:''))+'">'+
+    '<span class="opponent-slot-role">'+esc(pos)+'</span>'+
+    '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+spriteId+'.png">'+
+    '<span class="opponent-slot-name">'+esc(name)+'</span>'+
+    (item?'<span class="opponent-held-tag">'+(item==='Light Ball'?'BALL':'MEGA')+'</span>':'')+
+    '</div>';
+  }).join('');
+  const statNames=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
+  const opponentRows=opponentXI.map(({id,species,pos,item,stats})=>{
+   const name=species?.name||'#'+id,types=species?.types?.join(' / ')||'Unknown';
+   return '<div class="opponent-roster-row" data-opponent-roster-id="'+id+'">'+
+    '<span class="opponent-row-position">'+esc(pos)+'</span>'+
+    '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(species?.spriteId||id)+'.png">'+
+    '<div class="opponent-row-info"><strong>'+esc(name)+'</strong><small>'+esc(types)+(item?' · '+esc(item):'')+'</small>'+
+    (stats?'<span class="opponent-row-stats">'+statNames.map(([label,key])=>'<span><b>'+label+'</b> '+stats[key]+'</span>').join('')+'</span>':'')+
+    '</div></div>';
+  }).join('');
+  body+='<section class="panel challenge-opponent-panel" aria-label="Opponent XI: '+esc(opponent.leader)+'">'+
+   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">GAUNTLET '+(st.round+1)+' / 6 · '+(st.phase==='locked'?'NEXT OPPONENT':'MATCH OPPONENT')+'</span><h2>'+esc(opponent.leader.toUpperCase())+' · OPPONENT XI</h2>'+
+   '<p>'+esc((opponent.region||'Indigo League')+' · '+opponent.roster.length+' fixed Pokémon · '+(opponent.tactic||'balanced')+' tactics')+'</p></div>'+
+   '<span class="formation-tag">'+esc(enemyFormation)+'</span></div>'+
+   '<div class="challenge-pitch opponent-pitch" aria-label="'+esc(opponent.leader+' football pitch, '+enemyFormation+' formation')+'">'+
+   '<div class="pitch-line"></div><div class="pitch-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div>'+
+   opponentCards+'</div>'+
+   '<div class="opponent-pitch-legend"><span><b class="opponent-signature-marker">★</b> Signature Pokémon</span><span>Item markers show Mega Stones / Light Ball</span></div>'+
+   '<details class="opponent-roster-details"><summary>VIEW ALL 11 POKÉMON &amp; STATS</summary><div class="opponent-roster-list">'+opponentRows+'</div></details>'+
+   '</section>';
+ }
+ if(st.phase!=='shop')body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
  '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>'<div class="'+(i<st.history.length?'done':i===st.round?'current':'')+'"><strong>'+esc(boss.leader.toUpperCase())+'</strong><span>'+(i<st.history.length?(st.history[i]?.outcome==='Victory'?'✓':'×'):i===st.round?'●':'–')+'</span></div>').join('')+'</div>'+
  '<p class="statline">Win every match with your locked Final XI. Your progress is saved in this browser.</p>'+matchHistoryHtml(st.phase==='finished'?[]:st.phase==='result'?st.history.slice(0,-1):st.history)+'</section>';
 }
@@ -680,8 +731,7 @@ function playBoss(){
  const boss=BOSSES[st.round];if(!boss||!Array.isArray(boss.roster)||boss.roster.length!==11)throw Error('Boss roster unavailable');
  const role=pos=>pos==='GK'?'GK':['LB','RB','CB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
  const build=(s,i,pos,prefix,item)=>{
-  const b=effectiveStats(s,item);
-  if(item==='Light Ball'&&s.id===25){b.attack*=2;b.spAttack*=2}
+  const b=matchEffectiveStats(s,item);
   const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
   const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
   return {id:prefix+i+'-'+s.id,name:s.name,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
@@ -689,10 +739,7 @@ function playBoss(){
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,role(FORMS[st.formation][i]),'c',st.items[i]))};
  const bossFormation=boss.formation||'4-3-3';
  const theirs={id:boss.key,tactic:boss.tactic||'balanced',lineup:boss.roster.map((id,i)=>{
-  const s=BY.get(id);let item=null;
-  if(boss.leader==='Blue'&&id===18)item='Pidgeotite';
-  if(boss.leader==='Red'&&id===6)item='Charizardite X';
-  if(boss.leader==='Red'&&id===25)item='Light Ball';
+  const s=BY.get(id),item=opponentHeldItem(boss,id);
   return build(s,i,role(FORMS[bossFormation][i]),'boss',item);
  })};
  const seed='challenge:'+st.rng+':'+st.round;
