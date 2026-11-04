@@ -81,7 +81,11 @@
     const tactics=team.tactic==='press'?1.4:team.tactic==='possession'?.8:0;
     const atkStrength=atk.attack+tactics+(side===0?2.5:0);
     const trailing=score[side]<score[1-side]?1.08:score[side]>score[1-side]?.93:1;
-    const shots=poisson(next,clamp((P.shotsBase+(atkStrength-opp.defense)*P.shotsAttackSlope+(side===0?P.shotsHomeBonus:0))*trailing/90,.001,.95));
+    // Experimental build-up link: better passing creates modestly more genuine
+    // shooting opportunities, while poor passing suppresses them. Legacy
+    // statistical mode retains its exact original shot-generation path.
+    const buildUpFactor=phase9PassAccuracy?clamp(1+(phase9PassAccuracy[side]-.75)*.85,.90,1.11):1;
+    const shots=poisson(next,clamp((P.shotsBase+(atkStrength-opp.defense)*P.shotsAttackSlope+(side===0?P.shotsHomeBonus:0))*trailing*buildUpFactor/90,.001,.95));
     for(let k=0;k<shots;k++){
      const shooter=choice(next,attackers,p=>p.pos==='FWD'?n(p.main.finishing)*2:p.pos==='MID'?n(p.main.finishing):Math.max(2,n(p.main.finishing)*.14));if(!shooter)continue;
      t.shots++;box[shooter.id].shots++;
