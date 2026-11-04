@@ -41,6 +41,20 @@
   }
   return {status:'provisional',referenceMatches:0,engineCommit:null,parameters:{...DEFAULTS},version:'v0.7b'};
  }
+ function phase9PassingAccuracy(team, opponent, variant) {
+  // Experimental opt-in: keep deployed Quick Sim's P.passAccuracy unchanged.
+  const players=team.lineup.filter(p=>p.pos!=='GK');
+  const defenders=opponent.lineup.filter(p=>p.pos!=='GK');
+  const average=(list,fn)=>list.length?list.reduce((v,p)=>v+fn(p),0)/list.length:62;
+  const technical=average(players,p=>stat(p,'shortPassing')*.38+stat(p,'firstTouch')*.33+
+    stat(p,'vision')*.17+stat(p,'decisionMaking')*.12);
+  const pressure=average(defenders,p=>stat(p,'interception')*.46+stat(p,'tackling')*.35+
+    stat(p,'awareness')*.19);
+  const moderate=variant==='phase9-pass-moderate';
+  const midpoint=moderate?.76:.78,ownSlope=moderate?.0018:.0025,oppSlope=moderate?.0009:.0013;
+  return clamp(midpoint+(technical-62)*ownSlope-(pressure-62)*oppSlope+
+    (team.tactic==='possession'?.012:0)-(opponent.tactic==='press'?.018:0),.55,.90);
+ }
  function possession(home,away,P){
   const middle=t=>{const a=t.lineup.filter(x=>x.pos==='MID');return a.length?a.reduce((s,p)=>s+strength(p),0)/a.length:45};
   return clamp(50+P.possessionHomeOffset+(middle(home)-middle(away))*P.possessionMidfieldSlope+(home.tactic==='possession'?P.possessionTacticBonus:0)-(away.tactic==='possession'?P.possessionTacticBonus:0),29,71);
@@ -48,6 +62,11 @@
  function simulate(preview,opts={}){
   if(!preview||!preview.home||!preview.away||preview.home.lineup?.length!==11||preview.away.lineup?.length!==11)throw Error('Quick Sim requires two valid starting XIs');
   const current=profile(),P=validParams(opts.parameters||current.parameters),next=randomizer(opts.seed||preview.seed||'FXI'),tackleNext=randomizer(String(opts.seed||preview.seed||'FXI')+':tackle-ledger-v1'),teams=[preview.home,preview.away];
+  const phase9Variant=opts.calibrationVariant||null;
+  if (phase9Variant && !['phase9-pass-moderate','phase9-pass-aggressive'].includes(phase9Variant))
+    throw Error('Unknown Quick Sim experimental calibration variant: '+phase9Variant);
+  const phase9PassAccuracy=phase9Variant
+    ? teams.map((t,side)=>phase9PassingAccuracy(t,teams[1-side],phase9Variant)) : null;
   const perSide=teams.map(t=>({attack:(()=>{let a=t.lineup.filter(p=>p.pos==='FWD');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
    defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
    gk:strength(t.lineup.find(p=>p.pos==='GK')||t.lineup[0])}));
@@ -76,7 +95,7 @@
       const when=minute+next();events.push({minute:when,minuteLabel:String(Math.floor(when)+1),type:'goal',team:team.id,player:shooter.id,assist:helper?.id||null,origin:'quick-sim'});
      }else{stats[1-side].saves++;const keeper=teams[1-side].lineup.find(p=>p.pos==='GK');if(keeper)box[keeper.id].saves++}
     }
-    const passed=poisson(next,Math.max(.05,(P.passesBase+P.passesPossessionSlope*poss[side])/90));t.passes+=passed;t.completedPasses+=binomial(next,passed,P.passAccuracy);
+    const passed=poisson(next,Math.max(.05,(P.passesBase+P.passesPossessionSlope*poss[side])/90));t.passes+=passed;t.completedPasses+=binomial(next,passed,phase9PassAccuracy?phase9PassAccuracy[side]:P.passAccuracy);
     for(const player of challengers){
      // FWD, MID and DEF can all challenge, as in TM's real event ledger.
      const expectedWins=Math.max(0,P.tacklesPerPlayer/90*(.5+Math.max(0,n(player.main.tackling))/130));
@@ -100,7 +119,8 @@
    if(stats[side].tackles>stats[side].tackleAttempts)throw Error('Won tackles exceed attempts');
   }
   return {home:teams[0].id,away:teams[1].id,score,stats,events,box,
-   origin:'quick-sim',statsModel:opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
+   origin:'quick-sim',statsModel:phase9Variant?phase9Variant+'-experimental':opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
+   phase9PassingAccuracy:phase9PassAccuracy,
    calibration:current.status==='calibrated'?{referenceMatches:current.referenceMatches,engineCommit:current.engineCommit}:null,
    methodology:{shotStops:'Approximate saves in Quick Sim; not directly comparable to TacticMesh shotStops.',shotsOnTarget:'Estimated; genuine TacticMesh reports this as unavailable.'}};
  }
