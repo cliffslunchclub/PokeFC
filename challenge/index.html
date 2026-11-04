@@ -392,14 +392,31 @@ let body='<section class="challenge-scorebug" aria-label="Challenge progress">'+
 body+=slots.map((pos,i)=>{
  const s=BY.get(st.roster[i]),point=posMap[st.formation][i],style=' style="left:'+point[0]+'%;top:'+point[1]+'%"';
  const sprite=s?'<img class="slot-sprite" loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png">':'<span class="slot-placeholder" aria-hidden="true">+</span>';
- const letter=s?tierFor(s,pos,st.items[i]):'—';
+ const item=st.items[i],letter=s?tierFor(s,pos,item):'—',effective=s?effectiveStats(s,item):null;
+ const visibleStats=s?'<div class="slot-stats" aria-label="'+esc('Effective stats for '+s.name+(item?' with '+item:''))+'">'+
+  [['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']].map(([label,key])=>{
+   const value=effective[key],base=s.baseStats[key],diff=value-base;
+   return '<span class="slot-stat'+(diff>0?' stat-up':diff<0?' stat-down':'')+'" title="'+esc(label+': '+value+(diff?' (base '+base+', '+(diff>0?'+':'')+diff+' via '+item+')':''))+'"><b>'+label+'</b><span>'+value+'</span></span>';
+  }).join('')+'</div>':'';
  return '<div data-slot-card="'+i+'" class="slot '+(st.selected===i?'active ':'')+(s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
  '<span class="slot-name">'+(s?esc(s.name):'OPEN SLOT')+'</span>'+
  '<button type="button" data-slot="'+i+'" '+(!isDraft||s?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'"></button>'+
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
+ visibleStats+
  (s&&st.items[i]?'<span class="held-item-badge" title="'+esc(st.items[i])+'">'+esc(st.items[i])+'</span>':'')+'</div>';
 }).join('');
-body+='</div><div class="challenge-roster-footer"><span>'+(isDraft?'Draft each Pokémon into an open position.':isShop?'Shop budget: ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div></section><div class="challenge-side-stack">';
+body+='</div>'+
+'<details class="challenge-fit-guide"><summary>HOW POSITION FIT WORKS <small>ROLE WEIGHTS · ITEMS · TIERS</small></summary>'+
+'<div class="fit-guide-body"><p>Position fit uses your Pokémon\'s effective stats, including any equipped item or Mega Evolution.</p>'+
+'<p class="fit-formula">Fit score = min(100, 20 + 0.55 × weighted effective stat total)</p>'+
+'<div class="fit-role-list">'+
+'<div class="fit-role-row"><strong>Goalkeeper · GK</strong><span>HP 20% · DEF 30% · SpD 30% · SPE 20%</span></div>'+
+'<div class="fit-role-row"><strong>Defenders · CB, LB, RB, LWB, RWB</strong><span>DEF 35% · HP 20% · ATK 20% · SPE 25%</span></div>'+
+'<div class="fit-role-row"><strong>Midfielders · CM, CDM, CAM, LM, RM</strong><span>SpA 30% · SpD 25% · ATK 20% · SPE 25%</span></div>'+
+'<div class="fit-role-row"><strong>Forwards · ST, LW, RW</strong><span>ATK 35% · SpA 20% · SPE 35% · HP 10%</span></div></div>'+
+'<p class="fit-tier-note">Tier boundaries: S ≥85 · A ≥75 · B ≥65 · C ≥55 · D below 55. Fit scores remain hidden; the tier updates with items.</p>'+
+'<p>On-pitch numbers show item-adjusted stats. Highlighted values differ from base stats; hover a number to see the change.</p></div></details>'+
+'<div class="challenge-roster-footer"><span>'+(isDraft?'Draft each Pokémon into an open position.':isShop?'Shop budget: ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div></section><div class="challenge-side-stack">';
 if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
