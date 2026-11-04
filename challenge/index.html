@@ -847,6 +847,41 @@ function savePersonalRecord(){
  records[cat]={attempts:old.attempts+1,best:Math.max(old.best,st.history.length),champions:old.champions+(st.history.length===6&&st.result?.outcome==='Victory'?1:0)};
  try{localStorage.setItem(key,JSON.stringify(records))}catch{}
 }
+// Separate, seeded alpha shootout: each recorded attempt is generated here, not fabricated from match totals.
+function simulatePenaltyShootout(ours,theirs,seed){
+ const random=window.FXI_QUICK.randomizer(seed+':penalties');
+ const order=squad=>squad.lineup.slice(1).sort((a,b)=>
+  ((b.main?.finishing||0)+(b.detail?.composure||0))-
+  ((a.main?.finishing||0)+(a.detail?.composure||0)));
+ const kickers={home:order(ours),away:order(theirs)};
+ const keepers={home:ours.lineup[0],away:theirs.lineup[0]};
+ let home=0,away=0;
+ const attempts=[];
+ let decided=false;
+ for(let round=1;round<=30&&!decided;round++){
+  for(const side of ['home','away']){
+   const player=kickers[side][(round-1)%kickers[side].length];
+   const defending=keepers[side==='home'?'away':'home'];
+   const finishing=player?.main?.finishing||65,composure=player?.detail?.composure||65,reflexes=defending?.detail?.reflexes||65;
+   const chance=Math.min(.92,Math.max(.52,.72+(finishing-65)*.002+(composure-65)*.001-(reflexes-65)*.0015));
+   const scored=random()<chance;
+   attempts.push({round,side,kicker:player?.name||'Unknown',scored});
+   if(side==='home')home+=Number(scored);else away+=Number(scored);
+   if(round<=5){
+    const homeTaken=attempts.filter(x=>x.side==='home').length,awayTaken=attempts.length-homeTaken;
+    if(home>away+(5-awayTaken)||away>home+(5-homeTaken)){decided=true;break}
+   }else if(side==='away'&&home!==away){decided=true;break}
+  }
+ }
+ // Emergency deterministic resolution only if thirty pairs all tie.
+ if(!decided&&home===away){
+  const side=random()<.5?'home':'away',round=31;
+  attempts.push({round,side:'home',kicker:kickers.home[(round-1)%kickers.home.length]?.name||'Unknown',scored:side==='home'});
+  attempts.push({round,side:'away',kicker:kickers.away[(round-1)%kickers.away.length]?.name||'Unknown',scored:side==='away'});
+  if(side==='home')home++;else away++;
+ }
+ return {home,away,winner:home>away?'home':'away',attempts,provisional:true};
+}
 function playBoss(){
  if(!window.FXI_QUICK)throw Error('Quick Sim library unavailable');
  const boss=BOSSES[st.round];if(!boss||!Array.isArray(boss.roster)||boss.roster.length!==11)throw Error('Boss roster unavailable');
@@ -865,16 +900,13 @@ function playBoss(){
  })};
  const seed='challenge:'+st.rng+':'+st.round;
  const out=window.FXI_QUICK.simulate({home:ours,away:theirs,seed},{seed});
- let outcome=out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw',tiebreak=null;
+ let outcome=out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw',tiebreak=null,shootout=null;
  if(outcome==='Draw'){
-  // Provisional regulation draw resolver: deterministic penalty shootout.
-  // Full TacticMesh extra time / penalty physics remains on the roadmap.
-  const random=window.FXI_QUICK.randomizer(seed+':penalties');
-  let a=3+Math.floor(random()*3),b=3+Math.floor(random()*3);
-  if(a===b){if(random()<.5)a++;else b++}
-  outcome=a>b?'Victory':'Defeat';tiebreak='Penalty shootout '+a+'–'+b+' · provisional draw resolver (full extra-time engine pending)';
+  shootout=simulatePenaltyShootout(ours,theirs,seed);
+  outcome=shootout.winner==='home'?'Victory':'Defeat';
+  tiebreak='Penalty shootout '+shootout.home+'–'+shootout.away+' · provisional seeded resolution';
  }
- return {boss:boss.leader,round:st.round+1,score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome,tiebreak,seed,origin:'quick-sim',report:MATCH_REPORT?.fromResult(out,{home:ours,away:theirs})||null};
+ return {boss:boss.leader,round:st.round+1,score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome,tiebreak,shootout,seed,origin:'quick-sim',report:MATCH_REPORT?.fromResult(out,{home:ours,away:theirs})||null};
 }
 save();render();
 })();
