@@ -38,6 +38,7 @@ on:
       - "tests/test-challenge-leaderboard.cjs"
       - "tests/test-challenge-run-card.cjs"
       - "tests/test-challenge-v1-flow.cjs"
+      - "tests/test-challenge-watch-v1.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
@@ -75,6 +76,7 @@ jobs:
           node tests/test-challenge-leaderboard.cjs
           node tests/test-challenge-run-card.cjs
           node tests/test-challenge-v1-flow.cjs
+          node tests/test-challenge-watch-v1.cjs
           node tests/test-free-builder.cjs
           node tests/test-branding.cjs
           node tests/test-challenge-special-items.cjs
