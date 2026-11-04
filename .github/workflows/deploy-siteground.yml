@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - ".htaccess"
       - "builder.css"
       - "builder.js"
       - "site.css"
@@ -74,6 +75,8 @@ jobs:
           for file in index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
             test -s "dist/$file"
           done
+          test -s dist/.htaccess
+          grep -q "private, no-cache, max-age=0, must-revalidate" dist/.htaccess
           test ! -e dist/.git
           test ! -e dist/legacy-v05
           test ! -e dist/legacy-v07c
