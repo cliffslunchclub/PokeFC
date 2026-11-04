@@ -120,9 +120,10 @@ assert.match(app.innerHTML,/<dialog id="runCompleteModal"/,'Champion results are
 assert.equal(elems.runCompleteModal.open,true,'Completed six-boss run auto-opens results');
 assert.equal(captured.length,6);
 assert(captured.every(p=>p.home.lineup.length===11&&p.away.lineup.length===11));
-const blue=captured[4].away.lineup.find(p=>p.name==='Pidgeot');
+const blue=captured[4].away.lineup.find(p=>p.name==='Mega Pidgeot');
 const redPikachu=captured[5].away.lineup.find(p=>p.name==='Pikachu');
 assert(blue&&redPikachu);
+assert.match(app.innerHTML,/TOURNAMENT STATS/,'Champion recap includes tournament stats');
 assert(blue.main.vision>40,'Blue Mega Pidgeot');
 assert(redPikachu.main.finishing>60,'Red Light Ball Pikachu boost');
 console.log('PASS six-boss National Challenge gauntlet, fixed opponents, locked XI, champion and boss items');
