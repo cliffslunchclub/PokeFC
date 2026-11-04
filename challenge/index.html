@@ -243,7 +243,7 @@ function leaderboardMarkup(){
   '<button class="leaderboard-category '+(c.id===selected.id?'active':'')+'" id="lb-'+c.id+'" type="button" aria-pressed="'+(c.id===selected.id?'true':'false')+'">'+esc(c.label)+'</button>').join('');
  const listing=rows.length?rows.map((run,i)=>{
    const players=(run.roster||[]).map(id=>BY.get(id)?.name||'Unknown').join(' · ');
-   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(m.boss)+' '+esc(m.score.join('–'))+'</summary>'+matchReportHtml(m)+'</details>').join('');
+   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(m.boss)+' '+esc(m.score.join('–')+penaltyScore(m))+'</summary>'+matchReportHtml(m)+'</details>').join('');
    return '<div class="leaderboard-row">'+
     '<span class="lb-rank">#'+(i+1)+'</span><div class="lb-identity"><strong>'+(run.champion?'🏆 CHAMPION RUN':'INDIGO RUN')+'</strong><small>'+
     esc(run.formation||'4-3-3')+' · '+esc(String(run.finishedAt||'').slice(0,10))+'</small></div>'+
@@ -294,12 +294,34 @@ function runShareText(){
   r.category,
   'TEAM SCORE: '+r.score.toFixed(1)+' · FORMATION: '+r.formation,
   'RECORD: '+r.wins+'W–'+r.lost+'L · MATCHES: '+r.matches.length+'/6',
-  'RESULTS: '+r.matches.map(m=>m.boss+' '+m.score.join('–')+' ('+m.outcome+')').join(' | '),
+  'RESULTS: '+r.matches.map(m=>m.boss+' '+m.score.join('–')+penaltyScore(m)+' ('+m.outcome+')').join(' | '),
   'FINAL XI: '+roster,
   'HELD ITEMS: '+(equipment.length?equipment.join(', '):'None'),
   'Try the challenge: https://pfc.cliffslunchclub.com/challenge/',
   'Local browser run summary · Not an official leaderboard entry'
  ].join('\n');
+}
+function shootoutMarkup(match){
+ const p=match?.shootout;
+ if(!p){
+  if(!match?.tiebreak)return '';
+  return '<div class="challenge-penalty-summary"><strong>PENALTY SHOOTOUT</strong><p>'+esc(match.tiebreak)+'</p><small>Individual attempts were not saved for this earlier result.</small></div>';
+ }
+ const attempts=Array.isArray(p.attempts)?p.attempts:[];
+ const rows=attempts.map(kick=>'<div class="shootout-attempt '+(kick.scored?'scored':'missed')+'">'+
+  '<span class="shootout-side">'+(kick.side==='home'?'YOUR XI':esc(match.boss||'OPPONENT'))+'</span>'+
+  '<span class="shootout-round">'+(kick.round<=5?'R'+kick.round:'SD'+(kick.round-5))+'</span>'+
+  '<strong>'+esc(kick.kicker||'Unknown kicker')+'</strong>'+
+  '<span class="shootout-mark">'+(kick.scored?'✓ GOAL':'× MISS')+'</span></div>').join('');
+ return '<section class="challenge-penalty-summary" aria-label="Penalty shootout details">'+
+  '<div class="shootout-heading"><span>PENALTY SHOOTOUT</span><strong>YOUR XI '+p.home+' – '+p.away+' '+esc(match.boss||'OPPONENT')+'</strong></div>'+
+  '<p>Regulation ended '+esc((match.score||[0,0]).join(' – '))+'. '+(p.winner==='home'?'Your XI wins':'Opponent wins')+' on penalties.</p>'+
+  '<details class="shootout-kicks"><summary>VIEW PENALTY KICKS · '+attempts.length+' ATTEMPTS</summary>'+rows+'</details>'+
+  '<small>Provisional seeded Quick Sim shootout. Attempts are modeled separately from match goals; full extra-time and penalty physics are not yet available.</small></section>';
+}
+function penaltyScore(match){
+ const p=match?.shootout;
+ return p?' (P '+p.home+'–'+p.away+')':'';
 }
 function matchReportHtml(match){
  if(!match)return '<p class="match-report-note">No game record available.</p>';
@@ -333,20 +355,20 @@ function matchReportHtml(match){
   '<h4>GOALS &amp; MATCH MINUTES</h4><ol class="match-goal-feed">'+goalFeed+'</ol>'+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
-  (match.tiebreak?'<p class="match-tiebreak">PENALTIES · '+esc(match.tiebreak)+'</p>':'')+
+  shootoutMarkup(match)+
  '</div>';
 }
 function matchHistoryHtml(history){
  if(!history?.length)return '';
  return '<div class="gauntlet-history"><h3>PREVIOUS MATCH REPORTS</h3>'+
   history.map((m,i)=>'<details class="gauntlet-history-game"><summary><span>0'+(i+1)+' · '+esc(m.boss||'Opponent')+'</span>'+
-  '<strong>'+esc((m.score||[0,0]).join(' – '))+'</strong><small>'+esc(m.outcome||'—')+'</small></summary>'+
+  '<strong>'+esc((m.score||[0,0]).join(' – ')+penaltyScore(m))+'</strong><small>'+esc(m.outcome||'—')+'</small></summary>'+
   matchReportHtml(m)+'</details>').join('')+'</div>';
 }
 function completedRunCard(){
  const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
  const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(BY.get(id)?.name||'Unknown')+'</span>').join('');
- const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–'))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
+ const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
   '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
@@ -452,7 +474,7 @@ if(gauntletStarted){
    const status=result?(result.outcome==='Victory'?'✓':'×'):current?'●':'–';
    return '<div class="challenge-road-step'+(result?' done '+(result.outcome==='Victory'?'won':'lost'):'')+(current?' current':'')+'" aria-label="'+esc(boss.leader+' · '+(result?(result.outcome||'Played'):'Upcoming'))+'">'+
     '<span class="road-step-number">MATCH '+(i+1)+'</span><strong>'+esc(boss.leader.toUpperCase())+'</strong>'+
-    '<span class="road-step-status">'+(result?esc(result.score?.join(' – ')||status):status)+'</span></div>';
+    '<span class="road-step-status">'+(result?esc((result.score?.join(' – ')||status)+penaltyScore(result)):status)+'</span></div>';
   }).join('')+'</div>'+
   '<div class="challenge-versus-rating" aria-label="Team rating comparison">'+
    '<div class="team-rating home"><span>YOUR XI · '+esc(st.formation)+'</span><strong>'+playerScore.toFixed(1)+'</strong></div>'+
@@ -580,6 +602,11 @@ if(st.phase==='result'){
  (win?'<button id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button>':'')+
  '</section>';
 }
+if(st.phase==='finished'&&st.result)body+='<section class="panel challenge-last-match" aria-label="Final match details">'+
+ '<span class="pfc-eyebrow">FINAL GAUNTLET MATCH · '+esc(st.result.outcome||'RESULT')+'</span>'+
+ '<h2>'+esc(st.result.boss||'OPPONENT')+' · '+esc((st.result.score||[0,0]).join(' – ')+penaltyScore(st.result))+'</h2>'+
+ '<p class="challenge-last-match-summary">Full match details remain here after the run ends. Open the modal for your complete run recap.</p>'+
+ matchReportHtml(st.result)+'</section>';
 if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><div><strong>RUN COMPLETE</strong><p>Your finished Gauntlet results are saved in this browser.</p></div><button type="button" id="openRunModal" class="primary">VIEW RUN RESULTS →</button></section>'+
  '<dialog id="runCompleteModal" class="challenge-dialog challenge-run-dialog" aria-labelledby="runResultTitle">'+
  '<div class="challenge-dialog-bar"><span>POKÉFC · GAUNTLET RESULTS</span><button type="button" id="closeRunModal" aria-label="Close run results">✕ CLOSE</button></div>'+
