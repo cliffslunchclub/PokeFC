@@ -10,6 +10,7 @@ on:
       - "quick-sim.js"
       - "calibration-profile.js"
       - "scripts/build-challenge-pages.sh"
+      - "tests/test-challenge-special-items.cjs"
       - ".github/workflows/deploy-siteground.yml"
 
 permissions:
@@ -27,6 +28,9 @@ jobs:
       - name: Check out private source
         uses: actions/checkout@v4
 
+      - name: Test Challenge special items and Lorelei Quick Sim
+        run: node tests/test-challenge-special-items.cjs
+
       - name: Build the isolated browser test
         run: bash scripts/build-challenge-pages.sh
 
@@ -34,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html challenge/index.html species.js quick-sim.js calibration-profile.js; do
+          for file in index.html challenge/index.html challenge/special-items-data.js species.js quick-sim.js calibration-profile.js; do
             test -s "dist/$file"
           done
           test ! -e dist/.git
