@@ -391,6 +391,31 @@ function completedRunCard(){
   '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '</section>';
 }
+function draftPokemon(id,index){
+ const i=Number(index),pokemon=BY.get(Number(id));
+ if(st.phase!=='draft'||slotAnimationBusy)return {ok:false,error:'Finish the current scouting animation first.'};
+ if(!Number.isInteger(i)||i<0||i>=11||st.roster[i])return {ok:false,error:'Drop a draft pick on an empty position.'};
+ if(!pokemon||!eligible().some(s=>s.id===pokemon.id))return {ok:false,error:'That Pokémon is not in the current scouting roll.'};
+ if(pokemon.legendary&&st.roster.filter(n=>BY.get(n)?.legendary).length>=2)return {ok:false,error:'Your XI is already at the Legendary limit.'};
+ st.roster[i]=pokemon.id;
+ dragStatus=pokemon.name+' drafted at '+FORMS[st.formation][i]+'.';
+ if(st.roster.every(Boolean))st.phase='shop';
+ else{st.selected=st.roster.findIndex(x=>!x);roll()}
+ save();render();return {ok:true};
+}
+function moveDraftedPokemon(from,to){
+ const a=Number(from),b=Number(to);
+ if(!['draft','shop'].includes(st.phase))return {ok:false,error:'The Final XI is locked.'};
+ if(st.moves<=0)return {ok:false,error:'You have already used your one Pokémon move.'};
+ if(!Number.isInteger(a)||!Number.isInteger(b)||a<0||a>=11||b<0||b>=11||a===b||!st.roster[a])return {ok:false,error:'Choose two different valid positions.'};
+ const target=st.roster[b],pokemon=BY.get(st.roster[a]);
+ [st.roster[a],st.roster[b]]=[st.roster[b],st.roster[a]];
+ [st.items[a],st.items[b]]=[st.items[b],st.items[a]]; // Keep equipment on its Pokémon.
+ st.moves--;
+ if(st.phase==='draft'&&!target)st.selected=a;
+ dragStatus=(pokemon?.name||'Pokémon')+(target?' swapped positions.':' moved to '+FORMS[st.formation][b]+'.')+' No Pokémon moves remaining.';
+ save();render();return {ok:true};
+}
 function render(){const app=document.getElementById('app');
  window.PFC_CHALLENGE_DND?.cancel?.();
  if(st.phase==='finished')BOARD?.archive(st,localStorage);
@@ -546,7 +571,7 @@ if(st.phase==='draft'){
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
  body+='<section class="panel"><h2>ONE-TIME DRAFT ADJUSTMENTS</h2><p>These resources expire when the Final XI is locked.</p>';
  if(st.formationChanges>0)body+='<div class="controls-inline"><label>Change formation <select id="formationChange">'+Object.keys(FORMS).map(x=>'<option '+(x===st.formation?'selected':'')+'>'+x+'</option>').join('')+'</select></label><button id="applyFormation">CHANGE FORMATION · 1 LEFT</button></div>';
- if(st.moves>0&&st.phase==='draft'&&filled>0&&filled<11)body+='<div class="controls-inline"><label>Move drafted Pokémon <select id="moveFrom">'+st.roster.map((id,i)=>id?'<option value="'+i+'">'+slots[i]+' · '+esc(BY.get(id).name)+'</option>':'').join('')+'</select></label><label>To empty slot <select id="moveTo">'+st.roster.map((id,i)=>!id?'<option value="'+i+'">'+slots[i]+'</option>':'').join('')+'</select></label><button id="movePick">MOVE PICK · 1 LEFT</button></div>';
+ if(st.moves>0&&filled>0)body+='<div class="controls-inline"><label>Move or swap Pokémon <select id="moveFrom">'+st.roster.map((id,i)=>id?'<option value="'+i+'">'+slots[i]+' · '+esc(BY.get(id).name)+'</option>':'').join('')+'</select></label><label>To position <select id="moveTo">'+slots.map((pos,i)=>'<option value="'+i+'">'+pos+' · '+esc(BY.get(st.roster[i])?.name||'EMPTY')+'</option>').join('')+'</select></label><button id="movePick">MOVE / SWAP · 1 LEFT</button></div>';
  body+='</section>';
 }
 if(st.phase==='shop')body+=shopMarkup(used);
@@ -727,7 +752,7 @@ app.querySelectorAll('[data-slot]').forEach(b=>{
  b.onfocus=()=>displayDraftPosition(index,false);
  b.onblur=()=>displayDraftPosition(st.selected,false);
 });
-draftPickButtons.forEach(b=>b.onclick=()=>{if(slotAnimationBusy||st.roster[st.selected])return;const s=BY.get(+b.dataset.pick);if(!eligible().some(x=>x.id===s.id))return;if(s.legendary&&st.roster.filter(id=>BY.get(id)?.legendary).length>=2)return;st.roster[st.selected]=s.id;if(st.roster.every(Boolean))st.phase='shop';else{st.selected=st.roster.findIndex(x=>!x);roll()}save();render()});
+draftPickButtons.forEach(b=>b.onclick=()=>draftPokemon(Number(b.dataset.pick),st.selected));
 if(st.phase==='shop'){
  const restore=document.getElementById('shopCatalog');
  if(restore)restore.scrollTop=shopScrollTop;
@@ -761,8 +786,11 @@ if(st.phase==='draft'){document.getElementById('typeR').onclick=()=>{if(slotAnim
 if((st.phase==='draft'||st.phase==='shop')&&st.formationChanges>0){
  document.getElementById('applyFormation').onclick=()=>{const choice=document.getElementById('formationChange').value;if(!FORMS[choice]||choice===st.formation)return;st.formation=choice;st.formationChanges--;save();render()};
 }
-if(st.phase==='draft'&&st.moves>0&&filled>0&&filled<11){
- document.getElementById('movePick').onclick=()=>{const from=+document.getElementById('moveFrom').value,to=+document.getElementById('moveTo').value;if(!Number.isInteger(from)||!Number.isInteger(to)||!st.roster[from]||st.roster[to]!==null||from===to)return;st.roster[to]=st.roster[from];st.roster[from]=null;st.selected=from;st.moves--;save();render()};
+if((st.phase==='draft'||st.phase==='shop')&&st.moves>0&&filled>0){
+ document.getElementById('movePick').onclick=()=>{
+  const result=moveDraftedPokemon(document.getElementById('moveFrom').value,document.getElementById('moveTo').value);
+  if(!result.ok)showChallengeMessage('INVALID POKÉMON MOVE',result.error);
+ };
 }
 if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{
  if(st.roster.some(x=>!x)||used>1000)return;
