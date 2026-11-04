@@ -402,3 +402,41 @@
 .challenge-pick-grid .pick.tier-group-start[data-tier-group^="C"]::before{color:#ead8ac}
 .challenge-pick-grid .pick.tier-group-start[data-tier-group^="D"]::before{color:#efb2ac}
 @media(max-width:560px){.challenge-pick-grid .pick-base-stats{font-size:9px;gap:3px 6px}.challenge-pick-grid .pick.tier-group-start{margin-top:20px}}
+
+/* Pitch scouting: live item-adjusted values, compact enough for all five XI shapes. */
+.challenge-pitch .slot.filled{height:126px;gap:1px}
+.challenge-pitch .slot.filled:has(.held-item-badge){height:134px}
+.challenge-pitch .slot.filled .slot-sprite{width:27px;height:27px;flex:0 0 auto}
+.challenge-pitch .slot.filled .slot-name{font-size:8px;line-height:1.12;max-height:18px;overflow:hidden}
+.challenge-pitch .slot.filled .slot-tier{font-size:9px;margin:1px 0;padding:1px 5px}
+.challenge-pitch .slot-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:2px 1px;margin-top:1px;pointer-events:none}
+.challenge-pitch .slot-stat{display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 0 1px;border:1px solid #8dc2a52b;border-radius:3px;background:#061f20b0;color:#f0f9f3;font-size:9px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.challenge-pitch .slot-stat b{font-size:7px;font-weight:950;color:#a0c9b6}
+.challenge-pitch .slot-stat.stat-up{background:#164c35;color:#b9ffd1;border-color:#70d69a66}
+.challenge-pitch .slot-stat.stat-up b{color:#9debb6}
+.challenge-pitch .slot-stat.stat-down{background:#58352f;color:#ffd0c5;border-color:#e7a29477}
+.challenge-pitch .slot-stat.stat-down b{color:#f1b9ae}
+.challenge-pitch .slot-stats,.challenge-pitch .slot-stats *{pointer-events:none}
+.challenge-fit-guide{margin-top:10px;border:1px solid #3c6370;border-radius:8px;background:#183342;overflow:hidden}
+.challenge-fit-guide summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;padding:11px 12px;font-size:11px;font-weight:950;letter-spacing:.055em;color:#e2f3e5}
+.challenge-fit-guide summary small{font-size:9px;color:#a7c5cb;font-weight:850;text-align:right}
+.challenge-fit-guide[open] summary{border-bottom:1px solid #3c6370;background:#224356}
+.challenge-fit-guide .fit-guide-body{padding:11px 12px 13px;color:#c6dce0;font-size:11px;line-height:1.55}
+.challenge-fit-guide .fit-guide-body p{margin:0 0 10px!important;font-size:11px!important}
+.challenge-fit-guide .fit-guide-body p:last-child{margin-bottom:0!important}
+.challenge-fit-guide .fit-formula{font-weight:950;color:#f5dfaa;background:#102b35;border:1px solid #496577;border-radius:5px;padding:8px 9px}
+.challenge-fit-guide .fit-role-list{display:grid;gap:0;margin:9px 0}
+.challenge-fit-guide .fit-role-row{display:grid;grid-template-columns:minmax(120px,1fr) 1.4fr;gap:8px;padding:7px 0;border-bottom:1px solid #365664}
+.challenge-fit-guide .fit-role-row strong{color:#e2f0ed;font-size:10px}
+.challenge-fit-guide .fit-role-row span{font-size:10px;font-variant-numeric:tabular-nums}
+.challenge-fit-guide .fit-tier-note{color:#f0ddaf}
+@media(max-width:560px){
+ .challenge-pitch .slot.filled{height:122px;padding:4px 2px!important}
+ .challenge-pitch .slot.filled:has(.held-item-badge){height:130px}
+ .challenge-pitch .slot.filled .slot-sprite{width:24px;height:24px}
+ .challenge-pitch .slot-stat{font-size:8px;padding:2px 0 1px}
+ .challenge-pitch .slot-stat b{font-size:7px}
+ .challenge-fit-guide summary{font-size:10px;padding:10px}
+ .challenge-fit-guide summary small{font-size:8px}
+ .challenge-fit-guide .fit-role-row{grid-template-columns:1fr;gap:2px}
+}
