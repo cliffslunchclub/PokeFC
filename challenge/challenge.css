@@ -273,3 +273,10 @@
 @keyframes pfc-slot-glow{from{opacity:.5}to{opacity:1}}
 @media(max-width:560px){.challenge-slot-machine{padding:9px!important}.slot-machine-head>span:first-child{font-size:9px}.slot-machine-status{font-size:8px}.slot-machine-reels{gap:4px}.slot-reel-label{font-size:8px;min-height:31px}.slot-window{height:67px}.slot-window [data-reel-value]{font-size:clamp(11px,3vw,15px)}.slot-machine-bottom{align-items:start}.slot-machine-bottom [data-reel-live]{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.slot-reel.is-spinning .slot-window [data-reel-value],.slot-machine-spinning .slot-machine-status{animation:none!important;filter:none!important}}
+
+/* During an active draw, the scouting choices remain visible but temporarily
+   non-interactive. The machine can always be skipped instantly. */
+.challenge-draft-panel:has(.slot-machine-spinning) .challenge-pick-grid{pointer-events:none;opacity:.45;filter:saturate(.65)}
+.challenge-draft-panel:has(.slot-machine-spinning) #typeR,
+.challenge-draft-panel:has(.slot-machine-spinning) #genR{pointer-events:none;opacity:.45}
+.challenge-draft-panel:has(.slot-machine-spinning) .challenge-pick-grid button{cursor:wait}
