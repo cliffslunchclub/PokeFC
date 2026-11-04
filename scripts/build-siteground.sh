@@ -10,6 +10,9 @@ cd "$(dirname "$0")/.."
 rm -rf dist
 mkdir -p dist/challenge dist/play/tacticmesh/vendor dist/franchise/tacticmesh/vendor
 
+# Apache cache policy scoped to this dedicated subdomain (not other sites).
+cp .htaccess dist/.htaccess
+
 # National free builder and shared Quick Sim library.
 cp index.html builder.css builder.js site.css national-species.js \
    quick-sim.js calibration-profile.js dist/
@@ -66,6 +69,11 @@ for page in pages:
 for mode in ["franchise","play"]:
     for f in ["tm-worker.js","tm-engine-bridge.js","tacticmesh/vendor/installed.json","tacticmesh/vendor/core.js","tacticmesh/vendor/engine-facade.js","tacticmesh/vendor/LICENSE"]:
         if not (root/mode/f).is_file():raise SystemExit("Missing real watched-match dependency: "+mode+"/"+f)
+policy=(root/".htaccess")
+if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htaccess")
+rules=policy.read_text()
+if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
+    raise SystemExit("PokéFC cache policy missing revalidation directives")
 for f in ["national-species.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
