@@ -34,6 +34,7 @@ on:
       - "tests/test-challenge-play.cjs"
       - "tests/test-challenge-gauntlet.cjs"
       - "tests/test-challenge-ui.cjs"
+      - "tests/test-challenge-completed-run.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
@@ -65,6 +66,7 @@ jobs:
           node tests/test-challenge-play.cjs
           node tests/test-challenge-gauntlet.cjs
           node tests/test-challenge-ui.cjs
+          node tests/test-challenge-completed-run.cjs
           node tests/test-free-builder.cjs
           node tests/test-branding.cjs
           node tests/test-challenge-special-items.cjs
