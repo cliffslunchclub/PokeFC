@@ -40,11 +40,48 @@ function assertOpponentPitch(boss,phase){
 }
 const opponentSource=context.window.PFC_PLAY_OPPONENTS.filter(x=>x.tier!=='gym');
 assert.equal(opponentSource.length,6,'Six boss XIs available');
+const roleMap={
+ '4-3-3':['GK','LB','CB','CB','RB','CM','CM','CM','LW','ST','RW'],
+ '4-2-3-1':['GK','LB','CB','CB','RB','CDM','CDM','LW','CAM','RW','ST'],
+ '4-4-2':['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'],
+ '3-5-2':['GK','CB','CB','CB','LWB','RWB','CM','CM','CAM','ST','ST'],
+ '5-3-2':['GK','LWB','CB','CB','CB','RWB','CM','CM','CM','ST','ST']
+};
+const weightByGroup={
+ GK:{hp:.2,defense:.3,spDefense:.3,speed:.2},
+ DEF:{defense:.35,hp:.2,attack:.2,speed:.25},
+ MID:{spAttack:.3,spDefense:.25,attack:.2,speed:.25},
+ FWD:{attack:.35,spAttack:.2,speed:.35,hp:.1}
+};
+const pokemonById=new Map(context.window.FXI_SPECIES.map(s=>[s.id,s]));
+function independentBossRating(boss){
+ return boss.roster.reduce((sum,id,i)=>{
+  const species=pokemonById.get(id),stats={...species.baseStats};
+  const item=boss.key==='champion-blue'&&id===18?'Pidgeotite':boss.key==='champion-red'&&id===6?'Charizardite X':boss.key==='champion-red'&&id===25?'Light Ball':null;
+  if(item==='Light Ball'){stats.attack*=2;stats.spAttack*=2}
+  else if(item){const form=context.window.PFC_CHALLENGE_SPECIAL.megas[id]?.find(m=>m.stone===item);assert(form,'Mega form available: '+item);Object.assign(stats,form.stats)}
+  const pos=roleMap[boss.formation][i];
+  const group=pos==='GK'?'GK':['CB','LB','RB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
+  const weighted=Object.entries(weightByGroup[group]).reduce((v,[k,w])=>v+stats[k]*w,0);
+  return sum+Math.min(100,20+.55*weighted);
+ },0)/11;
+}
+
 
 for(let i=0;i<6;i++){
  assert.equal(state().phase,'locked');
  assert.equal(state().round,i);
  assertOpponentPitch(opponentSource[i],'locked');
+ assert.match(app.innerHTML,/class="panel challenge-road-strip"/,'Full-width Gauntlet road appears after XI lock');
+ assert(app.innerHTML.indexOf('challenge-road-strip')<app.innerHTML.indexOf('challenge-run-layout'),'Progress renders before the two pitches');
+ assert.equal((app.innerHTML.match(/<h2>ROAD TO CHAMPION/g)||[]).length,1,'No duplicate sidebar progress');
+ assert.doesNotMatch(app.innerHTML,/data-slot-card="0" class="slot active /,'Keeper has no stale active-draft highlight');
+ const playerRating=app.innerHTML.match(/class="team-rating home"><span>[^<]+<\/span><strong>([\d.]+)<\/strong>/);
+ const opponentRating=app.innerHTML.match(/class="team-rating away"><span>[^<]+<\/span><strong>([\d.]+)<\/strong>/);
+ assert(playerRating&&opponentRating,'Both clubs have team rating values after lineup lock');
+ assert.equal(Number(playerRating[1]),75,'Player team shows the stored locked rating');
+ assert.equal(opponentRating[1],independentBossRating(opponentSource[i]).toFixed(1),'Boss rating matches item-adjusted position-fit formula');
+ assert.match(app.innerHTML,/not predicted match odds/,'Comparison is labeled as a fit rating');
  if(i===4){
   assert(app.innerHTML.includes('Pidgeotite'),'Blue Mega Pidgeot appears');
   assert(app.innerHTML.includes('data-opponent-id="18"'),'Blue Pidgeot is positioned on pitch');
@@ -58,6 +95,13 @@ for(let i=0;i<6;i++){
  assert.equal(state().history.length,i+1,'Exactly one recorded match');
  assert.equal(state().result.boss,names[i]);
  assertOpponentPitch(opponentSource[i],'post-match');
+ assert.match(app.innerHTML,/id="openHistoryModal"/,'Played matches can be viewed in history modal');
+ assert.match(app.innerHTML,/<dialog id="challengeHistoryModal"/,'Match history is in a modal');
+ elems.openHistoryModal.onclick();
+ assert.equal(elems.challengeHistoryModal.open,true,'Match-history dialog opens');
+ assert.match(app.innerHTML,/PREVIOUS MATCH REPORTS/);
+ elems.closeHistoryModal.onclick();
+ assert.equal(elems.challengeHistoryModal.open,false,'Match-history dialog closes');
  assert.equal(state().result.report.status,'complete','Quick Sim goal ledger is persisted');
  assert.equal(state().result.report.goals.length,2);
  assert.equal(state().result.report.goals[0].minuteLabel,'17');
