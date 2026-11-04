@@ -67,19 +67,22 @@ const initial=()=>({version:1,phase:'setup',pool:4,legends:false,formation:'4-3-
 let st;try{st=JSON.parse(localStorage.getItem(KEY));if(st?.version!==1)st=initial();else{st.round=Number.isInteger(st.round)?st.round:0;st.history=Array.isArray(st.history)?st.history:[]}}catch{st=initial()}
 const save=()=>localStorage.setItem(KEY,JSON.stringify(st));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pool=()=>S.filter(s=>(s.gen||gen(s.id))<=st.pool&& (st.legends||!s.legendary)&&!st.roster.includes(s.id));
+const pool=()=>S.filter(s=>(s.gen||gen(s.id))<=st.pool&& (st.legends||!s.legendary)&&(!s.legendary||st.roster.filter(id=>BY.get(id)?.legendary).length<2)&&!st.roster.includes(s.id));
 const eligible=()=>st.roll?pool().filter(s=>s.types.includes(st.roll.type)&&(s.gen||gen(s.id))===st.roll.gen):[];
 function rating(s,pos,item){if(!s)return 0;const b=effectiveStats(s,item);const w=pos==='GK'?{hp:.2,defense:.3,spDefense:.3,speed:.2}:['CB','LB','RB','LWB','RWB'].includes(pos)?{defense:.35,hp:.2,attack:.2,speed:.25}:['ST','LW','RW'].includes(pos)?{attack:.35,spAttack:.2,speed:.35,hp:.1}:{spAttack:.3,spDefense:.25,attack:.2,speed:.25};return Math.min(100,20+.55*Object.entries(w).reduce((v,[k,f])=>v+b[k]*f,0))}
 const teamScore=()=>st.roster.reduce((a,id,i)=>a+rating(BY.get(id),FORMS[st.formation][i],st.items[i]),0)/11;
 function roll(){const a=pool();if(!a.length){st.roll=null;return}const types=[...new Set(a.flatMap(s=>s.types))],valid=[];for(const type of types)for(let g=1;g<=st.pool;g++)if(a.some(s=>s.types.includes(type)&&(s.gen||gen(s.id))===g))valid.push({type,gen:g});st.roll=valid[Math.floor(next()*valid.length)]}
 function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rerollGen)return;const a=pool(),old=st.roll;if(!old)return;const opts=which==='type'?[...new Set(a.filter(s=>(s.gen||gen(s.id))===old.gen).flatMap(s=>s.types))].filter(x=>x!==old.type).map(type=>({type,gen:old.gen})):Array.from({length:st.pool},(_,i)=>i+1).filter(g=>g!==old.gen&&a.some(s=>gen(s.id)===g&&s.types.includes(old.type))).map(gen=>({type:old.type,gen}));if(!opts.length)return;st.roll=opts[Math.floor(next()*opts.length)];if(which==='type')st.rerollType--;else st.rerollGen--}
 function render(){const app=document.getElementById('app');if(st.phase==='setup'){
+ let records={};try{records=JSON.parse(localStorage.getItem('pokefc-challenge-personal-records-v1'))||{}}catch{}
+ const categories=[['classic-standard','CLASSIC · NO LEGENDS'],['classic-legends','CLASSIC · LEGENDS ON'],['national-standard','NATIONAL · NO LEGENDS'],['national-legends','NATIONAL · LEGENDS ON']];
+ const recordsHtml='<div class="grid">'+categories.map(([key,label])=>'<div class="slot"><b>'+label+'</b><p class="statline">Attempts '+(records[key]?.attempts||0)+' · Best '+(records[key]?.best||0)+'/6 · Champions '+(records[key]?.champions||0)+'</p></div>').join('')+'</div>';
  app.innerHTML='<section class="panel"><span class="pfc-eyebrow">NEW RUN</span><h2>Choose your Challenge</h2><div class="challenge-banner"><b>Four Challenge categories</b><p>Classic or National · Legendaries Off or On. Each category has its own local results. Online leaderboards are not enabled yet.</p></div>'+
  '<div class="controls-inline"><label>Pokédex pool <select id="pool"><option value="4">CLASSIC · Gen I–IV (493)</option><option value="9">NATIONAL · Gen I–IX (1,025)</option></select></label>'+
  '<label>Legendaries <select id="leg"><option value="off">OFF · No Legendary / Mythical / Ultra Beast</option><option value="on">ON · Up to 2 per XI</option></select></label>'+
  '<label>Starting formation <select id="form">'+Object.keys(FORMS).map(f=>'<option>'+f+'</option>').join('')+'</select></label></div>'+
  '<p class="statline">11 unique Pokémon · one type and generation reroll · one drafted-player move · one formation change · ₽1,000 item shop · one Mega maximum · all six opponents with your locked XI.</p>'+
- '<button class="primary" id="start">START CHALLENGE →</button></section>';
+ '<button class="primary" id="start">START CHALLENGE →</button><h3>Your local Challenge records</h3>'+recordsHtml+'</section>';
  document.getElementById('start').onclick=()=>{st.pool=+document.getElementById('pool').value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 let body='<section class="panel"><h2>'+(st.phase==='locked'?'Final XI locked':st.phase==='shop'?'Equip your XI':'Draft your XI')+'</h2><p>'+filled+'/11 selected · Formation '+esc(st.formation)+' · Team Score '+(filled===11?teamScore().toFixed(2):'—')+'</p><div class="grid">';
