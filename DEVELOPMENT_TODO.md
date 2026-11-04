@@ -6,6 +6,7 @@ This backlog tracks deferred gameplay/UI work in the main PokéFC repository. Ke
 
 - [x] Challenge draft: **reorder eligible Pokémon by S → A → B → C → D tier when a new empty position is clicked**; alphabetize within tiers rather than expose the hidden OVR ranking.
 - [x] Challenge draft: hovering previews positional fit without reordering or committing the selected slot.
+- [x] Challenge draft: **fast tier re-sort with cached per-position-family grades, a single batched DOM move, and a 235 ms top-card shuffle animation**. Hover updates tier badges without list movement; reduced-motion settings disable animation.
 - [x] Challenge match reports: display authentic goal scorers, assists, minutes, game statistics, and previous matches when event logs exist.
 
 ## Up next
