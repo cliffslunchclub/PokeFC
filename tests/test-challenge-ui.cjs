@@ -8,7 +8,7 @@ const app={innerHTML:'',querySelectorAll(selector){
 const document={getElementById(id){if(id==='app')return app;
  if(!controls.has(id))controls.set(id,{value:id==='pool'?'4':id==='form'?'4-3-3':id==='leg'?'off':'',setAttribute(){},onclick:null,onchange:null});
  return controls.get(id);}};
-const saves=new Map(),ctx=vm.createContext({window:{},document,localStorage:{getItem:k=>saves.get(k)||null,setItem:(k,v)=>saves.set(k,v)},crypto:{getRandomValues(a){a[0]=832199;}},console,confirm:()=>true,alert:()=>{}});
+const saves=new Map(),ctx=vm.createContext({window:{},document,localStorage:{getItem:k=>saves.get(k)||null,setItem:(k,v)=>saves.set(k,v)},crypto:{getRandomValues(a){a[0]=832199;return a;}},console,confirm:()=>true,alert:()=>{}});
 for(const p of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(root,p),'utf8'),ctx,{filename:p,timeout:20000});
 }
