@@ -43,13 +43,13 @@ const statsFor=name=>{
  const expression=new RegExp('<span class="slot-name">'+name+'</span>[\\s\\S]*?<div class="slot-stats"[^>]*>([\\s\\S]*?)</div>');
  const fragment=app.innerHTML.match(expression)?.[1];
  assert(fragment,'visible pitch stats for '+name);
- return Object.fromEntries([...fragment.matchAll(/<b>(HP|ATK|DEF|SpA|SpD|SPE)<\\/b><span>(\\d+)<\\/span>/g)].map(x=>[x[1],Number(x[2])]));
+ return Object.fromEntries([...fragment.matchAll(/<b>(HP|ATK|DEF|SpA|SpD|SPE)<\/b><span>(\d+)<\/span>/g)].map(x=>[x[1],Number(x[2])]));
 };
 const basePory=window.FXI_SPECIES.find(x=>x.id===233).baseStats;
 const baseCharizard=window.FXI_SPECIES.find(x=>x.id===6).baseStats;
 assert.deepEqual(statsFor('Porygon2'),expected(basePory),'pitch shows six base stats before equipment');
 assert.match(app.innerHTML,/HOW POSITION FIT WORKS/);
-assert.match(app.innerHTML,/Fit score = min\\(100, 20 \\+ 0\\.55/);
+assert.match(app.innerHTML,/Fit score = min\(100, 20 \+ 0\.55/);
 assert.match(app.innerHTML,/DEF 35% · HP 20% · ATK 20% · SPE 25%/);
 const poryTier=()=>app.innerHTML.match(/<span class="slot-name">Porygon2<\/span>[\s\S]*?<span class="slot-tier tier-([sabcd])">/)?.[1];
 assert.equal(poryTier(),'b','Porygon2 initial midfield tier');
