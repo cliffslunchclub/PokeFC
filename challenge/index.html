@@ -113,10 +113,10 @@ function equipShopItem(name,index){
  const proposal=st.items.slice(),previous=proposal.indexOf(name);
  if(previous!==-1&&previous!==i)proposal[previous]=null; // Moving a unique item is allowed until lock.
  proposal[i]=name||null; // The replaced item is automatically refunded.
- const total=proposal.reduce((sum,item,j)=>sum+(itemFor(BY.get(st.roster[j]),item)?.[1]||0),0);
- if(total>1000)return {ok:false,error:'That assignment exceeds your ₽1,000 equipment budget.'};
  const megaCount=proposal.filter((item,j)=>Boolean(megaForm(BY.get(st.roster[j]),item))).length;
  if(megaCount>1)return {ok:false,error:'Only one Mega Evolution is allowed per team.'};
+ const total=proposal.reduce((sum,item,j)=>sum+(itemFor(BY.get(st.roster[j]),item)?.[1]||0),0);
+ if(total>1000)return {ok:false,error:'That assignment exceeds your ₽1,000 equipment budget.'};
  if(new Set(proposal.filter(Boolean)).size!==proposal.filter(Boolean).length)return {ok:false,error:'Each held item is unique.'};
  st.items=proposal;
  save();
