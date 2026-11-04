@@ -44,7 +44,7 @@ function choose(name){
  assert(b&&!b.disabled,'selectable item '+name);b.onclick();
 }
 function equip(name,index){
- choose(name);controls.shopTarget.value=String(index);controls.equipShopItem.onclick();
+ choose(name);doc.getElementById('shopTarget').value=String(index);doc.getElementById('equipShopItem').onclick();
 }
 equip('Eviolite',0);
 assert.equal(state().items[0],'Eviolite');
