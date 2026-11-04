@@ -22,7 +22,7 @@ cp ratings/index.html dist/ratings/
 
 # Challenge uses National species, special-item data, and Play opponent table.
 cp challenge/index.html challenge/challenge.css challenge/special-items-data.js \
-   challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js dist/challenge/
+   challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js dist/challenge/
 
 # Exhibition: its own watched-match worker and TacticMesh bridge; all resources
 # are relative to /play/ so Franchise and Play can independently start workers.
@@ -85,7 +85,7 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
@@ -98,6 +98,7 @@ assert 'id="challengeTabRankings"' in (root/"challenge/index.html").read_text()
 assert 'id="challengeSlotMachine"' in (root/"challenge/index.html").read_text()
 assert (root/"challenge/slot-reels.js").is_file()
 assert (root/"challenge/drag-drop.js").is_file()
+assert (root/"challenge/performance.js").is_file()
 assert 'id="downloadRunCard"' in (root/"challenge/index.html").read_text()
 assert (root/"challenge/challenge.css").is_file()
 assert 'WATCH MATCH' in (root/"play/index.html").read_text()
