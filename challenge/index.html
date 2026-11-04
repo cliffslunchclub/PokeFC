@@ -141,8 +141,6 @@ function completedRunCard(){
   '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
   '<div><span>FORMATION</span><strong>'+esc(r.formation)+'</strong></div></div>'+
   '<p class="run-category">'+esc(r.category)+'</p>'+
-  '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+
-  '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
   '<div id="runSharePanel" class="run-share-panel" hidden>'+
    '<h3>SHARE YOUR RUN</h3><p>Preview what a public run card will contain. A shareable link and direct X posting will be added later.</p>'+
@@ -150,6 +148,8 @@ function completedRunCard(){
    '<div class="run-share-actions"><button id="copyRunSummary" type="button">COPY RUN SUMMARY</button>'+
    '<button id="postTwitter" type="button" disabled title="X posting is not available yet">POST TO X / TWITTER · COMING SOON</button></div>'+
    '<p id="runShareStatus" role="status" aria-live="polite"></p></div>'+
+  '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+
+  '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '</section>';
 }
 function render(){const app=document.getElementById('app');if(st.phase==='setup'){
