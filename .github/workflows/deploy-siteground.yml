@@ -1,4 +1,4 @@
-name: Deploy PokéFC Three-Section Site
+name: Deploy PokéFC Home + Three Game Modes
 
 on:
   workflow_dispatch:
@@ -8,6 +8,10 @@ on:
       - "index.html"
       - "builder.css"
       - "builder.js"
+      - "site.css"
+      - "national-species.js"
+      - "play/**"
+      - "challenge/**"
       - "franchise/**"
       - "career.css"
       - "career.js"
@@ -18,10 +22,11 @@ on:
       - "tm-engine-bridge.js"
       - "tactical-viewer.js"
       - "tm-worker.js"
-      - "challenge/**"
       - "tacticmesh/vendor/**"
       - "scripts/build-siteground.sh"
+      - "tests/test-national-dex.cjs"
       - "tests/test-free-builder.cjs"
+      - "tests/test-play.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-hybrid.cjs"
@@ -42,9 +47,14 @@ jobs:
       - name: Check out private source
         uses: actions/checkout@v4
 
-      - name: Test Free Builder, Challenge and Franchise gameplay
+      - name: Test National Builder, Play, Challenges and Franchise
         run: |
           node --check builder.js
+          node --check play/play.js
+          node --check play/opponents.js
+          node --check national-species.js
+          node tests/test-national-dex.cjs
+          node tests/test-play.cjs
           node tests/test-free-builder.cjs
           node tests/test-challenge-special-items.cjs
           node tests/test-v08-league.cjs
@@ -57,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html builder.js builder.css species.js quick-sim.js calibration-profile.js challenge/index.html challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
+          for file in index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
             test -s "dist/$file"
           done
           test ! -e dist/.git
@@ -67,7 +77,7 @@ jobs:
           test ! -e dist/tacticmesh/vendor
           test ! -e dist/calibration
           test ! -e dist/tests
-          echo "Clean PokéFC three-section public build validated."
+          echo "All four pages validated: Home plus three modes (Play, Challenges, Franchise)."
 
       - name: Check deployment credentials
         id: ftp
