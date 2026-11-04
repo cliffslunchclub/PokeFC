@@ -1,6 +1,72 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081b1b"><title>PokeFC v0.8b.1 · Stat Definitions</title><meta name="description" content="PokeFC: an unofficial Pokémon football management prototype."><link rel="stylesheet" href="./career.css?v=8"></head><body>
-<div class="shell"><header class="top"><a class="logo" href="./index.html"><span class="logo-dot">✦</span> Poke<em>FC</em><small>v0.8b.1 LOCAL TEST</small></a><div class="top-right"><span class="tiny-chip">GEN I–IV · 493 SPECIES</span><span class="tiny-chip">LOCAL DEVELOPMENT</span><button id="exportBtn" class="subtle">Export save</button><label class="subtle file-label">Import save<input id="importFile" type="file" accept="application/json" hidden></label></div></header>
-<nav class="nav" aria-label="Main navigation"><button data-view="dashboard" class="active">Overview</button><button data-view="roster">Roster</button><button data-view="tactical">Tactical Viewer <span class="soon">HYBRID ENGINE</span></button><button data-view="schedule">League</button><button data-view="scouting">Scouting</button><button data-view="draft">Fantasy Draft</button><a href="./legacy-v07c/index.html">16-Gym Legacy ↗</a><a href="./legacy-v05/index.html">Classic Builder ↗</a><a href="./challenge/index.html">Challenge Mode <span class="soon">ALPHA</span></a></nav>
-<main id="app"><div class="welcome"><h1>Build your <em>Pokémon football dynasty.</em></h1><p>32 gyms. Kanto, Johto, Hoenn &amp; Sinnoh. Distinct Pokémon careers, scouting and instant match simulation.</p></div><div class="card"><p>Loading franchise setup…</p></div></main>
-<footer>PokeFC is an unofficial fan-made prototype, not affiliated with Nintendo, Game Freak or The Pokémon Company. Franchise saves stay in this browser unless exported. <a href="./README.md">Release notes</a>.</footer></div>
-<script src="./species.js?v=8"></script><script src="./calibration-profile.js?v=8"></script><script src="./quick-sim.js?v=8b1"></script><script src="./hybrid-sim.js?v=8b1"></script><script src="./tm-engine-bridge.js?v=8b1"></script><script src="./tactical-viewer.js?v=8b1"></script><script src="./career.js?v=8"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#081a1c">
+  <meta name="description" content="PokéFC: Build your free Pokémon football XI, play Challenges, or manage a 32-gym Franchise.">
+  <title>PokéFC · Free XI Builder</title>
+  <link rel="stylesheet" href="./builder.css?v=1">
+  <script src="./species.js?v=8" defer></script>
+  <script src="./builder.js?v=1" defer></script>
+</head>
+<body>
+  <header class="site-header shell">
+    <a href="./" class="brand" aria-label="PokéFC home"><span class="brand-symbol">✦</span>Poké<em>FC</em></a>
+    <nav class="main-links" aria-label="Main site navigation">
+      <a class="active" aria-current="page" href="./">Home / Free Builder</a>
+      <a href="./challenge/">Challenges</a>
+      <a href="./franchise/">Franchise <span class="nav-count">32 Gyms</span></a>
+    </nav>
+    <span class="alpha-tag">PUBLIC ALPHA</span>
+  </header>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">THE IMPOSSIBLE STARTING ELEVEN</p>
+        <h1>Build your <em>dream XI.</em></h1>
+        <p>Put any Gen I–IV Pokémon on the pitch. Explore positional ratings, experiment with formations, and create the ultimate fantasy football club.</p>
+        <div class="hero-stats"><span><b>493</b> Pokémon</span><span><b>5</b> formations</span><span><b>100%</b> free</span></div>
+      </div>
+      <div class="hero-side">
+        <span class="eyebrow">CHOOSE HOW TO PLAY</span>
+        <a href="#builder" class="hero-cta active-cta"><span><b>Free Builder</b><small>No restrictions. Just your best XI.</small></span><span aria-hidden="true">↘</span></a>
+        <a href="./challenge/" class="hero-cta"><span><b>Challenges</b><small>Draft your team and take on Lorelei.</small></span><span aria-hidden="true">↗</span></a>
+        <a href="./franchise/" class="hero-cta"><span><b>Franchise</b><small>Manage one of 32 gyms across four regions.</small></span><span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section id="builder" class="builder-section" aria-labelledby="builder-heading">
+      <div class="section-bar">
+        <div><span class="eyebrow">FREE BUILDER · GEN I–IV</span><h2 id="builder-heading">Your Starting XI</h2></div>
+        <span id="savedStatus" class="status-text" role="status">Autosaves in this browser</span>
+      </div>
+      <div class="setup-bar">
+        <label>Club name <input id="clubName" maxlength="38" value="Indigo Athletic" aria-label="Club name"></label>
+        <label>Formation <select id="formation" aria-label="Formation"><option>4-3-3</option><option>4-2-3-1</option><option>4-4-2</option><option>3-5-2</option><option>5-3-2</option></select></label>
+        <div class="setup-actions"><button id="randomize" class="btn">Random XI</button><button id="clear" class="btn btn-danger">Clear XI</button><button id="share" class="btn btn-accent">Copy XI</button></div>
+      </div>
+      <div class="workbench">
+        <section class="field-panel" aria-label="Starting XI football pitch">
+          <div class="panel-heading"><div><b id="lineupName">Indigo Athletic</b><span id="lineupFormation">4-3-3 formation</span></div><div class="score-block"><strong id="teamScore">—</strong><span>AVG RATING</span></div></div>
+          <div id="pitch" class="pitch" aria-label="Select a position on the pitch">
+            <div class="pitch-lines" aria-hidden="true"><div class="pitch-center"></div><div class="pitch-center-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div><div class="pitch-goal pitch-goal-top"></div><div class="pitch-goal pitch-goal-bottom"></div></div>
+            <div id="pitchSlots"></div>
+          </div>
+          <div class="pitch-bottom"><span id="filledCount">0 / 11 chosen</span><span>Click a position to select a Pokémon</span></div>
+        </section>
+        <section class="scout-panel">
+          <div class="panel-heading"><div><span class="eyebrow">PLAYER SCOUTING</span><h3 id="scoutTitle">Goalkeeper</h3></div><span id="selectedRole" class="role-tag">GK</span></div>
+          <div id="currentPick" class="current-pick">Choose a Pokémon from the list below.</div>
+          <div class="filters"><label class="search-label">Search Pokémon <input type="search" id="search" placeholder="Name or Pokédex number..." autocomplete="off"></label><label class="type-label">Type <select id="typeFilter"><option value="">All types</option></select></label></div>
+          <div class="prospect-bar"><span id="resultsCount">493 available</span><span>Best positional fit first</span></div>
+          <div id="prospects" class="prospects" aria-live="polite"></div>
+          <button id="more" class="btn btn-wide" hidden>Show more Pokémon</button>
+        </section>
+      </div>
+      <p class="disclaimer">Free Builder is unrestricted and unranked. The displayed positional ratings use a provisional formula while our shared gameplay rating model is being finalized. Your saved XI remains on this device.</p>
+    </section>
+  </main>
+  <footer class="site-footer shell"><span>PokéFC · An unofficial fan-made football project</span><span>Not affiliated with Nintendo, Game Freak or The Pokémon Company.</span></footer>
+</body>
+</html>
