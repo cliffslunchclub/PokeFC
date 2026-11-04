@@ -93,6 +93,63 @@ function effectiveStats(s,item){
 function offeredItems(s){
  return [...ITEMS,...(EVOLVABLE.has(s.id)?[EVIOLITE]:[]),...(SPECIAL.megas[s.id]||[]).map(m=>[m.stone,700,{}])];
 }
+function shopCatalog(){
+ const stones=st.roster.flatMap(id=>(SPECIAL.megas[id]||[]).map(m=>[m.stone,700,{}]));
+ return [...ITEMS,EVIOLITE,...stones.filter((it,i,a)=>a.findIndex(v=>v[0]===it[0])===i)];
+}
+function itemEffect(item){
+ if(item[0]==='Eviolite')return '+20 to every base stat (evolvable only)';
+ if(st.roster.some(id=>megaForm(BY.get(id),item[0])))return 'Mega Evolution · one per XI';
+ return Object.entries(item[2]).map(([k,v])=>k.replace('spAttack','Sp. Atk').replace('spDefense','Sp. Def')+' +'+v).join(' · ');
+}
+function itemTargets(name){
+ return st.roster.map((id,i)=>({id,i,pokemon:BY.get(id)})).filter(x=>Boolean(itemFor(x.pokemon,name)));
+}
+function equipShopItem(name,index){
+ if(st.phase!=='shop')return {ok:false,error:'The equipment window is locked.'};
+ const i=Number(index),pokemon=BY.get(st.roster[i]);
+ if(!Number.isInteger(i)||i<0||i>=11||!pokemon)return {ok:false,error:'Select a Pokémon.'};
+ if(name&&!itemFor(pokemon,name))return {ok:false,error:'This item is not compatible with '+pokemon.name+'.'};
+ const proposal=st.items.slice(),previous=proposal.indexOf(name);
+ if(previous!==-1&&previous!==i)proposal[previous]=null; // Moving a unique item is allowed until lock.
+ proposal[i]=name||null; // The replaced item is automatically refunded.
+ const total=proposal.reduce((sum,item,j)=>sum+(itemFor(BY.get(st.roster[j]),item)?.[1]||0),0);
+ if(total>1000)return {ok:false,error:'That assignment exceeds your ₽1,000 equipment budget.'};
+ const megaCount=proposal.filter((item,j)=>Boolean(megaForm(BY.get(st.roster[j]),item))).length;
+ if(megaCount>1)return {ok:false,error:'Only one Mega Evolution is allowed per team.'};
+ if(new Set(proposal.filter(Boolean)).size!==proposal.filter(Boolean).length)return {ok:false,error:'Each held item is unique.'};
+ st.items=proposal;
+ save();
+ return {ok:true,total};
+}
+function shopMarkup(used){
+ const catalog=shopCatalog();
+ const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
+ if(!current)selectedShopItem=catalog[0]?.[0]||null;
+ const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
+ const eligible=itemTargets(name),held=st.items.indexOf(name);
+ const selected=eligible.find(x=>x.i===held)||eligible[0];
+ const options=eligible.map(x=>'<option value="'+x.i+'">'+esc(FORMS[st.formation][x.i]+' · '+x.pokemon.name)+(st.items[x.i]&&st.items[x.i]!==name?' · replacing '+esc(st.items[x.i]):'')+'</option>').join('');
+ const assigned=st.items.map((n,i)=>n?'<div class="shop-equipped-row"><span>'+esc(BY.get(st.roster[i]).name)+' <small>('+FORMS[st.formation][i]+')</small></span><b>'+esc(n)+'</b><button data-shop-clear="'+i+'" type="button" aria-label="Remove '+esc(n)+' from '+esc(BY.get(st.roster[i]).name)+'">×</button></div>':'').filter(Boolean).join('');
+ return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
+  '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
+  '<p>Choose an item, then assign it to a Pokémon. Each item can be held by one Pokémon at a time; replacing or removing an item refunds its cost.</p>'+
+  '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
+  '<div class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
+   const n=it[0],holder=st.items.indexOf(n),targets=itemTargets(n),active=n===selectedShopItem;
+   return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
+    '<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span><small>'+esc(itemEffect(it))+'</small>'+
+    '<span class="shop-item-status">'+(holder>=0?'✓ EQUIPPED · '+esc(BY.get(st.roster[holder]).name):targets.length?'CHOOSE ITEM':'NOT ELIGIBLE')+'</span></button>';
+  }).join('')+'</div>'+
+  '<div class="shop-assign-panel"><h3>'+esc(name)+'</h3><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
+   '<label for="shopTarget">Assign to Pokémon</label><select id="shopTarget" '+(!eligible.length?'disabled':'')+'>'+options+'</select>'+
+   '<button type="button" id="equipShopItem" class="primary" '+(!eligible.length?'disabled':'')+'>'+(held>=0?'MOVE / REASSIGN ITEM':'EQUIP ITEM')+'</button>'+
+   (held>=0?'<button type="button" id="removeSelectedItem" class="shop-remove">REMOVE FROM '+esc(BY.get(st.roster[held]).name.toUpperCase())+'</button>':'')+
+   '<p id="shopFeedback" role="status" aria-live="polite">'+esc(shopMessage)+'</p></div>'+
+  '<div class="shop-equipped"><h3>CURRENT EQUIPMENT</h3>'+(assigned||'<p>No items equipped yet.</p>')+'</div>'+
+  '<div class="shop-lock-panel"><label for="tactic">Team tactics</label><select id="tactic">'+['balanced','attacking','defensive','press','counter','possession'].map(t=>'<option '+(st.tactic===t?'selected':'')+'>'+t+'</option>').join('')+'</select><button class="primary" id="lock">LOCK FINAL XI →</button></div>'+
+ '</section>';
+}
 const gen=id=>id<=151?1:id<=251?2:id<=386?3:id<=493?4:id<=649?5:id<=721?6:id<=809?7:id<=905?8:9;
 function seed(){return (crypto.getRandomValues(new Uint32Array(1))[0]||1)>>>0}
 function next(){let x=st.rng>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;st.rng=x>>>0;return st.rng/4294967296}
@@ -311,7 +368,7 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
  if(st.moves>0&&st.phase==='draft'&&filled>0&&filled<11)body+='<div class="controls-inline"><label>Move drafted Pokémon <select id="moveFrom">'+st.roster.map((id,i)=>id?'<option value="'+i+'">'+slots[i]+' · '+esc(BY.get(id).name)+'</option>':'').join('')+'</select></label><label>To empty slot <select id="moveTo">'+st.roster.map((id,i)=>!id?'<option value="'+i+'">'+slots[i]+'</option>':'').join('')+'</select></label><button id="movePick">MOVE PICK · 1 LEFT</button></div>';
  body+='</section>';
 }
-if(st.phase==='shop'){body+='<section class="panel"><h2>Item shop · ₽'+(1000-used)+' remaining</h2><p>Items are unique across your XI. Changes are fully refundable until lock. 30 standard items plus eligible ₽700 specials. Eviolite grants +20 to all six base stats to Pokémon that can evolve; a matching Mega Stone applies official Mega stats. Maximum one Mega per XI.</p><label>Tactics <select id="tactic">'+['balanced','attacking','defensive','press','counter','possession'].map(t=>'<option '+(st.tactic===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label><button class="primary" id="lock">Lock Final XI</button></section>'}
+if(st.phase==='shop')body+=shopMarkup(used);
 if(['locked','result','finished'].includes(st.phase)){
  body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
  '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>'<div class="'+(i<st.history.length?'done':i===st.round?'current':'')+'"><strong>'+esc(boss.leader.toUpperCase())+'</strong><span>'+(i<st.history.length?(st.history[i]?.outcome==='Victory'?'✓':'×'):i===st.round?'●':'–')+'</span></div>').join('')+'</div>'+
