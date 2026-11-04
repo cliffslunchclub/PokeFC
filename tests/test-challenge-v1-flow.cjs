@@ -55,6 +55,12 @@ function runCase(pool,legends){
  document.getElementById('equipShopItem').onclick();
  assert.equal(get().items[0],'Leftovers');
  document.getElementById('lock').onclick();
+ assert.equal(get().phase,'shop','Lock requires modal confirmation');
+ assert.equal(document.getElementById('challengeMessageModal').open,true);
+ document.getElementById('challengeMessageCancel').onclick();
+ assert.equal(get().phase,'shop','Cancelling the modal preserves the shop');
+ document.getElementById('lock').onclick();
+ document.getElementById('challengeMessageConfirm').onclick();
  assert.equal(get().phase,'locked');
  assert.equal(get().locked.items[0],'Leftovers');
  for(let round=0;round<6;round++){
@@ -66,6 +72,11 @@ function runCase(pool,legends){
  }
  assert.equal(simulations,6,'Six matches finished');
  assert.equal(get().phase,'finished');
+ assert.equal(document.getElementById('runCompleteModal').open,true,'Finish opens modal');
+ document.getElementById('closeRunModal').onclick();
+ assert.equal(document.getElementById('runCompleteModal').open,false,'Close dismisses recap');
+ document.getElementById('openRunModal').onclick();
+ assert.equal(document.getElementById('runCompleteModal').open,true,'Recap can be reopened');
  assert.equal(get().history.every(x=>x.outcome==='Victory'),true);
  assert.match(app.innerHTML,/CHALLENGE CHAMPION/);
  assert.match(app.innerHTML,/id="downloadRunCard"/);
