@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..');
 const pages=[
   {file:'index.html',prefix:'./',active:null},
   {file:'ratings/index.html',prefix:'../',active:null},
-  {file:'play/index.html',prefix:'../',active:'PLAY'},
+  {file:'play/index.html',prefix:'../',active:'QUICK PLAY'},
   {file:'challenge/index.html',prefix:'../',active:'CHALLENGES'},
   {file:'franchise/index.html',prefix:'../',active:'FRANCHISE'},
 ];
@@ -19,7 +19,7 @@ for(const p of pages){
  assert(nav,'Three-mode nav missing: '+p.file);
  const anchors=Array.from(nav[1].matchAll(/<a\s+[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g));
  assert.equal(anchors.length,3,'Exactly three top navigation links: '+p.file);
- assert.deepEqual(anchors.map(a=>a[2]),['PLAY','CHALLENGES','FRANCHISE'],'Matching labels: '+p.file);
+ assert.deepEqual(anchors.map(a=>a[2]),['QUICK PLAY','CHALLENGES','FRANCHISE'],'Matching labels: '+p.file);
  assert.deepEqual(anchors.map(a=>a[1]),['play/','challenge/','franchise/'].map(x=>p.prefix+x),'Matching destinations: '+p.file);
  assert.equal((nav[1].match(/aria-current="page"/g)||[]).length,p.active?1:0,'One active mode maximum: '+p.file);
  if(p.active)assert(nav[1].includes('>'+p.active+'</a>'),'Correct active mode: '+p.file);
