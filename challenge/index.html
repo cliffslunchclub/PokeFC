@@ -138,8 +138,38 @@ function render(){const app=document.getElementById('app');if(st.phase==='setup'
  poolSelect.onchange=sync;
  document.getElementById('start').onclick=()=>{st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
-let body='<section class="panel"><h2>'+(st.phase==='locked'?'Final XI locked':st.phase==='shop'?'Equip your XI':'Draft your XI')+'</h2><p>'+filled+'/11 selected · Formation '+esc(st.formation)+' · Team Score '+(filled===11?teamScore().toFixed(2):'—')+'</p><div class="grid">';
-body+=slots.map((pos,i)=>{const s=BY.get(st.roster[i]);return '<div class="slot '+(st.selected===i?'active':'')+'"><button data-slot="'+i+'" '+(!['draft','shop'].includes(st.phase)?'disabled':'')+'>'+pos+' · '+(s?esc(s.name):'Empty')+'</button>'+(s?'<small> '+rating(s,pos,st.items[i]).toFixed(1)+' OVR</small>':'')+(s&&st.phase!=='draft'?'<div><select data-item="'+i+'" '+(st.phase!=='shop'?'disabled':'')+'><option value="">No item</option>'+offeredItems(s).map(it=>'<option value="'+esc(it[0])+'" '+(st.items[i]===it[0]?'selected':'')+'>'+esc(it[0])+' · ₽'+it[1]+(it[0]==='Eviolite'?' · +20 each base stat':megaForm(s,it[0])?' · Mega':'')+'</option>').join('')+'</select></div>':'')+'</div>'}).join('')+'</div></section>';
+const legendCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
+const posMap={
+ '4-3-3':[[50,89],[14,73],[38,75],[62,75],[86,73],[24,54],[50,52],[76,54],[19,26],[50,17],[81,26]],
+ '4-2-3-1':[[50,89],[14,75],[38,77],[62,77],[86,75],[35,58],[65,58],[18,36],[50,37],[82,36],[50,18]],
+ '4-4-2':[[50,89],[14,75],[38,76],[62,76],[86,75],[16,49],[38,50],[62,50],[84,49],[35,23],[65,23]],
+ '3-5-2':[[50,89],[22,74],[50,77],[78,74],[13,52],[87,52],[35,51],[65,51],[50,35],[35,19],[65,19]],
+ '5-3-2':[[50,89],[13,58],[25,76],[50,79],[75,76],[87,58],[28,45],[50,48],[72,45],[35,19],[65,19]]
+};
+const isShop=st.phase==='shop';
+const isDraft=st.phase==='draft';
+const stage=isDraft?'DRAFT '+(filled+1)+'/11':isShop?'EQUIPMENT':st.phase==='locked'?'BOSS '+(st.round+1)+'/6':st.phase==='finished'?'FULL TIME':'MATCH '+(st.round+1)+'/6';
+let body='<section class="challenge-scorebug" aria-label="Challenge progress">'+
+ '<div class="metric is-highlight"><span>RUN STATUS</span><strong>'+stage+'</strong></div>'+
+ '<div class="metric"><span>POKÉDEX</span><strong>'+(st.pool===4?'CLASSIC · I–IV':'NATIONAL · I–IX')+'</strong></div>'+
+ '<div class="metric"><span>STARTING XI</span><strong>'+filled+' / 11</strong><div class="challenge-progress"><span style="width:'+(100*filled/11)+'%"></span></div></div>'+
+ '<div class="metric"><span>LEGENDARIES</span><strong>'+(st.legends?legendCount+' / 2':'OFF')+'</strong></div>'+
+ '</section><div class="challenge-run-layout">'+
+ '<section class="panel challenge-roster-panel"><div class="challenge-section-heading"><div><h2>'+(isDraft?'BUILD YOUR XI':isShop?'EQUIP YOUR TEAM':'YOUR FINAL XI')+'</h2>'+
+ '<p>'+(isDraft?'Click an open spot, then draft from the roll.':isShop?'Equip each Pokémon before locking your Final XI.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
+ '<div class="'+(isShop?'challenge-shop-grid':'challenge-pitch')+'">'+
+ (isShop?'':'<div class="pitch-line"></div><div class="pitch-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div>');
+body+=slots.map((pos,i)=>{
+ const s=BY.get(st.roster[i]),point=posMap[st.formation][i],style=isShop?'':' style="left:'+point[0]+'%;top:'+point[1]+'%"';
+ const sprite=s?'<img class="slot-sprite" loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png">':'<span class="slot-placeholder" aria-hidden="true">+</span>';
+ return '<div class="slot '+(st.selected===i?'active':'')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
+ '<button data-slot="'+i+'" '+(!['draft','shop'].includes(st.phase)?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'">'+pos+' · '+(s?esc(s.name):'Open')+'</button>'+
+ (s?'<small> '+rating(s,pos,st.items[i]).toFixed(1)+' OVR</small>':'<small>EMPTY</small>')+
+ (s&&st.phase!=='draft'?'<div class="item-holder"><select data-item="'+i+'" '+(st.phase!=='shop'?'disabled':'')+' aria-label="Held item for '+esc(s.name)+'"><option value="">No item</option>'+
+ offeredItems(s).map(it=>'<option value="'+esc(it[0])+'" '+(st.items[i]===it[0]?'selected':'')+'>'+esc(it[0])+' · ₽'+it[1]+(it[0]==='Eviolite'?' · +20 each base stat':megaForm(s,it[0])?' · Mega':'')+'</option>').join('')+
+ '</select></div>':'')+'</div>';
+}).join('');
+body+='</div><div class="challenge-roster-footer"><span>'+(isDraft?'Draft each Pokémon into an open position.':isShop?'Shop budget: ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div></section><div class="challenge-side-stack">';
 if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>rating(b,slots[st.selected])-rating(a,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
