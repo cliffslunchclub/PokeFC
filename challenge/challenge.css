@@ -387,3 +387,18 @@
 .challenge-pitch .slot.empty.preview{border-color:#a9efc0!important;background:#225447!important;box-shadow:0 0 0 2px #b7f7c055,0 5px 10px #0005!important}
 .challenge-pick-grid .pick{transition:background-color .12s ease}
 @media(max-width:560px){.challenge-pick-sort{font-size:9px;padding:7px 8px}.challenge-pick-sort strong{font-size:10px}}
+
+/* Static Pokédex base stats and unobtrusive tier group headings.
+   All six values render once per draft roll and remain unchanged on position hover. */
+.challenge-pick-grid .pick{position:relative;min-height:72px}
+.challenge-pick-grid .pick-base-stats{display:flex;flex-wrap:wrap;align-items:center;gap:3px 9px;margin-top:5px;color:#d0e2e8;font-size:10px;font-variant-numeric:tabular-nums}
+.challenge-pick-grid .pick-base-stats span{white-space:nowrap}
+.challenge-pick-grid .pick-base-stats b{font-weight:900;color:#8db6c7;letter-spacing:.015em}
+.challenge-pick-grid .pick.tier-group-start{margin-top:21px}
+.challenge-pick-grid .pick.tier-group-start::before{content:attr(data-tier-group);position:absolute;top:-22px;left:4px;font-size:10px;line-height:18px;font-weight:950;letter-spacing:.12em;color:#e8d29b;pointer-events:none}
+.challenge-pick-grid .pick.tier-group-start[data-tier-group^="S"]::before{color:#ffe19b}
+.challenge-pick-grid .pick.tier-group-start[data-tier-group^="A"]::before{color:#a8f0b9}
+.challenge-pick-grid .pick.tier-group-start[data-tier-group^="B"]::before{color:#c6e2dc}
+.challenge-pick-grid .pick.tier-group-start[data-tier-group^="C"]::before{color:#ead8ac}
+.challenge-pick-grid .pick.tier-group-start[data-tier-group^="D"]::before{color:#efb2ac}
+@media(max-width:560px){.challenge-pick-grid .pick-base-stats{font-size:9px;gap:3px 6px}.challenge-pick-grid .pick.tier-group-start{margin-top:20px}}
