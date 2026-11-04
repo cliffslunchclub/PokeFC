@@ -9,7 +9,7 @@
 
 1. In SiteGround Site Tools for cliffslunchclub.com, open **Domain → Subdomains**. Confirm `pfc.cliffslunchclub.com` exists.
 2. Open **Site → File Manager** and find the actual **document root** for the `pfc` subdomain. Do **not** assume it is the primary domain's `public_html`; confirm the folder before proceeding. Do not install WordPress.
-3. Open **Site → FTP Accounts**. Create a **new dedicated FTP account** such as `pfcdeploy`, with a long unique password. For that account use **Actions → Change Home** to set its home folder to **the pfc subdomain document root** from step 2. This scoping is essential to avoid overwriting any school lunch sites or the primary site.
+3. Open **Site → FTP Accounts**. Create a **new dedicated FTP account** such as `pfcdeploy`, with a long unique password. For that account use **Actions → Change Home** to set its home folder to the **pfc.cliffslunchclub.com folder, one level above its public_html**. The workflow publishes to ./public_html/ relative to that home. This account must not have access to sibling subdomains or the primary website.
 4. Under the FTP account's **Actions → FTP Credentials**, note the **server host** and exact **FTP username**. The connection uses **explicit FTPS (TLS) on port 21**. If the host does not support FTPS with a valid certificate, the workflow intentionally fails rather than falling back to insecure plain FTP. In that case stop and switch deployment to SSH/SFTP after confirming SiteGround's host fingerprint.
 5. Open **Security → SSL Manager** for `pfc.cliffslunchclub.com`, install free Let's Encrypt if necessary, then toggle **HTTPS Enforce** for that subdomain.
 
@@ -40,7 +40,7 @@ The Challenge alpha is unranked and still needs gameplay verification. It curren
 
 ## Guardrails
 
-- FTP account must point at **pfc subdomain's own document root**, not any existing website root.
+- FTP account must point at **pfc.cliffslunchclub.com (the parent of its public_html)**, not the main domain or any other website folder. Deployment targets ./public_html/ inside that folder.
 - Do not use a privileged SSH/SFTP key for other sites or overwrite the primary `public_html`.
 - Never enable `dangerous-clean-slate` in the deployment workflow.
 - Do not put credentials, API keys, or private server code in `dist/`.
