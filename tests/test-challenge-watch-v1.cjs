@@ -24,7 +24,7 @@ function el(id){
 const ctx=vm.createContext({window:{location:{search:'?challenge=1'},addEventListener(){}},URLSearchParams,console,Date,Math,
  document:{getElementById:el},
  localStorage:{getItem:key=>store.get(key)||null,setItem:(k,v)=>store.set(k,v)}});
-for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','play/opponents.js','challenge/special-items-data.js','challenge/leaderboard.js']){
+for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','play/opponents.js','challenge/special-items-data.js','challenge/leaderboard.js','challenge/match-report.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
 }
 ctx.window.FXI_TM={
@@ -47,7 +47,12 @@ ctx.window.FXI_HYBRID={
   hybridCalls++;
   assert.equal(fixture.challengeRound,5);
   assert.equal(partial.elapsedSeconds,2700);
-  return {origin:'hybrid',score:[3,1],stats:[{shots:10,passes:330},{shots:5,passes:205}],events:[]};
+  return {origin:'hybrid',handoff:{minute:45},score:[3,1],stats:[{shots:10,passes:330},{shots:5,passes:205}],events:[
+   {type:'goal',team:fixture.home.id,player:fixture.home.lineup[9].id,assist:fixture.home.lineup[8].id,minute:12.4,minuteLabel:'13',origin:'tacticmesh'},
+   {type:'goal',team:fixture.away.id,player:fixture.away.lineup[5].id,minute:36.2,minuteLabel:'37',origin:'tacticmesh'},
+   {type:'goal',team:fixture.home.id,player:fixture.home.lineup[10].id,minute:66.4,minuteLabel:'67',origin:'quick-continuation'},
+   {type:'goal',team:fixture.home.id,player:fixture.home.lineup[7].id,assist:fixture.home.lineup[9].id,minute:82.1,minuteLabel:'83',origin:'quick-continuation'}
+  ]};
  }
 };
 vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{filename:'play/play.js',timeout:15000});
@@ -65,6 +70,12 @@ vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{file
  assert.equal(final.phase,'finished','Winning Red ends six-match gauntlet');
  assert.equal(final.result.boss,'Red');
  assert.equal(final.result.origin,'hybrid');
+ assert.equal(final.result.report.status,'complete','Watched + simulated goal events preserved');
+ assert.equal(final.result.report.goals.length,4);
+ assert.equal(final.result.report.goals[0].minuteLabel,'13');
+ assert.equal(final.result.report.goals[0].origin,'tacticmesh');
+ assert.equal(final.result.report.goals[2].origin,'quick-continuation');
+ assert.equal(final.result.report.goals[0].player,'Jolteon');
  assert.equal(final.history.length,6);
  assert.equal(final.history.filter(m=>m.outcome==='Victory').length,6);
  assert.equal(final.locked.score,85.7);
