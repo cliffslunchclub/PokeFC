@@ -83,7 +83,7 @@ function render(){const app=document.getElementById('app');if(st.phase==='setup'
  document.getElementById('start').onclick=()=>{st.pool=+document.getElementById('pool').value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 let body='<section class="panel"><h2>'+(st.phase==='locked'?'Final XI locked':st.phase==='shop'?'Equip your XI':'Draft your XI')+'</h2><p>'+filled+'/11 selected · Formation '+esc(st.formation)+' · Team Score '+(filled===11?teamScore().toFixed(2):'—')+'</p><div class="grid">';
-body+=slots.map((pos,i)=>{const s=BY.get(st.roster[i]);return '<div class="slot '+(st.selected===i?'active':'')+'"><button data-slot="'+i+'" '+(st.phase==='locked'?'disabled':'')+'>'+pos+' · '+(s?esc(s.name):'Empty')+'</button>'+(s?'<small> '+rating(s,pos,st.items[i]).toFixed(1)+' OVR</small>':'')+(s&&st.phase!=='draft'?'<div><select data-item="'+i+'" '+(st.phase==='locked'?'disabled':'')+'><option value="">No item</option>'+offeredItems(s).map(it=>'<option value="'+esc(it[0])+'" '+(st.items[i]===it[0]?'selected':'')+'>'+esc(it[0])+' · ₽'+it[1]+(it[0]==='Eviolite'?' · +20 each base stat':megaForm(s,it[0])?' · Mega':'')+'</option>').join('')+'</select></div>':'')+'</div>'}).join('')+'</div></section>';
+body+=slots.map((pos,i)=>{const s=BY.get(st.roster[i]);return '<div class="slot '+(st.selected===i?'active':'')+'"><button data-slot="'+i+'" '+(!['draft','shop'].includes(st.phase)?'disabled':'')+'>'+pos+' · '+(s?esc(s.name):'Empty')+'</button>'+(s?'<small> '+rating(s,pos,st.items[i]).toFixed(1)+' OVR</small>':'')+(s&&st.phase!=='draft'?'<div><select data-item="'+i+'" '+(st.phase!=='shop'?'disabled':'')+'><option value="">No item</option>'+offeredItems(s).map(it=>'<option value="'+esc(it[0])+'" '+(st.items[i]===it[0]?'selected':'')+'>'+esc(it[0])+' · ₽'+it[1]+(it[0]==='Eviolite'?' · +20 each base stat':megaForm(s,it[0])?' · Mega':'')+'</option>').join('')+'</select></div>':'')+'</div>'}).join('')+'</div></section>';
 if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>rating(b,slots[st.selected])-rating(a,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
@@ -113,20 +113,61 @@ app.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{st.selected=+b.dat
 app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{if(st.roster[st.selected])return;const s=BY.get(+b.dataset.pick);if(!eligible().some(x=>x.id===s.id))return;if(s.legendary&&st.roster.filter(id=>BY.get(id)?.legendary).length>=2)return;st.roster[st.selected]=s.id;if(st.roster.every(Boolean))st.phase='shop';else{st.selected=st.roster.findIndex(x=>!x);roll()}save();render()});
 app.querySelectorAll('[data-item]').forEach(sel=>sel.onchange=()=>{const i=+sel.dataset.item,s=BY.get(st.roster[i]),name=sel.value,it=itemFor(s,name),prior=itemFor(s,st.items[i]);const anotherMega=st.items.some((x,j)=>j!==i&&megaForm(BY.get(st.roster[j]),x));if(name&&(!it||st.items.some((x,j)=>x===name&&j!==i)||used-(prior?.[1]||0)+it[1]>1000||(megaForm(s,name)&&anotherMega))){alert(!it?'Item unavailable for this Pokémon':megaForm(s,name)&&anotherMega?'Only one Mega Evolution is allowed per team.':'Item already used or over the ₽1,000 budget.');render();return}st.items[i]=name||null;save();render()});
 if(st.phase==='draft'){document.getElementById('typeR').onclick=()=>{reroll('type');save();render()};document.getElementById('genR').onclick=()=>{reroll('gen');save();render()}}
+if((st.phase==='draft'||st.phase==='shop')&&st.formationChanges>0){
+ document.getElementById('applyFormation').onclick=()=>{const choice=document.getElementById('formationChange').value;if(!FORMS[choice]||choice===st.formation)return;st.formation=choice;st.formationChanges--;save();render()};
+}
+if(st.phase==='draft'&&st.moves>0&&filled>0&&filled<11){
+ document.getElementById('movePick').onclick=()=>{const from=+document.getElementById('moveFrom').value,to=+document.getElementById('moveTo').value;if(!Number.isInteger(from)||!Number.isInteger(to)||!st.roster[from]||st.roster[to]!==null||from===to)return;st.roster[to]=st.roster[from];st.roster[from]=null;st.selected=from;st.moves--;save();render()};
+}
 if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{if(st.roster.some(x=>!x)||used>1000)return;if(!confirm('Lock your XI, positions, tactics and items for the gauntlet?'))return;st.phase='locked';st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));save();render()}}
-if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{st.result=playLorelei();st.phase='result';save();render()}catch(e){alert('Quick Sim error: '+e.message)}};
+if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
+ st.result=playBoss();st.history.push({...st.result});
+ st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
+ if(st.phase==='finished')savePersonalRecord();
+ save();render()
+}catch(e){alert('Quick Sim error: '+e.message)}};
+if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
 document.getElementById('reset').onclick=()=>{if(confirm('Abandon this local Challenge run?')){st=initial();save();render()}}}
-function playLorelei(){
-if(!window.FXI_QUICK)throw Error('Quick Sim library unavailable');
-const boss=[91,131,208,365,87,121,199,124,272,99,319],roles=['GK','DEF','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD'];
-const build=(s,i,pos,prefix,item)=>{const b=effectiveStats(s,item);
-const val=(w)=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
-const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
-return {id:prefix+i,name:s.name,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}}};
-const ours={id:'challenger',tactic:st.tactic==='high press'?'press':st.tactic,lineup:st.roster.map((id,i)=>{const pos=FORMS[st.formation][i];return build(BY.get(id),i,pos==='GK'?'GK':['LB','RB','CB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID','c',st.items[i])})};
-const theirs={id:'lorelei',tactic:'defensive',lineup:boss.map((id,i)=>build(BY.get(id),i,roles[i],'l',null))};
-const out=window.FXI_QUICK.simulate({home:ours,away:theirs,seed:'challenge:'+st.rng},{seed:'challenge:'+st.rng});
-return {score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome:out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw — extra time pending',seed:st.rng};
+function savePersonalRecord(){
+ const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
+ const key='pokefc-challenge-personal-records-v1';
+ let records={};try{records=JSON.parse(localStorage.getItem(key))||{}}catch{}
+ const old=records[cat]||{attempts:0,best:0,champions:0};
+ records[cat]={attempts:old.attempts+1,best:Math.max(old.best,st.history.length),champions:old.champions+(st.history.length===6&&st.result?.outcome==='Victory'?1:0)};
+ try{localStorage.setItem(key,JSON.stringify(records))}catch{}
+}
+function playBoss(){
+ if(!window.FXI_QUICK)throw Error('Quick Sim library unavailable');
+ const boss=BOSSES[st.round];if(!boss||!Array.isArray(boss.roster)||boss.roster.length!==11)throw Error('Boss roster unavailable');
+ const role=pos=>pos==='GK'?'GK':['LB','RB','CB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
+ const build=(s,i,pos,prefix,item)=>{
+  const b=effectiveStats(s,item);
+  if(item==='Light Ball'&&s.id===25){b.attack*=2;b.spAttack*=2}
+  const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
+  const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
+  return {id:prefix+i+'-'+s.id,name:s.name,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+ };
+ const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,role(FORMS[st.formation][i]),'c',st.items[i]))};
+ const bossFormation=boss.formation||'4-3-3';
+ const theirs={id:boss.key,tactic:boss.tactic||'balanced',lineup:boss.roster.map((id,i)=>{
+  const s=BY.get(id);let item=null;
+  if(boss.leader==='Blue'&&id===18)item='Pidgeotite';
+  if(boss.leader==='Red'&&id===6)item='Charizardite X';
+  if(boss.leader==='Red'&&id===25)item='Light Ball';
+  return build(s,i,role(FORMS[bossFormation][i]),'boss',item);
+ })};
+ const seed='challenge:'+st.rng+':'+st.round;
+ const out=window.FXI_QUICK.simulate({home:ours,away:theirs,seed},{seed});
+ let outcome=out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw',tiebreak=null;
+ if(outcome==='Draw'){
+  // Provisional regulation draw resolver: deterministic penalty shootout.
+  // Full TacticMesh extra time / penalty physics remains on the roadmap.
+  const random=window.FXI_QUICK.randomizer(seed+':penalties');
+  let a=3+Math.floor(random()*3),b=3+Math.floor(random()*3);
+  if(a===b){if(random()<.5)a++;else b++}
+  outcome=a>b?'Victory':'Defeat';tiebreak='Penalty shootout '+a+'–'+b+' · provisional draw resolver (full extra-time engine pending)';
+ }
+ return {boss:boss.leader,round:st.round+1,score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome,tiebreak,seed,origin:'quick-sim'};
 }
 save();render();
 })();
