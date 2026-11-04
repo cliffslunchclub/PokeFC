@@ -71,7 +71,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
-<script src="./drag-drop.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="./drag-drop.js?v=1"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -213,6 +213,7 @@ let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
 const MATCH_REPORT=window.PFC_MATCH_REPORT;
+const PERFORMANCE=window.PFC_CHALLENGE_PERFORMANCE;
 let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false;
 function openDialog(d){
  if(!d)return;
@@ -340,6 +341,35 @@ function penaltyScore(match){
  const p=match?.shootout;
  return p?' (P '+p.home+'–'+p.away+')':'';
 }
+function lineupPerformance(ids,formation,items=[],boss=null){
+ const positions=FORMS[formation]||FORMS['4-3-3'];
+ return (ids||[]).map((id,i)=>{
+  const s=BY.get(id),item=boss?opponentHeldItem(boss,id):items[i],d=displayPokemon(s,item);
+  return {id,name:d.name,aliases:s?[s.name,d.name]:[],spriteId:d.spriteId,
+   pos:positions[i],fit:s?rating(s,positions[i],item):0};
+ });
+}
+function calculateMatchAward(match){
+ if(!PERFORMANCE||!match)return null;
+ const b=BOSSES.find(x=>x.leader===match.boss)||BOSSES[(Number(match.round)||1)-1];
+ if(!b)return null;
+ const home=lineupPerformance(st.locked?.roster||st.roster,st.locked?.formation||st.formation,st.locked?.items||st.items);
+ const away=lineupPerformance(b.roster,b.formation,[],b);
+ return PERFORMANCE.matchAward(match,home,away);
+}
+function tournamentStats(){
+ return PERFORMANCE?.tournament(st.history||[],lineupPerformance(st.locked?.roster||st.roster,st.locked?.formation||st.formation,st.locked?.items||st.items))||null;
+}
+function awardMarkup(match){
+ const a=match?.award;if(!a)return '';
+ const extras=[a.goals?a.goals+' goal'+(a.goals>1?'s':''):null,a.assists?a.assists+' assist'+(a.assists>1?'s':''):null,
+  a.saves?a.saves+' saves':null,a.penalties?a.penalties+' shootout goal'+(a.penalties>1?'s':''):null].filter(Boolean).join(' · ');
+ return '<div class="challenge-player-award" aria-label="Player of the match">'+
+  '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+a.spriteId+'.png">'+
+  '<div><span class="pfc-eyebrow">★ PLAYER OF THE MATCH · '+(a.side===0?'YOUR XI':'OPPONENT')+'</span><strong>'+esc(a.name)+'</strong>'+
+  '<small>'+esc(extras||(a.method==='position-fit-fallback'?'Fit-based pick · player-level events unavailable':'Clean sheet / positional fit'))+'</small></div>'+
+  '</div>';
+}
 function matchReportHtml(match){
  if(!match)return '<p class="match-report-note">No game record available.</p>';
  const report=match.report;
@@ -368,6 +398,7 @@ function matchReportHtml(match){
  }).join(''):'<li class="match-no-goals">'+(Number(score[0])===0&&Number(score[1])===0?'No goals in regulation.':'Goal scorer and minute details were not recorded for this match.')+'</li>';
  const incomplete=report?.status&&report.status!=='complete'?'<p class="match-report-warning">'+esc(report.note||'Not all goal events were recorded.')+'</p>':!report&&score.some(x=>Number(x)>0)?'<p class="match-report-warning">This earlier game was saved before detailed goal logs were supported.</p>':'';
  return '<div class="gauntlet-match-report">'+
+  awardMarkup(match)+
   '<div class="match-report-heading"><span class="pfc-eyebrow">'+esc(source)+'</span><strong>YOUR XI&nbsp; '+scoreText+'&nbsp; '+esc(match.boss||'OPPONENT')+'</strong></div>'+
   '<h4>GOALS &amp; MATCH MINUTES</h4><ol class="match-goal-feed">'+goalFeed+'</ol>'+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
@@ -435,6 +466,12 @@ function moveDraftedPokemon(from,to){
 }
 function render(){const app=document.getElementById('app');
  window.PFC_CHALLENGE_DND?.cancel?.();
+ let awardsAdded=false;
+ for(const match of st.history||[]){
+  if(!match.award){match.award=calculateMatchAward(match);awardsAdded=Boolean(match.award)||awardsAdded}
+ }
+ if(st.result&&!st.result.award){st.result.award=calculateMatchAward(st.result);awardsAdded=Boolean(st.result.award)||awardsAdded}
+ if(awardsAdded)save();
  if(st.phase==='finished')BOARD?.archive(st,localStorage);
  syncChallengeNav();
  if(challengeView==='leaderboard'){renderLeaderboards(app);return}
@@ -623,7 +660,7 @@ if(['shop','locked','result','finished'].includes(st.phase)){
   body+='<section class="panel challenge-opponent-panel" aria-label="Opponent XI: '+esc(opponent.leader)+'">'+
    '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">GAUNTLET '+(st.round+1)+' / 6 · '+(st.phase==='locked'?'NEXT OPPONENT':'MATCH OPPONENT')+'</span><h2>'+esc(opponent.leader.toUpperCase())+' · OPPONENT XI</h2>'+
    '<p>'+esc((opponent.region||'Indigo League')+' · '+opponent.roster.length+' fixed Pokémon · '+(opponent.tactic||'balanced')+' tactics')+'</p></div>'+
-   '<span class="formation-tag">'+esc(enemyFormation)+'</span></div>'+
+   '<span class="formation-tag">'+esc(enemyFormation)+' · '+(opponentTeamScore(opponent)?.toFixed(1)||'—')+' TEAM</span></div>'+
    '<div class="challenge-pitch opponent-pitch" aria-label="'+esc(opponent.leader+' football pitch, '+enemyFormation+' formation')+'">'+
    '<div class="pitch-line"></div><div class="pitch-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div>'+
    opponentCards+'</div>'+
@@ -817,7 +854,7 @@ if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e
  }});
 }}
 if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
- st.result=playBoss();st.history.push({...st.result});
+ st.result=playBoss();st.result.award=calculateMatchAward(st.result);st.history.push({...st.result});
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
  if(st.phase==='finished'){runRecapDismissed=false;savePersonalRecord();BOARD?.archive(st,localStorage)}
  save();render()
