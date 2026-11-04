@@ -1,32 +1,42 @@
 #!/usr/bin/env bash
-# Build ONLY the three public PokéFC pages from the private repository:
-#   /           Home + Free XI Builder
-#   /challenge/  Challenge Mode
-#   /franchise/  32-gym Franchise (including TacticMesh watched games)
-# Legacy Franchise, Arcade, CI, calibration, and internal docs are excluded.
+# The deployed site has a home/builder landing page and THREE game modes:
+#   /           Home / National Free XI Builder (all 1025 Pokémon)
+#   /play/      Exhibition: generated 32 gyms + Elite Four / Champions
+#   /challenge/ Classic/National six-boss gauntlet
+#   /franchise/ 32-gym management mode
+# The older 16-gym build, Arcade, calibration and private tools are not public.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf dist
-mkdir -p dist/challenge dist/franchise/tacticmesh/vendor
+mkdir -p dist/challenge dist/play/tacticmesh/vendor dist/franchise/tacticmesh/vendor
 
-# Public home / free builder and Challenge's shared runtime.
-cp index.html builder.css builder.js species.js quick-sim.js calibration-profile.js dist/
+# National free builder and shared Quick Sim library.
+cp index.html builder.css builder.js site.css national-species.js \
+   quick-sim.js calibration-profile.js dist/
+
+# Challenge uses National species, special-item data, and Play opponent table.
 cp challenge/index.html challenge/special-items-data.js dist/challenge/
 
-# Current 32-gym Franchise: all script paths remain relative to /franchise/,
-# including the worker, the TacticMesh installed manifest, and source imports.
-cp franchise/index.html dist/franchise/index.html
+# Exhibition: its own watched-match worker and TacticMesh bridge; all resources
+# are relative to /play/ so Franchise and Play can independently start workers.
+cp play/index.html play/play.css play/play.js play/opponents.js dist/play/
+cp tm-engine-bridge.js tm-worker.js hybrid-sim.js dist/play/
+
+# Current 32-gym Franchise stays pinned to its Gen I–IV 493-species database.
+cp franchise/index.html dist/franchise/
 for file in career.css career.js species.js calibration-profile.js quick-sim.js \
             hybrid-sim.js tm-engine-bridge.js tactical-viewer.js tm-worker.js; do
   cp "$file" "dist/franchise/$file"
 done
 
-# Official TacticMesh browser runtime and required MIT license and notices.
-cp tacticmesh/vendor/*.js tacticmesh/vendor/installed.json \
-   tacticmesh/vendor/LICENSE tacticmesh/vendor/THIRD_PARTY_NOTICES.md \
-   dist/franchise/tacticmesh/vendor/
+# Genuine pinned MIT-licensed TacticMesh runtime, required by both Watch modes.
+for mode in play franchise; do
+  cp tacticmesh/vendor/*.js tacticmesh/vendor/installed.json \
+     tacticmesh/vendor/LICENSE tacticmesh/vendor/THIRD_PARTY_NOTICES.md \
+     "dist/$mode/tacticmesh/vendor/"
+done
 
-# Validate HTML-linked resources, worker dependencies and strict deployment scope.
+# Validate every local CSS/script ref, worker dependency and deployment scope.
 python3 - <<'PY'
 from html.parser import HTMLParser
 from pathlib import Path
@@ -39,7 +49,7 @@ class Resources(HTMLParser):
         if tag=="script" and d.get("src"):self.refs.append(d["src"])
         if tag=="link" and d.get("href") and d.get("rel") in ("stylesheet","manifest"):self.refs.append(d["href"])
 root=Path("dist").resolve()
-pages=[root/"index.html",root/"challenge/index.html",root/"franchise/index.html"]
+pages=[root/"index.html",root/"play/index.html",root/"challenge/index.html",root/"franchise/index.html"]
 for page in pages:
     if not page.is_file():raise SystemExit(f"Missing page: {page}")
     parser=Resources();parser.feed(page.read_text())
@@ -47,15 +57,22 @@ for page in pages:
         url=urlsplit(ref)
         if url.scheme or url.netloc or url.path.startswith("/"):continue
         f=(page.parent/unquote(url.path)).resolve()
-        if not f.is_relative_to(root) or not f.is_file():raise SystemExit(f"Missing or unsafe resource: {page}: {ref}")
-for f in ["tm-worker.js","tacticmesh/vendor/installed.json","tacticmesh/vendor/core.js","tacticmesh/vendor/engine-facade.js","tacticmesh/vendor/LICENSE"]:
-    if not (root/"franchise"/f).is_file():raise SystemExit("Missing TacticMesh runtime: "+f)
+        if not f.is_relative_to(root) or not f.is_file():
+            raise SystemExit(f"Missing or unsafe local resource: {page}: {ref}")
+    h=page.read_text()
+    if h.count('class="pfc-nav"')!=1:raise SystemExit(f"Invalid global nav count: {page}")
+    for word in ["PLAY","CHALLENGES","FRANCHISE"]:
+        if word not in h:raise SystemExit(f"Missing global nav entry {word}: {page}")
+for mode in ["franchise","play"]:
+    for f in ["tm-worker.js","tm-engine-bridge.js","tacticmesh/vendor/installed.json","tacticmesh/vendor/core.js","tacticmesh/vendor/engine-facade.js","tacticmesh/vendor/LICENSE"]:
+        if not (root/mode/f).is_file():raise SystemExit("Missing real watched-match dependency: "+mode+"/"+f)
+for f in ["national-species.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+    if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
-    if (root/forbidden).exists():raise SystemExit("Unwanted root content in public deployment: "+forbidden)
-assert 'Home / Free Builder' in (root/"index.html").read_text()
-assert 'Franchise · 32 Gyms' in (root/"franchise/index.html").read_text()
-assert 'Challenges' in (root/"challenge/index.html").read_text()
-print("PASS: only home/builder, challenges, and 32-gym franchise deployed")
+    if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
+assert '1,025' in (root/"index.html").read_text()
+assert 'NATIONAL' in (root/"challenge/index.html").read_text()
+assert 'WATCH MATCH' in (root/"play/index.html").read_text()
+print("PASS SiteGround build: Home, Play, Challenges, Franchise; exactly three mode links")
 PY
-
-echo "Built clean three-section PokéFC playtest in dist/."
+echo "Built PokéFC National Free Builder + Play + Challenges + 32-gym Franchise."
