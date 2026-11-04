@@ -179,8 +179,13 @@ const save=()=>localStorage.setItem(KEY,JSON.stringify(st));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pool=()=>S.filter(s=>(s.gen||gen(s.id))<=st.pool&& (st.legends||!s.legendary)&&(!s.legendary||st.roster.filter(id=>BY.get(id)?.legendary).length<2)&&!st.roster.includes(s.id));
 const eligible=()=>st.roll?pool().filter(s=>s.types.includes(st.roll.type)&&(s.gen||gen(s.id))===st.roll.gen):[];
-function rating(s,pos,item){if(!s)return 0;const b=effectiveStats(s,item);const w=pos==='GK'?{hp:.2,defense:.3,spDefense:.3,speed:.2}:['CB','LB','RB','LWB','RWB'].includes(pos)?{defense:.35,hp:.2,attack:.2,speed:.25}:['ST','LW','RW'].includes(pos)?{attack:.35,spAttack:.2,speed:.35,hp:.1}:{spAttack:.3,spDefense:.25,attack:.2,speed:.25};return Math.min(100,20+.55*Object.entries(w).reduce((v,[k,f])=>v+b[k]*f,0))}
+function rating(s,pos,item){if(!s)return 0;const b=matchEffectiveStats(s,item);const w=pos==='GK'?{hp:.2,defense:.3,spDefense:.3,speed:.2}:['CB','LB','RB','LWB','RWB'].includes(pos)?{defense:.35,hp:.2,attack:.2,speed:.25}:['ST','LW','RW'].includes(pos)?{attack:.35,spAttack:.2,speed:.35,hp:.1}:{spAttack:.3,spDefense:.25,attack:.2,speed:.25};return Math.min(100,20+.55*Object.entries(w).reduce((v,[k,f])=>v+b[k]*f,0))}
 const teamScore=()=>st.roster.reduce((a,id,i)=>a+rating(BY.get(id),FORMS[st.formation][i],st.items[i]),0)/11;
+const opponentTeamScore=boss=>{
+ const positions=FORMS[boss?.formation],ids=boss?.roster;
+ if(!positions||!Array.isArray(ids)||ids.length!==positions.length)return null;
+ return ids.reduce((sum,id,i)=>sum+rating(BY.get(id),positions[i],opponentHeldItem(boss,id)),0)/ids.length;
+};
 function roll(){const a=pool();if(!a.length){st.roll=null;return}const types=[...new Set(a.flatMap(s=>s.types))],valid=[];for(const type of types)for(let g=1;g<=st.pool;g++)if(a.some(s=>s.types.includes(type)&&(s.gen||gen(s.id))===g))valid.push({type,gen:g});st.roll=valid[Math.floor(next()*valid.length)];pendingRollAnimation=true}
 function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rerollGen)return;const a=pool(),old=st.roll;if(!old)return;const opts=which==='type'?[...new Set(a.filter(s=>(s.gen||gen(s.id))===old.gen).flatMap(s=>s.types))].filter(x=>x!==old.type).map(type=>({type,gen:old.gen})):Array.from({length:st.pool},(_,i)=>i+1).filter(g=>g!==old.gen&&a.some(s=>gen(s.id)===g&&s.types.includes(old.type))).map(gen=>({type:old.type,gen}));if(!opts.length)return;st.roll=opts[Math.floor(next()*opts.length)];if(which==='type')st.rerollType--;else st.rerollGen--;pendingRollAnimation=true}
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
@@ -426,12 +431,40 @@ const posMap={
 const isShop=st.phase==='shop';
 const isDraft=st.phase==='draft';
 const stage=isDraft?'DRAFT '+(filled+1)+'/11':isShop?'EQUIPMENT':st.phase==='locked'?'BOSS '+(st.round+1)+'/6':st.phase==='finished'?'FULL TIME':'MATCH '+(st.round+1)+'/6';
+const gauntletStarted=['locked','result','finished'].includes(st.phase);
+const currentBoss=gauntletStarted?BOSSES[st.round]:null;
+const bossScore=currentBoss?opponentTeamScore(currentBoss):null;
+const lockedScore=Number(st.locked?.score);
+const playerScore=Number.isFinite(lockedScore)?lockedScore:teamScore();
 let body='<section class="challenge-scorebug" aria-label="Challenge progress">'+
  '<div class="metric is-highlight"><span>RUN STATUS</span><strong>'+stage+'</strong></div>'+
  '<div class="metric"><span>POKÉDEX</span><strong>'+(st.pool===4?'CLASSIC · I–IV':'NATIONAL · I–IX')+'</strong></div>'+
  '<div class="metric"><span>STARTING XI</span><strong>'+filled+' / 11</strong><div class="challenge-progress"><span style="width:'+(100*filled/11)+'%"></span></div></div>'+
  '<div class="metric"><span>LEGENDARIES</span><strong>'+(st.legends?legendCount+' / 2':'OFF')+'</strong></div>'+
- '</section><div class="challenge-run-layout">'+
+ '</section>';
+if(gauntletStarted){
+ const completed=st.history.length,hasReports=completed>0;
+ body+='<section class="panel challenge-road-strip" aria-label="Road to Champion progress">'+
+  '<div class="challenge-road-head"><div><span class="pfc-eyebrow">INDIGO LEAGUE · GAUNTLET</span><h2>ROAD TO CHAMPION <small>'+completed+' / 6 PLAYED</small></h2></div>'+
+  (hasReports?'<button type="button" id="openHistoryModal" class="challenge-history-button">VIEW MATCH REPORTS</button>':'<span class="challenge-road-hint">SIX OPPONENTS · ONE FINAL XI</span>')+'</div>'+
+  '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>{
+   const result=st.history[i],current=i===st.round;
+   const status=result?(result.outcome==='Victory'?'✓':'×'):current?'●':'–';
+   return '<div class="challenge-road-step'+(result?' done '+(result.outcome==='Victory'?'won':'lost'):'')+(current?' current':'')+'" aria-label="'+esc(boss.leader+' · '+(result?(result.outcome||'Played'):'Upcoming'))+'">'+
+    '<span class="road-step-number">MATCH '+(i+1)+'</span><strong>'+esc(boss.leader.toUpperCase())+'</strong>'+
+    '<span class="road-step-status">'+(result?esc(result.score?.join(' – ')||status):status)+'</span></div>';
+  }).join('')+'</div>'+
+  '<div class="challenge-versus-rating" aria-label="Team rating comparison">'+
+   '<div class="team-rating home"><span>YOUR XI · '+esc(st.formation)+'</span><strong>'+playerScore.toFixed(1)+'</strong></div>'+
+   '<span class="team-versus">VS</span>'+
+   '<div class="team-rating away"><span>'+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+' · '+esc(currentBoss?.formation||'—')+'</span><strong>'+(bossScore==null?'—':bossScore.toFixed(1))+'</strong></div></div>'+
+  '<p class="challenge-rating-note">Team scores are average positional-fit ratings (0–100), including held-item effects—not predicted match odds.</p>'+
+ '</section>';
+ if(hasReports)body+='<dialog id="challengeHistoryModal" class="challenge-dialog challenge-history-dialog" aria-labelledby="challengeHistoryTitle">'+
+  '<div class="challenge-dialog-bar"><span id="challengeHistoryTitle">PREVIOUS MATCH REPORTS</span><button type="button" id="closeHistoryModal" aria-label="Close match history">✕ CLOSE</button></div>'+
+  '<div class="challenge-history-content">'+matchHistoryHtml(st.history)+'</div></dialog>';
+}
+body+='<div class="challenge-run-layout">'+
  '<section class="panel challenge-roster-panel"><div class="challenge-section-heading"><div><h2>'+(isDraft?'BUILD YOUR XI':isShop?'EQUIP YOUR TEAM':'YOUR FINAL XI')+'</h2>'+
  '<p>'+(isDraft?'Hover or click any open spot, then draft a Pokémon.':isShop?'Choose an item first, then assign it to a Pokémon using the shop.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
  '<div class="challenge-pitch">'+
@@ -445,7 +478,7 @@ body+=slots.map((pos,i)=>{
    const value=effective[key],base=s.baseStats[key],diff=value-base;
    return '<span class="slot-stat'+(diff>0?' stat-up':diff<0?' stat-down':'')+'" title="'+esc(label+': '+value+(diff?' (base '+base+', '+(diff>0?'+':'')+diff+' via '+item+')':''))+'"><b>'+label+'</b><span>'+value+'</span></span>';
   }).join('')+'</div>':'';
- return '<div data-slot-card="'+i+'" class="slot '+(st.selected===i?'active ':'')+(s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
+ return '<div data-slot-card="'+i+'" class="slot '+(isDraft&&st.selected===i?'active ':'')+(s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
  '<span class="slot-name">'+(s?esc(s.name):'OPEN SLOT')+'</span>'+
  '<button type="button" data-slot="'+i+'" '+(!isDraft||s?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'"></button>'+
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
@@ -532,9 +565,7 @@ if(['shop','locked','result','finished'].includes(st.phase)){
    '<details class="opponent-roster-details"><summary>VIEW ALL 11 POKÉMON &amp; STATS</summary><div class="opponent-roster-list">'+opponentRows+'</div></details>'+
    '</section>';
  }
- if(st.phase!=='shop')body+='<section class="panel"><div class="challenge-section-heading"><h2>ROAD TO CHAMPION</h2><span class="formation-tag">'+st.history.length+' / 6 COMPLETE</span></div>'+
- '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>'<div class="'+(i<st.history.length?'done':i===st.round?'current':'')+'"><strong>'+esc(boss.leader.toUpperCase())+'</strong><span>'+(i<st.history.length?(st.history[i]?.outcome==='Victory'?'✓':'×'):i===st.round?'●':'–')+'</span></div>').join('')+'</div>'+
- '<p class="statline">Win every match with your locked Final XI. Your progress is saved in this browser.</p>'+matchHistoryHtml(st.phase==='finished'?[]:st.phase==='result'?st.history.slice(0,-1):st.history)+'</section>';
+
 }
 if(st.phase==='locked'){
  const boss=BOSSES[st.round]||BOSSES[0];
@@ -554,6 +585,13 @@ if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><d
  '<div class="challenge-dialog-bar"><span>POKÉFC · GAUNTLET RESULTS</span><button type="button" id="closeRunModal" aria-label="Close run results">✕ CLOSE</button></div>'+
  completedRunCard()+'</dialog>';
 body+='</div></div><section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
+if(gauntletStarted&&st.history.length){
+ const historyModal=document.getElementById('challengeHistoryModal');
+ const closeHistory=()=>closeDialog(historyModal);
+ document.getElementById('openHistoryModal').onclick=()=>openDialog(historyModal);
+ document.getElementById('closeHistoryModal').onclick=closeHistory;
+ if(historyModal)historyModal.onclick=e=>{if(e?.target===historyModal)closeHistory()};
+}
 if(st.phase==='draft'){
  const wasTriggered=pendingRollAnimation;
  pendingRollAnimation=false;
