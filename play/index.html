@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080f1b">
+<meta name="description" content="Play exhibition Pokémon soccer against 32 Gym Leaders and Elite Four. Quick Sim or watch the TacticMesh match engine.">
+<title>PokéFC · Play Exhibition Matches</title>
+<link rel="stylesheet" href="../site.css?v=2"><link rel="stylesheet" href="./play.css?v=1">
+</head><body>
+<header class="pfc-header"><div class="pfc-shell pfc-head-row">
+<a href="../" class="pfc-logo" aria-label="PokéFC home"><span class="pfc-mark">⚽</span>POKÉ<b>FC</b></a>
+<nav class="pfc-nav" aria-label="Game modes"><a href="./" aria-current="page">PLAY</a><a href="../challenge/">CHALLENGES</a><a href="../franchise/">FRANCHISE</a></nav>
+<span class="pfc-beta">OPEN ALPHA</span>
+</div></header>
+<main class="pfc-shell">
+<section class="play-intro"><span class="pfc-eyebrow">EXHIBITION MODE · NO CONTRACTS · NO LEAGUE SAVE</span><h1 class="pfc-mode-title">TAKE THE PITCH.</h1>
+<p class="pfc-mode-intro">Bring your Free Builder XI. Face any of 32 gyms across four regions, or challenge the Elite Four and Champions. Watch a genuine TacticMesh match or get an instant Quick Sim result.</p></section>
+<div class="play-layout">
+ <section class="play-panel setup-panel" aria-labelledby="setupTitle">
+  <div class="play-panel-title"><span class="section-number">01</span><h2 id="setupTitle">MATCH SETUP</h2><span class="tiny-label">HOME XI</span></div>
+  <div id="xiStatus" class="xi-status" role="status">Loading your Free Builder XI…</div>
+  <div class="team-actions"><a href="../#builder" class="play-btn subtle">Edit XI in Builder ↗</a><button id="fillXI" class="play-btn subtle" type="button">Auto-fill empty slots</button></div>
+  <div id="homePreview" class="team-preview" aria-label="Your starting lineup"></div>
+  <div class="play-divider"></div>
+  <label class="play-label" for="region">Opponent category</label>
+  <select id="region" class="play-select"><option value="all">All 32 Gyms</option><option value="Kanto">Kanto · 8 Gyms</option><option value="Johto">Johto · 8 Gyms</option><option value="Hoenn">Hoenn · 8 Gyms</option><option value="Sinnoh">Sinnoh · 8 Gyms</option><option value="bosses">Elite Four + Champions</option></select>
+  <label class="play-label" for="opponent">Opponent</label>
+  <select id="opponent" class="play-select"></select>
+  <div id="opponentCard" class="opponent-card"></div>
+  <label class="play-label" for="tactic">Your tactics</label><select id="tactic" class="play-select">
+    <option value="balanced">Balanced</option><option value="attacking">Attacking</option><option value="defensive">Defensive</option><option value="press">High Press</option><option value="counter">Counterattack</option><option value="possession">Possession</option>
+  </select>
+  <div class="play-actions">
+   <button id="quick" class="play-btn primary" type="button">⚡ QUICK SIM</button>
+   <button id="watch" class="play-btn watch" type="button">▶ WATCH MATCH</button>
+  </div>
+  <p class="pfc-footnote">Exhibition only. Your Free Builder lineup stays saved and unchanged. Gym squads are generated from Pokémon matching each leader's type.</p>
+ </section>
+ <section class="play-panel match-panel" aria-label="Match screen">
+  <div class="play-panel-title"><span class="section-number">02</span><h2>LIVE MATCH CENTER</h2><span id="modeTag" class="tiny-label">READY</span></div>
+  <div class="scoreboard"><div><span class="team-side">HOME</span><strong id="homeName">YOUR XI</strong></div><div class="score-mid"><span id="matchClock">PRE-MATCH</span><div id="score">– : –</div><span id="matchState">Select an opponent</span></div><div class="away-name"><span class="team-side">AWAY</span><strong id="awayName">GYM LEADERS</strong></div></div>
+  <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas></div>
+  <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
+  <p id="engineStatus" class="engine-status" role="status">Choose Quick Sim for an instant result or Watch for real TacticMesh ball and player movement.</p>
+  <div id="matchResult" class="match-result"><div class="empty-state"><span>⚽</span><strong>YOUR NEXT FIXTURE</strong><p>Build your eleven, select a gym, then kick off.</p></div></div>
+ </section>
+</div>
+</main>
+<footer class="pfc-shell pfc-page-footer">PokéFC · Independent fan project · Pokémon characters belong to their respective owners. Match models are developmental and uncalibrated.</footer>
+<script src="../national-species.js?v=1"></script>
+<script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script>
+<script src="./opponents.js?v=1"></script>
+<script src="./hybrid-sim.js"></script><script src="./tm-engine-bridge.js"></script>
+<script src="./play.js?v=1"></script>
+</body></html>
