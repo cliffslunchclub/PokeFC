@@ -40,6 +40,20 @@ Private GitHub Actions repository secrets (do not paste into chat or commit to c
 
 Archived `legacy-v05/` and `legacy-v07c/` remain in private GitHub but are not published. The sync removes their stale public copies.
 
+## Preventing stale updates (SiteGround + browsers)
+
+The build ships a **subdomain-only** `public_html/.htaccess` on every deployment. Apache cache headers require `private, no-cache, max-age=0, must-revalidate` for HTML, CSS, JS and JSON, including match-worker scripts. Pokémon image URLs load from an external sprite host and are unaffected.
+
+**Important:** SiteGround's **NGINX Direct Delivery** serves static HTML/JS/CSS directly, bypassing Apache and therefore potentially bypassing these `.htaccess` headers. If you want Apache's rules reliably applied, in **Site Tools → Speed → Caching → NGINX Direct Delivery**, switch it **off for `pfc.cliffslunchclub.com` only**. Do not change it for lunch program sites.
+
+After the first `.htaccess` deploy, clear any existing cached copies **once**:
+1. **Site Tools → Speed → Caching → Dynamic Cache → Flush Cache** (pfc only, if selectable).
+2. **Site Tools → Speed → CDN → Purge Cache** if SiteGround CDN is enabled.
+3. On the browser, hard refresh once (**Cmd + Shift + R** in Chrome on Mac).
+4. In Chrome Developer Tools → Network, inspect an `index.html` response for the expected `Cache-Control` header. Requests should not stay at `x-proxy-cache: HIT` after revalidation.
+
+Future GitHub Actions deployments automatically publish the same `.htaccess` rules. Avoid adding sitewide cache purges to GitHub or writing these rules in the primary domain's `public_html`; the deployment remains scoped to `pfc`.
+
 ## Quick verification
 
 1. Open all four paths above. The **global navigation** must show exactly PLAY, CHALLENGES, FRANCHISE; the site logo returns Home.
