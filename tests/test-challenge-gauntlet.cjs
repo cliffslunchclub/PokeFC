@@ -25,12 +25,39 @@ const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),context,{filename:'challenge-inline',timeout:20000});
 const state=()=>JSON.parse(stored);
 const names=['Lorelei','Bruno','Agatha','Lance','Blue','Red'];
+function assertOpponentPitch(boss,phase){
+ const html=app.innerHTML;
+ assert.match(html,/class="panel challenge-opponent-panel"/,'Opponent panel during '+phase);
+ assert(html.includes('aria-label="'+boss.leader+' football pitch, '+boss.formation+' formation"'),'Boss formation is rendered');
+ const pitch=[...html.matchAll(/data-opponent-id="(\d+)"/g)].map(x=>Number(x[1]));
+ const roster=[...html.matchAll(/data-opponent-roster-id="(\d+)"/g)].map(x=>Number(x[1]));
+ assert.deepEqual(pitch,boss.roster,'Opponent pitch follows canonical fixed XI');
+ assert.deepEqual(roster,boss.roster,'Full roster follows canonical fixed XI');
+ assert.equal((html.match(/class="opponent-slot-role"/g)||[]).length,11,'Eleven role labels');
+ assert.equal((html.match(/class="opponent-slot-name"/g)||[]).length,11,'Eleven names');
+ assert(html.includes('VIEW ALL 11 POKÉMON &amp; STATS'),'Detailed roster expander available');
+ assert(html.includes('class="opponent-row-stats"'),'Scouting values visible');
+}
+const opponentSource=context.window.PFC_PLAY_OPPONENTS.filter(x=>x.tier!=='gym');
+assert.equal(opponentSource.length,6,'Six boss XIs available');
+
 for(let i=0;i<6;i++){
  assert.equal(state().phase,'locked');
  assert.equal(state().round,i);
+ assertOpponentPitch(opponentSource[i],'locked');
+ if(i===4){
+  assert(app.innerHTML.includes('Pidgeotite'),'Blue Mega Pidgeot appears');
+  assert(app.innerHTML.includes('data-opponent-id="18"'),'Blue Pidgeot is positioned on pitch');
+ }
+ if(i===5){
+  assert(app.innerHTML.includes('Charizardite X'),'Red Mega Charizard appears');
+  assert(app.innerHTML.includes('Light Ball'),'Red Pikachu Light Ball appears');
+  assert(app.innerHTML.includes('<b>ATK</b> 110'),'Red Pikachu doubled ATK is shown on scouting sheet');
+ }
  elems.play.onclick();
  assert.equal(state().history.length,i+1,'Exactly one recorded match');
  assert.equal(state().result.boss,names[i]);
+ assertOpponentPitch(opponentSource[i],'post-match');
  assert.equal(state().result.report.status,'complete','Quick Sim goal ledger is persisted');
  assert.equal(state().result.report.goals.length,2);
  assert.equal(state().result.report.goals[0].minuteLabel,'17');
