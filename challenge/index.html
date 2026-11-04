@@ -199,10 +199,12 @@ function completedRunCard(){
   '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
   '<div><span>FORMATION</span><strong>'+esc(r.formation)+'</strong></div></div>'+
   '<p class="run-category">'+esc(r.category)+'</p>'+
-  '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
+  '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="downloadRunCard" class="run-download">↓ DOWNLOAD PNG CARD</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
   '<div id="runSharePanel" class="run-share-panel" hidden>'+
-   '<h3>SHARE YOUR RUN</h3><p>Preview what a public run card will contain. A shareable link and direct X posting will be added later.</p>'+
-   '<pre class="run-share-preview">'+esc(runShareText())+'</pre>'+
+   '<h3>SHARE YOUR RUN</h3><p>Your run card includes the Final XI sprites, team score, and all six gauntlet fixtures. Direct X posting and shareable profiles are coming later.</p>'+
+   '<canvas id="runCardPreview" class="run-card-canvas" width="1200" height="1600" role="img" aria-label="PokéFC Challenge team results poster" hidden></canvas>'+ 
+  '<p id="runCardPreviewStatus" class="statline">Preview loads when sharing.</p>'+ 
+  '<pre class="run-share-preview">'+esc(runShareText())+'</pre>'+
    '<div class="run-share-actions"><button id="copyRunSummary" type="button">COPY RUN SUMMARY</button>'+
    '<button id="postTwitter" type="button" disabled title="X posting is not available yet">POST TO X / TWITTER · COMING SOON</button></div>'+
    '<p id="runShareStatus" role="status" aria-live="polite"></p></div>'+
@@ -341,11 +343,39 @@ if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
 }catch(e){alert('Quick Sim error: '+e.message)}};
 if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
 if(st.phase==='finished'){
+ const cardState=()=>{
+  if(!RUN_CARD)throw new Error('Run card module unavailable.');
+  return RUN_CARD.summary(st,BY);
+ };
+ const createPreview=async()=>{
+  const canvas=document.getElementById('runCardPreview');
+  const status=document.getElementById('runCardPreviewStatus');
+  if(!canvas||!canvas.getContext||!status)return;
+  status.textContent='Preparing card with Pokémon sprites…';
+  try{
+   await RUN_CARD.preview(canvas,cardState());
+   canvas.hidden=false;
+   status.textContent='PNG card preview · 1200 × 1600 · saved locally on download';
+  }catch(err){status.textContent='Preview unavailable: '+err.message}
+ };
+ document.getElementById('downloadRunCard').onclick=async()=>{
+  const button=document.getElementById('downloadRunCard');
+  const status=document.getElementById('runShareStatus');
+  button.disabled=true;button.textContent='PREPARING PNG…';
+  try{
+   const file=await RUN_CARD.download(cardState());
+   if(status)status.textContent='Downloaded '+file;
+  }catch(err){
+   if(status)status.textContent='PNG download failed: '+err.message;
+   else alert('PNG download failed: '+err.message);
+  }finally{button.disabled=false;button.textContent='↓ DOWNLOAD PNG CARD'}
+ };
  document.getElementById('shareRun').onclick=()=>{
   const panel=document.getElementById('runSharePanel');
   panel.hidden=!panel.hidden;
   const button=document.getElementById('shareRun');
   if(button.setAttribute)button.setAttribute('aria-expanded',String(!panel.hidden));
+  if(!panel.hidden)createPreview();
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
