@@ -103,15 +103,40 @@ function roll(){const a=pool();if(!a.length){st.roll=null;return}const types=[..
 function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rerollGen)return;const a=pool(),old=st.roll;if(!old)return;const opts=which==='type'?[...new Set(a.filter(s=>(s.gen||gen(s.id))===old.gen).flatMap(s=>s.types))].filter(x=>x!==old.type).map(type=>({type,gen:old.gen})):Array.from({length:st.pool},(_,i)=>i+1).filter(g=>g!==old.gen&&a.some(s=>gen(s.id)===g&&s.types.includes(old.type))).map(gen=>({type:old.type,gen}));if(!opts.length)return;st.roll=opts[Math.floor(next()*opts.length)];if(which==='type')st.rerollType--;else st.rerollGen--}
 function render(){const app=document.getElementById('app');if(st.phase==='setup'){
  let records={};try{records=JSON.parse(localStorage.getItem('pokefc-challenge-personal-records-v1'))||{}}catch{}
- const categories=[['classic-standard','CLASSIC · NO LEGENDS'],['classic-legends','CLASSIC · LEGENDS ON'],['national-standard','NATIONAL · NO LEGENDS'],['national-legends','NATIONAL · LEGENDS ON']];
- const recordsHtml='<div class="grid">'+categories.map(([key,label])=>'<div class="slot"><b>'+label+'</b><p class="statline">Attempts '+(records[key]?.attempts||0)+' · Best '+(records[key]?.best||0)+'/6 · Champions '+(records[key]?.champions||0)+'</p></div>').join('')+'</div>';
- app.innerHTML='<section class="panel"><span class="pfc-eyebrow">NEW RUN</span><h2>Choose your Challenge</h2><div class="challenge-banner"><b>Four Challenge categories</b><p>Classic or National · Legendaries Off or On. Each category has its own local results. Online leaderboards are not enabled yet.</p></div>'+
- '<div class="controls-inline"><label>Pokédex pool <select id="pool"><option value="4">CLASSIC · Gen I–IV (493)</option><option value="9">NATIONAL · Gen I–IX (1,025)</option></select></label>'+
+ const categories=[['classic-standard','CLASSIC / STANDARD'],['classic-legends','CLASSIC / LEGENDS'],['national-standard','NATIONAL / STANDARD'],['national-legends','NATIONAL / LEGENDS']];
+ const recordsHtml=categories.map(([key,label])=>{
+  const record=records[key]||{attempts:0,best:0,champions:0};
+  return '<div class="challenge-record"><div><span class="record-name">'+label+'</span><small>'+record.attempts+' runs · '+record.champions+' champions</small></div><strong>'+record.best+'<small>BEST / 6</small></strong></div>';
+ }).join('');
+ app.innerHTML='<div class="challenge-hub">'+
+ '<section class="panel challenge-setup-panel"><div class="challenge-heading-row"><span class="challenge-step">01</span><h2>CHOOSE YOUR CHALLENGE</h2></div>'+
+ '<p class="challenge-subtitle">Two Pokédex pools. Four leaderboard categories. One road to the Champion.</p>'+
+ '<div class="challenge-options">'+
+ '<button type="button" class="challenge-option selected" id="classicMode" aria-pressed="true"><span class="option-top">CLASSIC CUP / 01</span><strong>GEN I–IV</strong><small>493 Pokémon · the original four regions</small></button>'+
+ '<button type="button" class="challenge-option" id="nationalMode" aria-pressed="false"><span class="option-top">NATIONAL CUP / 02</span><strong>GEN I–IX</strong><small>1,025 Pokémon · every generation</small></button></div>'+
+ '<div class="challenge-run-settings"><div class="controls-inline">'+
+ '<label>Pokédex pool <select id="pool"><option value="4">CLASSIC · Gen I–IV (493)</option><option value="9">NATIONAL · Gen I–IX (1,025)</option></select></label>'+
  '<label>Legendaries <select id="leg"><option value="off">OFF · No Legendary / Mythical / Ultra Beast</option><option value="on">ON · Up to 2 per XI</option></select></label>'+
- '<label>Starting formation <select id="form">'+Object.keys(FORMS).map(f=>'<option>'+f+'</option>').join('')+'</select></label></div>'+
- '<p class="statline">11 unique Pokémon · one type and generation reroll · one drafted-player move · one formation change · ₽1,000 item shop · one Mega maximum · all six opponents with your locked XI.</p>'+
- '<button class="primary" id="start">START CHALLENGE →</button><h3>Your local Challenge records</h3>'+recordsHtml+'</section>';
- document.getElementById('start').onclick=()=>{st.pool=+document.getElementById('pool').value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';roll();save();render()};return}
+ '<label>Starting formation <select id="form">'+Object.keys(FORMS).map(f=>'<option>'+f+'</option>').join('')+'</select></label></div></div>'+
+ '<p class="statline">11 unique picks · 1 type reroll · 1 generation reroll · 1 drafted-player move · 1 formation change · ₽1,000 equipment budget · max 1 Mega · 6 bosses.</p>'+
+ '<button class="primary challenge-start" id="start">BEGIN YOUR RUN →</button></section>'+
+ '<aside class="panel challenge-records-panel"><div class="challenge-records-header"><h2>YOUR CHALLENGE CARD</h2><span>LOCAL RECORDS</span></div>'+
+ '<div class="challenge-record-list">'+recordsHtml+'</div>'+
+ '<div class="challenge-steps"><h3>THE ROAD TO INDIGO</h3>'+
+ '<p>01 / Draft eleven Pokémon using type and generation rolls.</p>'+
+ '<p>02 / Spend your budget and lock the same Final XI for all matches.</p>'+
+ '<p>03 / Beat Lorelei → Bruno → Agatha → Lance → Blue → Red.</p>'+
+ '<p>Personal records stay in this browser. No online leaderboard yet.</p></div></aside></div>';
+ const poolSelect=document.getElementById('pool');
+ const sync=()=>{for(const [id,val] of [['classicMode','4'],['nationalMode','9']]){
+  const node=document.getElementById(id),selected=poolSelect.value===val;
+  node.className='challenge-option'+(selected?' selected':'');
+  if(node.setAttribute)node.setAttribute('aria-pressed',String(selected));
+ }};
+ document.getElementById('classicMode').onclick=()=>{poolSelect.value='4';sync()};
+ document.getElementById('nationalMode').onclick=()=>{poolSelect.value='9';sync()};
+ poolSelect.onchange=sync;
+ document.getElementById('start').onclick=()=>{st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 let body='<section class="panel"><h2>'+(st.phase==='locked'?'Final XI locked':st.phase==='shop'?'Equip your XI':'Draft your XI')+'</h2><p>'+filled+'/11 selected · Formation '+esc(st.formation)+' · Team Score '+(filled===11?teamScore().toFixed(2):'—')+'</p><div class="grid">';
 body+=slots.map((pos,i)=>{const s=BY.get(st.roster[i]);return '<div class="slot '+(st.selected===i?'active':'')+'"><button data-slot="'+i+'" '+(!['draft','shop'].includes(st.phase)?'disabled':'')+'>'+pos+' · '+(s?esc(s.name):'Empty')+'</button>'+(s?'<small> '+rating(s,pos,st.items[i]).toFixed(1)+' OVR</small>':'')+(s&&st.phase!=='draft'?'<div><select data-item="'+i+'" '+(st.phase!=='shop'?'disabled':'')+'><option value="">No item</option>'+offeredItems(s).map(it=>'<option value="'+esc(it[0])+'" '+(st.items[i]===it[0]?'selected':'')+'>'+esc(it[0])+' · ₽'+it[1]+(it[0]==='Eviolite'?' · +20 each base stat':megaForm(s,it[0])?' · Mega':'')+'</option>').join('')+'</select></div>':'')+'</div>'}).join('')+'</div></section>';
