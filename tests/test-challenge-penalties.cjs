@@ -16,7 +16,7 @@ function caseFor(sequence){
    setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},onclick:null};
  }},localStorage:{getItem:k=>k==='pokefc-challenge-alpha-1'?saved:null,setItem(k,v){if(k==='pokefc-challenge-alpha-1')saved=v}},
  crypto:{getRandomValues(a){a[0]=921;return a}},console,confirm:()=>true,alert:e=>{throw Error(e)}});
- for(const f of ['national-species.js','challenge/special-items-data.js','challenge/tiers.js','challenge/match-report.js','play/opponents.js'])
+ for(const f of ['national-species.js','challenge/special-items-data.js','challenge/tiers.js','challenge/match-report.js','challenge/performance.js','play/opponents.js'])
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f,timeout:15000});
  ctx.window.FXI_QUICK={
   simulate(fixture){return{score:[1,1],stats:[
@@ -44,6 +44,8 @@ for(const [sequence,winner] of [[[.01,.99],'home'],[[.99,.01],'away']]){
  assert.equal(p.attempts.filter(k=>k.side==='away'&&k.scored).length,p.away,'Recorded away makes match score');
  assert(p.attempts.every(k=>k.kicker&&typeof k.scored==='boolean'),'Player and result saved for every kick');
  assert.match(played.app.innerHTML,/PENALTY SHOOTOUT/);
+ assert(match.award?.name,'Shootout game records a match award');
+ assert.match(played.app.innerHTML,/PLAYER OF THE MATCH/);
  assert.match(played.app.innerHTML,/VIEW PENALTY KICKS/);
  assert.match(played.app.innerHTML,/R1/);
  assert.match(played.app.innerHTML,/GOAL/);
