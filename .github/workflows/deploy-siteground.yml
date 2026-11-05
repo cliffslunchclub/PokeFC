@@ -14,6 +14,8 @@ on:
       - "site.css"
       - "national-species.js"
       - "play/**"
+      - "watch/**"
+      - "match-director/**"
       - "challenge/**"
       - "franchise/**"
       - "career.css"
@@ -31,6 +33,8 @@ on:
       - "tests/test-free-builder.cjs"
       - "tests/test-branding.cjs"
       - "tests/test-play.cjs"
+      - "tests/test-phase10-quickplay-lifecycle.cjs"
+      - "tests/test-phase10-director.cjs"
       - "tests/test-challenge-play.cjs"
       - "tests/test-challenge-gauntlet.cjs"
       - "tests/test-challenge-ui.cjs"
@@ -88,6 +92,10 @@ jobs:
           node --check challenge/item-optimizer.js
           node tests/test-national-dex.cjs
           node tests/test-play.cjs
+          node tests/test-phase10-quickplay-lifecycle.cjs
+          node watch/soccerjs/test-inline-bridge.cjs
+          node --check watch/soccerjs/viewer-entry.cjs
+          node --check watch/soccerjs/watch-bridge.js
           node tests/test-challenge-play.cjs
           node tests/test-challenge-gauntlet.cjs
           node tests/test-challenge-ui.cjs
@@ -115,8 +123,33 @@ jobs:
           node tests/test-v08-league.cjs
           node tests/test-hybrid.cjs
 
-      - name: Build the public playtest
-        run: bash scripts/build-siteground.sh
+      - name: Check out pinned Soccer-JS native renderer
+        uses: actions/checkout@v4
+        with:
+          repository: haeretici/soccer-js
+          ref: 38970e0dade0865078c9e84bc1ecfd72aaa02fde
+          path: soccer-js-upstream
+          persist-credentials: false
+
+      - name: Compile native Soccer-JS 2.5D for opt-in Watch
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd soccer-js-upstream && npm install --no-audit --no-fund)
+          cp watch/soccerjs/viewer-entry.cjs soccer-js-upstream/pfc-viewer-entry.cjs
+          cp watch/soccerjs/phase10-motion.cjs soccer-js-upstream/
+          cp watch/soccerjs/pokemon-*.cjs soccer-js-upstream/
+          mkdir -p watch/soccerjs/dist
+          ./soccer-js-upstream/node_modules/.bin/esbuild soccer-js-upstream/pfc-viewer-entry.cjs \
+            --bundle --platform=browser --format=iife --target=es2020 \
+            --minify --outfile=watch/soccerjs/dist/viewer.bundle.js
+          cp watch/soccerjs/index.html watch/soccerjs/viewer.css watch/soccerjs/dist/
+          cp -R soccer-js-upstream/presets soccer-js-upstream/assets watch/soccerjs/dist/
+          cp soccer-js-upstream/LICENSE watch/soccerjs/dist/SOCCER-JS-LICENSE.txt
+          test -s watch/soccerjs/dist/viewer.bundle.js
+
+      - name: Build the public playtest (2.5D opt-in only)
+        run: PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
 
       - name: Validate public output
         shell: bash
@@ -126,6 +159,13 @@ jobs:
             test -s "dist/$file"
           done
           test -s dist/.htaccess
+          test -s dist/watch/soccerjs/watch-bridge.js
+          test -s dist/watch/soccerjs/dist/index.html
+          test -s dist/watch/soccerjs/dist/viewer.css
+          test -s dist/watch/soccerjs/dist/viewer.bundle.js
+          test -s dist/watch/soccerjs/dist/SOCCER-JS-LICENSE.txt
+          test -s dist/watch/soccerjs/dist/assets/animation_rigs/1.json
+          test ! -e dist/watch/soccerjs/dist/fixture.json
           grep -q "private, no-cache, max-age=0, must-revalidate" dist/.htaccess
           test ! -e dist/.git
           test ! -e dist/legacy-v05
