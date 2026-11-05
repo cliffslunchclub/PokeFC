@@ -5,9 +5,11 @@ const {Simulator}=require('./kernel/providers/simulator/simulator.js');
 const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame}=require('./phase10-motion.cjs');
+const {prepare}=require('./pokemon-roster.cjs');
+const {draw}=require('./pokemon-draw.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90;
+let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const send=(msg)=>{if(embedded&&window.parent!==window)window.parent.postMessage({...msg,type:'pfc-phase10-'+msg.type},location.origin)};
@@ -72,6 +74,9 @@ function render(t){
  sim.scoreA=s[0];sim.scoreB=s[1];sim.matchTimer=t*60;
  const canvas=$('pitch'),ctx=canvas.getContext('2d');
  const camera=cameraFit(canvas,field,script.ball);
+ window.__PFC_DRAWN__=0;window.__PFC_REAL_SPRITES_DRAWN__=0;
+ const distances=script.actors.map(p=>Math.hypot(p.x-script.ball.x,p.y-script.ball.y));
+ const nearest=Math.min(...distances);ballCarrier=nearest<12?distances.indexOf(nearest):-1;
  ctx.clearRect(0,0,canvas.width,canvas.height);
  ctx.save();
  ctx.translate(camera.tx,camera.ty);
@@ -99,7 +104,11 @@ function render(t){
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
   animation:script.action,ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
   cameraOffset:[camera.tx,camera.ty],
-  actualSprites:!!ImageDB.get('player_Brazil_main')&&!!ImageDB.get('player_Argentina_main')};
+  actualSprites:!!ImageDB.get('player_Brazil_main')&&!!ImageDB.get('player_Argentina_main'),
+  pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length,
+  pokemonSpritesDrawn:window.__PFC_REAL_SPRITES_DRAWN__,pokemonEntitiesDrawn:window.__PFC_DRAWN__,
+  numbersVisible:$('showNumbers').checked,teamColors:spriteRoster.colors,
+  pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false};
 }
 function step(now){
  if(playing){
@@ -128,6 +137,15 @@ async function boot(){
   sim=new Simulator({seed:12345});await sim.start();sim.active=true;
   // Keep native sprite/pitch/ball rendering; suppress upstream kickoff/score overlays.
   sim.render=()=>{};
+  spriteRoster=prepare(match);await spriteRoster.load();
+  for(let side=0;side<2;side++)for(let i=0;i<11;i++){
+   const actor=(side===0?sim.teamA:sim.teamB).players[i],index=side*11+i;
+   actor.preRender=()=>{};
+   actor.render=g=>{
+    window.__PFC_DRAWN__++;
+    if(draw(g,actor,spriteRoster.entries[index],Utils.toScreen,$('showNumbers').checked,ballCarrier===index))window.__PFC_REAL_SPRITES_DRAWN__++;
+   };
+  }
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
    throw Error('Original Soccer-JS sprite generation failed');
   const list=$('goals');list.replaceChildren();
@@ -159,6 +177,7 @@ async function boot(){
    render(minute);
   };
   $('camera').onchange=()=>{sim.pitch?.invalidateRenderCache?.();render(minute);};
+  $('showNumbers').onchange=()=>render(minute);
   for(const id of ['play','playFive','pause','restart','skip','nextGoal','scrub'])$(id).disabled=false;
   window.addEventListener('message',e=>{
    if(!embedded||e.source!==window.parent||e.origin!==location.origin||e.data?.type!=='pfc-phase10-seek')return;
