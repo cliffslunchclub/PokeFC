@@ -483,7 +483,8 @@ function matchReportHtml(match){
  const rows=[
   ['SHOTS','shots',''],['POSSESSION','possession','%'],
   ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['PASS ACCURACY','passAccuracy','%'],
-  ['TACKLES ATTEMPTED','tackleAttempts',''],['TACKLES WON','tackles',''],['TACKLE WIN RATE','tackleSuccess','%'],['SAVES','saves','']
+  ['TACKLES ATTEMPTED','tackleAttempts',''],['TACKLES WON','tackles',''],['TACKLE WIN RATE','tackleSuccess','%'],['SAVES','saves',''],
+   ['CORNERS','corners',''],['FOULS COMMITTED','foulsCommitted',''],['FREE KICKS','freeKicks',''],['PENALTIES AWARDED','penaltyKicks','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
  const table=rows.map(([label,key,unit])=>
   '<div class="match-stat-row"><strong>'+esc(stats[key][0]??'—')+(stats[key][0]==null?'':unit)+'</strong><span>'+label+'</span><strong>'+
