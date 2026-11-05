@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf dist
-mkdir -p dist/ratings dist/challenge dist/play/tacticmesh/vendor dist/franchise/tacticmesh/vendor
+mkdir -p dist/ratings dist/challenge dist/play dist/franchise
 
 # Apache cache policy scoped to this dedicated subdomain (not other sites).
 cp .htaccess dist/.htaccess
@@ -24,23 +24,14 @@ cp ratings/index.html dist/ratings/
 cp challenge/index.html challenge/challenge.css challenge/special-items-data.js \
    challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/picker-window.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js dist/challenge/
 
-# Exhibition: its own watched-match worker and TacticMesh bridge; all resources
-# are relative to /play/ so Franchise and Play can independently start workers.
+# Exhibition uses shared Quick Sim and same-origin Soccer-JS renderer; no physics worker.
 cp play/index.html play/play.css play/play.js play/opponents.js dist/play/
-cp tm-engine-bridge.js tm-worker.js hybrid-sim.js dist/play/
 
 # Current 32-gym Franchise stays pinned to its Gen I–IV 493-species database.
 cp franchise/index.html dist/franchise/
 for file in career.css career.js species.js calibration-profile.js quick-sim.js \
-            hybrid-sim.js tm-engine-bridge.js tactical-viewer.js soccerjs-franchise-viewer.js tm-worker.js; do
+            tactical-viewer.js soccerjs-franchise-viewer.js; do
   cp "$file" "dist/franchise/$file"
-done
-
-# Genuine pinned MIT-licensed TacticMesh runtime, required by both Watch modes.
-for mode in play franchise; do
-  cp tacticmesh/vendor/*.js tacticmesh/vendor/installed.json \
-     tacticmesh/vendor/LICENSE tacticmesh/vendor/THIRD_PARTY_NOTICES.md \
-     "dist/$mode/tacticmesh/vendor/"
 done
 
 # Optional, explicit development-only Soccer-JS packaging. Normal production
