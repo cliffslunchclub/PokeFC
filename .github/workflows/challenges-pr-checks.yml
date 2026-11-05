@@ -30,5 +30,16 @@ jobs:
             echo "Testing $file"
             node "$file"
           done
+      - name: Verify watched-match bridge and continuation
+        run: |
+          node --check play/play.js
+          node --check tm-engine-bridge.js
+          node --check tm-worker.js
+          node --check hybrid-sim.js
+          node tests/test-tm-worker.cjs
+          node tests/test-tm-bridge.cjs
+          node tests/test-tm-handoff.cjs
+          node tests/test-hybrid.cjs
+          node tests/test-play.cjs
       - name: Validate build packaging
         run: bash scripts/build-siteground.sh
