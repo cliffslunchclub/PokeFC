@@ -24,8 +24,8 @@ for(const p of pages){
  assert.equal((nav[1].match(/aria-current="page"/g)||[]).length,p.active?1:0,'One active mode maximum: '+p.file);
  if(p.active)assert(nav[1].includes('>'+p.active+'</a>'),'Correct active mode: '+p.file);
  assert(head[1].includes('href="'+p.prefix+'"'),'Logo returns to Home: '+p.file);
- assert(head[1].includes('src="'+p.prefix+'favicon.svg?v=1"'),'Shared ball logo: '+p.file);
- assert(html.includes('rel="icon" type="image/svg+xml" href="'+p.prefix+'favicon.svg?v=1"'),'Tab favicon: '+p.file);
+ assert(head[1].includes('src="'+p.prefix+'favicon.svg?v=2"'),'Shared ball logo: '+p.file);
+ assert(html.includes('rel="icon" type="image/svg+xml" href="'+p.prefix+'favicon.svg?v=2"'),'Tab favicon: '+p.file);
  assert(html.includes(p.prefix+'site.css?v=3'),'Shared styling: '+p.file);
  assert(head[1].includes('OPEN ALPHA'),'Shared branding: '+p.file);
 }
@@ -36,4 +36,4 @@ const builder=fs.readFileSync(path.join(root,'builder.js'),'utf8');
 assert(!builder.includes('statSummary('),'Raw stat breakdown not rendered');
 assert(!builder.includes("toFixed(1)+' OVR"),'Numeric OVR not rendered');
 assert(!builder.includes('window.PFC_BUILDER={rating,'),'Raw numeric grade not public API');
-console.log('PASS all five pages share one nav, branding, soccer-ball favicon; builder grade explainer and privacy checks');
+console.log('PASS all five pages share one nav, branding, Poké Ball favicon; builder grade explainer and privacy checks');
