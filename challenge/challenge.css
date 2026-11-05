@@ -1119,3 +1119,7 @@
  }
  .challenge-shop-drawer .shop-item-catalog{max-height:none!important;overflow:visible!important}
 }
+/* Avoid costly full-screen blurring and large-list GPU filters during scroll. */
+.challenge-dialog::backdrop{backdrop-filter:none!important}
+.challenge-draft-panel:has(.slot-machine-spinning) .challenge-pick-grid,
+.challenge-frame #app:has(.slot-machine-spinning) .challenge-draft-panel .challenge-pick-grid{filter:none!important}
