@@ -20,7 +20,7 @@ function el(id){
   const classes=new Set();
   const e={value:id==='region'?'all':id==='opponent'?'gym-1':
     id==='watchSpeed'?'4':id==='tactic'?'balanced':'',
-   innerHTML:'',textContent:'',disabled:false,hidden:false,events:{},
+   innerHTML:'',textContent:'',disabled:false,hidden:id==='soccerWatchActions',events:{},
    classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
    addEventListener(type,fn){this.events[type]=fn},
    getContext(){return drawing},appendChild(){},replaceChildren(){}
