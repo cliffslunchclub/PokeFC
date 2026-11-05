@@ -251,7 +251,8 @@ function officialStatHtml(result){
   (x.side?'AWAY':'HOME')+'</span><small>'+esc(x.name)+'</small><span>'+x.count+' SOT</span></div>').join('');
  return '<div class="stat-table">'+table+'</div><h4>POKÉMON SHOTS ON TARGET</h4>'+
   (detail?'<div class="stat-table">'+detail+'</div>':
-   '<p class="result-meta">No individual shots on target recorded.</p>');
+   '<p class="result-meta">No individual shots on target recorded.</p>')+
+  '<p class="result-meta">Corners, free kicks and match penalty kicks are not yet recorded by Quick Sim.</p>';
 }
 function showResult(result){
  currentResult=result;
