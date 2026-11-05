@@ -23,6 +23,15 @@ for(let side=0;side<2;side++){
 }
 const report=win.PFC_MATCH_REPORT.fromResult(result,fixture);
 assert.equal(report.playerShotsOnTarget.length,22,'11 individual shot records per team');
+assert.equal(report.playerTackles.length,22,'Each XI includes actual player tackle wins and attempts');
+for(let side=0;side<2;side++){
+ const tackles=report.playerTackles.filter(p=>p.side===side);
+ assert.equal(tackles.reduce((n,p)=>n+p.won,0),result.stats[side].tackles,
+  'Individual tackle wins reconcile with actual Quick Sim team totals');
+ assert.equal(tackles.reduce((n,p)=>n+p.attempts,0),result.stats[side].tackleAttempts,
+  'Individual tackle attempts reconcile with actual Quick Sim team totals');
+}
+
 assert.equal(report.version,3);
 assert.equal(report.timeline.filter(e=>e.type==='save').length,result.events.filter(e=>e.type==='save').length,'Saved shot events match Quick Sim ledger');
 assert.equal(result.events.filter(e=>e.type==='save').length,result.stats.reduce((n,s)=>n+s.saves,0),'Every Quick Sim keeper save has a corresponding real recorded event');
@@ -33,4 +42,6 @@ for(let side=0;side<2;side++){
 }
 const legacy=win.PFC_MATCH_REPORT.fromResult({score:[0,0],stats:[{shotsOnTarget:5},{shotsOnTarget:3}]},fixture);
 assert.equal(legacy.playerShotsOnTarget.length,0,'No per-Pokémon shots are invented from team totals');
+assert.equal(legacy.playerTackles.length,0,'Legacy without player box never invents tackles');
+
 console.log('PASS real Quick Sim player shots on goal: player box -> saved report, sum matches team engine totals, legacy unavailable');
