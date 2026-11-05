@@ -8,6 +8,13 @@ const inline=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</scrip
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-frame \.challenge-run-layout\{display:flex!important/,'Active stage is not two-column');
 assert.match(css,/\.challenge-shop-drawer\{position:fixed/,'Item Shop is floating, not another column');
+assert.match(css,/\.challenge-shop-drawer\{position:fixed;[^\n]*top:76px;right:8px;/,
+ 'Item Shop defaults to the viewport right edge, not the centered page container');
+assert.match(css,/\.challenge-frame \.challenge-dialog\.challenge-draft-panel\{position:fixed!important;[^\n]*top:90px!important;right:8px!important;/,
+ 'Draft window defaults to the viewport right edge, not the centered page container');
+assert.match(css,/@media\(max-width:980px\)\{[\s\S]*?\.challenge-shop-drawer\{width:375px;right:8px\}/,
+ 'Tablet-sized desktop Item Shop stays aligned right');
+
 assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag label');
 assert.match(css,/\.challenge-shop-drawer-bar\{cursor:grab/,'Entire Item Shop title bar can be dragged');
 assert.match(css,/\.challenge-shop-mobile-label\{display:block/,'Mobile keeps simple title instead of drag handle');
