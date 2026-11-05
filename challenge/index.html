@@ -414,43 +414,8 @@ function matchHistoryHtml(history){
   '<strong>'+esc((m.score||[0,0]).join(' – ')+penaltyScore(m))+'</strong><small>'+esc(m.outcome||'—')+'</small></summary>'+
   matchReportHtml(m)+'</details>').join('')+'</div>';
 }
-function tournamentAwardMarkup(tourney){
- if(!tourney?.best)return '';
- const best=tourney.best,metrics=[
-  best.goals+' G',best.assists+' A',best.saves+' SAV',best.cleanSheets+' CS',best.potm+' MOTM'
- ].join(' · ');
- return '<section class="tournament-best" aria-label="Best player of tournament">'+
-  '<span class="pfc-eyebrow">🏆 BEST PLAYER OF YOUR TOURNAMENT</span>'+
-  '<div class="tournament-best-info">'+
-   '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+best.spriteId+'.png">'+
-   '<div><strong>'+esc(best.name)+'</strong><small>'+esc(best.pos)+' · '+esc(metrics)+'</small>'+
-   '<span>'+esc(tourney.method==='position-fit-fallback'?'Fit-based provisional award · individual match events unavailable':'Provisional award · recorded goals, assists, saves and other contributions')+'</span></div>'+
-  '</div></section>';
-}
-function tournamentRosterMarkup(tourney){
- if(!tourney?.players?.length)return '';
- const items=st.locked?.items||st.items;
- const players=tourney.players.map((p,i)=>{
-  const item=items[i];
-  return '<div class="tournament-player-row" aria-label="'+esc(p.name+' tournament statistics')+'">'+
-   '<span class="tournament-player-position">'+esc(p.pos)+'</span>'+
-   '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+p.spriteId+'.png">'+
-   '<span class="tournament-player-name"><strong>'+esc(p.name)+'</strong><small>'+esc(item||'No item')+'</small></span>'+
-   '<span class="tournament-player-metric">'+p.goals+'</span>'+
-   '<span class="tournament-player-metric">'+p.assists+'</span>'+
-   '<span class="tournament-player-metric">'+p.saves+'</span>'+
-   '<span class="tournament-player-metric">'+p.cleanSheets+'</span>'+
-   '<span class="tournament-player-metric">'+p.potm+'</span>'+
-  '</div>';
- }).join('');
- return '<section class="tournament-stats"><h3>FINAL XI · TOURNAMENT STATISTICS</h3>'+
-  '<p>Recorded contributions across '+st.history.length+' games. G = goals, A = assists, SAV = goalkeeper saves, CS = clean sheets, MOTM = match awards. Penalty kicks are excluded from G.</p>'+
-  '<div class="tournament-stat-grid">'+
-   '<div class="tournament-player-head"><span>POS</span><span></span><span>POKÉMON</span><span>G</span><span>A</span><span>SAV</span><span>CS</span><span>MOTM</span></div>'+
-   players+'</div></section>';
-}
 function completedRunCard(){
- const r=runStats(),last=r.matches[r.matches.length-1]||st.result,tourney=tournamentStats();
+ const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
  const tournament=tournamentStats(),playerStats=tournament?.players||lineupPerformance(r.line,r.formation,st.locked?.items||st.items).map(p=>({...p,goals:0,assists:0,saves:0,penalties:0,potm:0,appearances:r.matches.length,cleanSheets:0}));
  const tournamentBest=tournament?.best;
  const tournamentBadge=tournamentBest?'<div class="tournament-mvp">'+
@@ -473,7 +438,7 @@ function completedRunCard(){
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
   '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
-  '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Save your squad and results or try another draft.')+'</p>'+tournamentAwardMarkup(tourney)+
+  '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Save your squad and results or try another draft.')+'</p>'+
   '<div class="run-metrics"><div><span>TEAM SCORE</span><strong>'+r.score.toFixed(1)+'</strong></div>'+
   '<div><span>RECORD</span><strong>'+r.wins+'W · '+r.lost+'L</strong></div>'+
   '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
@@ -489,7 +454,7 @@ function completedRunCard(){
    '<button id="postTwitter" type="button" disabled title="X posting is not available yet">POST TO X / TWITTER · COMING SOON</button></div>'+
    '<p id="runShareStatus" role="status" aria-live="polite"></p></div>'+
   '<section class="run-tournament-panel"><h3>TOURNAMENT STATS</h3>'+tournamentBadge+'<p>G = goals · A = assists · APP = appearances · POTM = match awards · PK = shootout conversions · SV/CS = goalkeeper saves/clean sheets.</p>'+tournamentCards+'</section>'+ 
-   '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+tournamentRosterMarkup(tourney)+
+   '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+
   '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '</section>';
 }
