@@ -944,3 +944,80 @@
  .pokemon-detail-stat{padding:9px 4px}
  .pokemon-detail-stat strong{font-size:21px}
 }
+
+
+/* Challenges v2.3: desktop drag-and-position draft window; the scouting reels
+   now belong to the Pokémon picker, instead of consuming a separate pitch row. */
+.challenge-draft-drag-handle{display:inline-flex!important;align-items:center;gap:8px;padding:7px 10px!important;min-height:34px!important;font-size:10px!important;font-weight:1000!important;letter-spacing:.09em;color:#e9f6e7!important;background:#265345!important;border:1px solid #6b9c86!important;border-radius:6px!important;cursor:grab!important;touch-action:none;user-select:none;-webkit-user-select:none}
+.challenge-draft-drag-handle:active{cursor:grabbing!important}
+.challenge-draft-drag-handle:focus-visible{outline:3px solid #ffd992!important;outline-offset:2px}
+.challenge-mobile-picker-label{display:none}
+.challenge-draft-panel .challenge-draft-position{display:flex;flex-direction:column;gap:5px;margin:5px 16px 8px!important;min-width:0}
+.challenge-draft-position span{font-size:10px;color:#cde4cf;font-weight:950;letter-spacing:.07em}
+.challenge-draft-position select{box-sizing:border-box;width:100%;min-height:42px!important;padding:9px 11px!important;font-size:13px!important;font-weight:850!important;color:#f5f7eb!important;border:1px solid #77a28c!important;background:#193d41!important}
+.challenge-draft-panel .challenge-draft-reels{flex:0 0 auto;margin:5px 12px 9px!important;padding:6px 10px!important;border:1px solid #4b756e!important;box-shadow:none!important;background:#132c36!important}
+.challenge-draft-panel .challenge-draft-reels .challenge-slot-machine{padding:7px 9px!important;max-width:none!important;border-width:1px!important;margin:0 auto 7px!important}
+.challenge-draft-panel .challenge-draft-reels .slot-machine-head{margin-bottom:5px}
+.challenge-draft-panel .challenge-draft-reels .slot-machine-reels{padding:3px 0}
+.challenge-draft-panel .challenge-draft-reels .slot-window{height:48px}
+.challenge-draft-panel .challenge-draft-reels .slot-reel-label{min-height:24px;padding:5px 2px 4px}
+.challenge-draft-panel .challenge-draft-reels .controls-inline{justify-content:center;gap:6px;margin:5px 0 0}
+.challenge-draft-panel .challenge-draft-reels .controls-inline button{flex:1;min-height:37px;padding:7px 8px!important;font-size:10px!important}
+.challenge-draft-panel .challenge-draft-reels>p:first-of-type{display:none}
+.challenge-draft-panel .challenge-draft-reels .reroll-unique-note{margin:6px 0 0!important;text-align:center}
+.challenge-draft-panel .challenge-pick-grid{max-height:min(35dvh,390px)}
+.challenge-draft-panel .challenge-draft-modal-help{font-size:10px!important;line-height:1.35!important;margin:5px 16px 6px!important}
+.challenge-frame .challenge-dialog.challenge-draft-panel[open]{overscroll-behavior:contain}
+/* For small screens, one self-contained draft sheet replaces the separate
+   pitch targeting workflow. Select an empty position, then tap DRAFT. */
+@media(max-width:760px){
+ .challenge-frame .challenge-dialog.challenge-draft-panel{
+  display:flex!important;flex-direction:column!important;position:fixed!important;
+  inset:0!important;top:0!important;bottom:0!important;left:0!important;right:0!important;
+  width:100vw!important;height:100dvh!important;max-width:none!important;max-height:100dvh!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  overflow:hidden!important;background:#10283a!important
+ }
+ .challenge-draft-drag-handle{display:none!important}
+ .challenge-mobile-picker-label{display:block;font-size:11px!important;color:#b8ecc8!important;letter-spacing:.1em;font-weight:1000}
+ .challenge-draft-panel .challenge-dialog-bar{flex:0 0 auto;min-height:51px;padding:7px 13px!important}
+ .challenge-draft-panel .challenge-section-heading{flex:0 0 auto;padding:10px 13px 1px}
+ .challenge-draft-panel .challenge-section-heading h2{font-size:16px!important}
+ .challenge-draft-panel .challenge-section-heading .formation-tag{display:none}
+ .challenge-draft-panel .challenge-draft-position{flex:0 0 auto;margin:4px 13px 7px!important}
+ .challenge-draft-panel .challenge-draft-position select{min-height:46px!important;font-size:14px!important}
+ .challenge-draft-panel .challenge-draft-modal-help{display:none}
+ .challenge-draft-panel .challenge-draft-reels{margin:3px 10px 6px!important;padding:5px 7px!important}
+ .challenge-draft-panel .challenge-draft-reels .challenge-slot-machine{padding:5px!important;margin:0 0 4px!important}
+ .challenge-draft-panel .challenge-draft-reels .slot-machine-head{margin-bottom:2px}
+ .challenge-draft-panel .challenge-draft-reels .slot-machine-head>span:first-child{font-size:8px}
+ .challenge-draft-panel .challenge-draft-reels .slot-machine-status{font-size:8px}
+ .challenge-draft-panel .challenge-draft-reels .slot-reel-label{min-height:18px;padding:2px!important;font-size:8px}
+ .challenge-draft-panel .challenge-draft-reels .slot-window{height:41px}
+ .challenge-draft-panel .challenge-draft-reels .slot-window [data-reel-value]{min-height:39px}
+ .challenge-draft-panel .challenge-draft-reels .slot-machine-bottom{min-height:18px}
+ .challenge-draft-panel .challenge-draft-reels .slot-machine-bottom [data-reel-live]{font-size:8px}
+ .challenge-draft-panel .challenge-draft-reels .controls-inline button{min-height:39px!important;flex:1 1 0}
+ .challenge-draft-panel .challenge-draft-reels .reroll-unique-note{display:none}
+ .challenge-draft-panel .challenge-draft-search{flex:0 0 auto;margin:4px 13px 5px!important;width:calc(100% - 26px)}
+ .challenge-draft-panel .challenge-draft-search input{min-height:42px;font-size:14px!important}
+ .challenge-draft-panel .draft-search-count{flex:0 0 auto;margin:3px 13px!important}
+ .challenge-draft-panel .challenge-pick-sort{flex:0 0 auto;margin:5px 10px 5px}
+ .challenge-draft-panel .challenge-pick-grid{
+  flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto!important;
+  overscroll-behavior:contain;margin:0 8px 0;padding:7px 5px 26px;
+  -webkit-overflow-scrolling:touch
+ }
+ .challenge-draft-panel .pick-grip{display:none!important}
+ .challenge-draft-panel .challenge-pick-grid .pick{min-height:67px!important;padding:8px!important}
+ .challenge-draft-panel .challenge-pick-grid .pick button[data-pick]{min-height:42px!important;min-width:75px;font-size:12px!important}
+ .challenge-draft-panel .challenge-pick-grid .pick-base-stats{font-size:9px;gap:2px 5px}
+ .challenge-frame .challenge-dialog.challenge-draft-panel:not([open]){display:none!important}
+}
+@media(max-width:370px){
+ .challenge-draft-panel .challenge-section-heading h2{font-size:14px!important}
+ .challenge-draft-panel .challenge-draft-reels .slot-window{height:35px}
+ .challenge-draft-panel .challenge-draft-reels .slot-window [data-reel-value]{min-height:33px;font-size:11px}
+ .challenge-draft-panel .challenge-pick-grid .pick-base-stats{display:none}
+}
+@media(prefers-reduced-motion:reduce){.challenge-draft-drag-handle{transition:none!important}}
