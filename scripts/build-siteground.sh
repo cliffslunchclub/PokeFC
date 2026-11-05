@@ -32,7 +32,7 @@ cp tm-engine-bridge.js tm-worker.js hybrid-sim.js dist/play/
 # Current 32-gym Franchise stays pinned to its Gen I–IV 493-species database.
 cp franchise/index.html dist/franchise/
 for file in career.css career.js species.js calibration-profile.js quick-sim.js \
-            hybrid-sim.js tm-engine-bridge.js tactical-viewer.js tm-worker.js; do
+            hybrid-sim.js tm-engine-bridge.js tactical-viewer.js soccerjs-franchise-viewer.js tm-worker.js; do
   cp "$file" "dist/franchise/$file"
 done
 
