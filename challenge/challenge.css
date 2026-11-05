@@ -771,3 +771,109 @@
  .pfc-event-minute{font-size:12px}
  .pfc-event-origin{grid-column:3;justify-self:start;font-size:8px}
 }
+
+/* Challenges v2: a single pitch is the game canvas. Secondary actions float
+   on demand and never permanently consume a second page column. */
+.challenge-frame:has(.challenge-run-layout) .challenge-hero{display:none}
+.challenge-frame:has(.challenge-run-layout) .challenge-subnav{margin-bottom:8px}
+.challenge-frame .challenge-run-layout{display:flex!important;flex-direction:column;align-items:stretch;gap:12px;grid-template-columns:none!important;margin-top:12px}
+.challenge-run-layout>.challenge-roster-panel{position:static!important;top:auto;width:100%;min-width:0;padding:17px 20px 18px!important}
+.challenge-run-layout .challenge-side-stack{display:contents!important}
+.challenge-stage-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:11px 15px;border:1px solid #587c74;border-radius:9px;background:linear-gradient(100deg,#1e4a41,#1b3447)}
+.challenge-stage-toolbar>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.challenge-stage-toolbar strong{font-size:12px;font-weight:1000;letter-spacing:.055em;color:#ecf8dd}
+.challenge-stage-toolbar small{font-size:10px;color:#b5d7d0}
+.challenge-stage-toolbar button{min-height:41px!important;flex-shrink:0;font-size:11px!important}
+.challenge-run-layout .challenge-roster-panel>.challenge-pitch{width:100%;max-width:780px;height:740px;min-height:600px;margin:0 auto;border-width:3px}
+.challenge-run-layout .challenge-roster-panel>.challenge-section-heading{margin-bottom:12px}
+.challenge-run-layout .challenge-roster-panel>.challenge-drag-tip{max-width:780px;margin:4px auto 12px}
+.challenge-run-layout .challenge-roster-panel>.challenge-fit-guide{max-width:780px;margin:12px auto 0}
+.challenge-run-layout .challenge-roster-panel>.challenge-roster-footer{max-width:780px;margin:12px auto 0}
+.challenge-run-layout .challenge-roster-panel>.challenge-drop-status{max-width:780px;margin:8px auto}
+.challenge-pitch .slot.shop-target{border:2px solid #ffe1a0!important;box-shadow:0 0 0 3px #f8d99566,0 7px 19px #0009!important;cursor:pointer!important}
+.challenge-pitch .slot.shop-target:hover,.challenge-pitch .slot.shop-target:focus-within{background:#295244!important;transform:translate(-50%,-50%) scale(1.035)}
+.challenge-pitch .slot.shop-not-eligible{opacity:.55}
+.challenge-pitch .slot.shop-target button[data-slot]{cursor:pointer!important}
+.challenge-stage-toolbar button#toggleShopDrawer{border-color:#e6db9e!important}
+.challenge-team-options{margin-top:4px!important;padding:0!important;overflow:hidden}
+.challenge-team-options>summary{cursor:pointer;display:block;padding:13px 17px;color:#eddfb6;font-size:11px;font-weight:950;letter-spacing:.07em}
+.challenge-team-options>summary:hover{background:#1e3746}
+.challenge-team-options-content{padding:4px 17px 16px;border-top:1px solid #385465}
+.challenge-team-options-content .controls-inline{margin:10px 0}
+.challenge-road-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+/* The scouting reels remain above the pitch, not inside the Pokémon picker. */
+.challenge-draft-reels{margin:14px 0 3px!important;padding:10px 14px!important;background:linear-gradient(115deg,#122e3a,#112d32)!important}
+.challenge-draft-reels .challenge-slot-machine{max-width:780px;margin:0 auto 8px!important;padding:8px 12px!important}
+.challenge-draft-reels .slot-window{height:58px}
+.challenge-draft-reels .slot-reel-label{min-height:27px;padding:6px 3px 4px}
+.challenge-draft-reels .slot-machine-head{margin-bottom:5px}
+.challenge-draft-reels .slot-payline{display:none}
+.challenge-draft-reels .controls-inline{justify-content:center;margin:7px 0 3px}
+.challenge-draft-reels>.reroll-unique-note{text-align:center;margin:4px auto!important;font-size:9px!important}
+.challenge-frame #app:has(.slot-machine-spinning) .challenge-draft-panel .challenge-pick-grid{pointer-events:none;opacity:.47;filter:saturate(.7)}
+.challenge-frame #app:has(.slot-machine-spinning) .challenge-draft-reels #typeR,
+.challenge-frame #app:has(.slot-machine-spinning) .challenge-draft-reels #genR{pointer-events:none;opacity:.45}
+/* Pokémon picker is a genuine non-modal dialog, keeping pitch targets and
+   existing mouse/touch drag interactions usable outside the popover. */
+.challenge-frame .challenge-dialog.challenge-draft-panel{position:fixed!important;z-index:1100!important;top:90px!important;right:max(16px,calc((100vw - 1240px)/2))!important;left:auto!important;bottom:auto!important;margin:0!important;width:min(555px,calc(100vw - 32px))!important;max-width:555px!important;max-height:calc(100dvh - 112px)!important;padding:0!important;background:#14293c!important;border:1px solid #83b19a!important;box-shadow:0 22px 75px #000b,0 0 0 1px #d7f5b93d!important}
+.challenge-draft-panel .challenge-section-heading{padding:13px 16px 0;margin:0}
+.challenge-draft-panel .challenge-section-heading h2{font-size:17px!important;margin:0}
+.challenge-draft-modal-help{margin:3px 16px 9px!important;font-size:11px!important;line-height:1.45!important;color:#b9d3d7!important}
+.challenge-draft-search{display:flex!important;flex-direction:column;gap:5px;margin:0 16px 5px!important;width:calc(100% - 32px)}
+.challenge-draft-search span{font-size:10px;font-weight:950;letter-spacing:.08em;color:#b2d7c4}
+.challenge-draft-search input{width:100%;min-height:39px;font-size:12px!important;background:#0d1e2c;border:1px solid #517580;border-radius:6px;padding:8px 10px;color:#f5fcf7}
+.challenge-draft-search input:focus-visible{outline:2px solid #efcf85;outline-offset:1px}
+.draft-search-count{margin:4px 16px!important;color:#e8d29e!important;font-size:9px!important;font-weight:900!important;letter-spacing:.07em}
+.challenge-draft-panel .challenge-pick-sort{margin:10px 12px 9px}
+.challenge-draft-panel .challenge-pick-grid{max-height:min(52dvh,570px);overflow-y:auto;overscroll-behavior:contain;margin:0 10px 14px;padding:7px 6px 10px 3px}
+.challenge-draft-panel .challenge-pick-grid>.pick[hidden]{display:none!important}
+.challenge-draft-panel .challenge-pick-grid .pick{min-width:0}
+.challenge-draft-panel .challenge-pick-grid .pick button{white-space:nowrap;flex-shrink:0}
+.challenge-draft-panel .challenge-dialog-bar{padding:9px 14px}
+/* The Item Shop is a floating non-modal drawer. The playing field continues
+   accepting taps and item drops while the drawer is open. */
+.challenge-shop-drawer{position:fixed;z-index:1050;top:76px;right:max(15px,calc((100vw - 1240px)/2));width:min(410px,calc(100vw - 28px));max-height:calc(100dvh - 94px);overflow-y:auto;overscroll-behavior:contain;border:1px solid #84aa91;border-radius:12px;background:#142b38;box-shadow:0 20px 80px #000c}
+.challenge-shop-drawer[hidden]{display:none!important}
+.challenge-shop-drawer-bar{position:sticky;top:0;z-index:11;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#24493e;border-bottom:1px solid #659581}
+.challenge-shop-drawer-bar strong{font-size:11px;font-weight:1000;letter-spacing:.065em;color:#ebf8df}
+.challenge-shop-drawer-bar button{font-size:10px!important;white-space:nowrap;background:#193b35!important;border-color:#608376!important;min-height:32px!important;padding:5px 8px!important}
+.challenge-shop-drawer>.challenge-item-shop{border:0!important;border-radius:0!important;background:#132939!important;margin:0!important;box-shadow:none!important;padding:12px!important}
+.challenge-shop-drawer .shop-item-catalog{max-height:205px}
+.challenge-shop-drawer .shop-item-card{min-height:105px}
+.challenge-shop-drawer .shop-auto-equip{grid-template-columns:1fr;gap:6px;padding:9px}
+.challenge-shop-drawer .shop-auto-equip button{width:100%}
+.challenge-shop-drawer .challenge-section-heading h2{font-size:16px!important}
+.challenge-shop-drawer .shop-assign-panel{padding:10px}
+.challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:438px!important}
+.challenge-run-layout.stage-shop.shop-open .challenge-pitch{max-width:750px}
+.challenge-opponent-dialog{width:min(92vw,780px)!important}
+.challenge-opponent-dialog .challenge-opponent-panel{margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.challenge-opponent-dialog .opponent-pitch{max-width:520px;margin:0 auto}
+@media(max-width:980px){
+ .challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:390px!important}
+ .challenge-shop-drawer{width:375px;right:10px}
+ .challenge-frame .challenge-dialog.challenge-draft-panel{right:10px!important}
+}
+@media(max-width:760px){
+ .challenge-run-layout>.challenge-roster-panel{padding:13px 9px 16px!important}
+ .challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:9px!important}
+ .challenge-run-layout .challenge-roster-panel>.challenge-pitch{max-width:590px;height:650px;min-height:0}
+ .challenge-frame .challenge-dialog.challenge-draft-panel{top:auto!important;bottom:10px!important;right:8px!important;left:8px!important;width:calc(100vw - 16px)!important;max-width:none!important;max-height:68dvh!important;margin:0!important}
+ .challenge-draft-panel .challenge-pick-grid{max-height:37dvh}
+ .challenge-shop-drawer{top:auto;bottom:7px;left:7px;right:7px;width:calc(100vw - 14px);max-height:53dvh;border-radius:13px 13px 7px 7px}
+ .challenge-shop-drawer .shop-item-catalog{max-height:160px}
+ .challenge-stage-toolbar{padding:10px}
+ .challenge-stage-toolbar>div{flex:1 1 100%}
+ .challenge-stage-toolbar button{width:100%}
+}
+@media(max-width:480px){
+ .challenge-run-layout .challenge-roster-panel>.challenge-pitch{height:550px}
+ .challenge-draft-reels{padding:8px!important}
+ .challenge-draft-reels .challenge-slot-machine{padding:7px!important}
+ .challenge-draft-reels .slot-window{height:52px}
+ .challenge-draft-reels .slot-reel-label{font-size:7px;min-height:26px}
+ .challenge-draft-panel .challenge-pick-grid{max-height:33dvh}
+ .challenge-draft-panel .challenge-pick-grid .pick{gap:4px;padding:7px!important}
+ .challenge-draft-panel .challenge-pick-grid .pick button{padding:7px!important}
+ .challenge-road-controls{width:100%;justify-content:flex-start}
+}

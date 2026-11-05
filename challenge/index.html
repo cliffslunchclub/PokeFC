@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=17">
+<link rel="stylesheet" href="./challenge.css?v=18">
 </head>
 <body>
 <header class="pfc-header">
@@ -285,6 +285,7 @@ const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
+let draftPickerOpen=true,shopDrawerOpen=true;
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -295,6 +296,12 @@ let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false
 function openDialog(d){
  if(!d)return;
  if(typeof d.showModal==='function'){if(!d.open)d.showModal()}
+ else{d.setAttribute?.('open','');d.open=true}
+}
+function openFloatingDialog(d){
+ if(!d||d.open)return;
+ // A non-modal <dialog> lets players still click/drag onto the pitch.
+ if(typeof d.show==='function')d.show();
  else{d.setAttribute?.('open','');d.open=true}
 }
 function closeDialog(d){
@@ -561,8 +568,8 @@ function draftPokemon(id,index){
  if(pokemon.legendary&&st.roster.filter(n=>BY.get(n)?.legendary).length>=2)return {ok:false,error:'Your XI is already at the Legendary limit.'};
  st.roster[i]=pokemon.id;
  dragStatus=pokemon.name+' drafted at '+FORMS[st.formation][i]+'.';
- if(st.roster.every(Boolean))st.phase='shop';
- else{st.selected=nextDraftSlot();roll()}
+ if(st.roster.every(Boolean)){st.phase='shop';draftPickerOpen=false;shopDrawerOpen=true}
+ else{st.selected=nextDraftSlot();roll();draftPickerOpen=true}
  save();render();return {ok:true};
 }
 function moveDraftedPokemon(from,to){
@@ -574,7 +581,7 @@ function moveDraftedPokemon(from,to){
  [st.roster[a],st.roster[b]]=[st.roster[b],st.roster[a]];
  [st.items[a],st.items[b]]=[st.items[b],st.items[a]]; // Keep equipment on its Pokémon.
  st.moves--;
- if(st.phase==='draft'&&!target)st.selected=nextDraftSlot();
+ if(st.phase==='draft'&&!target){st.selected=nextDraftSlot();draftPickerOpen=true}
  dragStatus=(pokemon?.name||'Pokémon')+(target?' swapped positions.':' moved to '+FORMS[st.formation][b]+'.')+' No Pokémon moves remaining.';
  save();render();return {ok:true};
 }
@@ -625,7 +632,7 @@ function render(){const app=document.getElementById('app');
  document.getElementById('classicMode').onclick=()=>{poolSelect.value='4';sync()};
  document.getElementById('nationalMode').onclick=()=>{poolSelect.value='9';sync()};
  poolSelect.onchange=sync;
- document.getElementById('start').onclick=()=>{st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
+ document.getElementById('start').onclick=()=>{draftPickerOpen=true;shopDrawerOpen=true;st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 const draftTierCache=new Map();
 const rankTier={S:0,A:1,B:2,C:3,D:4};
@@ -662,7 +669,9 @@ if(gauntletStarted){
  const completed=st.history.length,hasReports=completed>0;
  body+='<section class="panel challenge-road-strip" aria-label="Road to Champion progress">'+
   '<div class="challenge-road-head"><div><span class="pfc-eyebrow">INDIGO LEAGUE · GAUNTLET</span><h2>ROAD TO CHAMPION <small>'+completed+' / 6 PLAYED</small></h2></div>'+
-  (hasReports?'<button type="button" id="openHistoryModal" class="challenge-history-button">VIEW MATCH REPORTS</button>':'<span class="challenge-road-hint">SIX OPPONENTS · ONE FINAL XI</span>')+'</div>'+
+  '<div class="challenge-road-controls">'+
+  '<button type="button" id="openOpponentModal" class="challenge-history-button">SCOUT OPPONENT XI</button>'+
+  (hasReports?'<button type="button" id="openHistoryModal" class="challenge-history-button">VIEW MATCH REPORTS</button>':'<span class="challenge-road-hint">SIX OPPONENTS · ONE FINAL XI</span>')+'</div></div>'+
   '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>{
    const result=st.history[i],current=i===st.round;
    const status=result?(result.outcome==='Victory'?'✓':'×'):current?'●':'–';
@@ -689,11 +698,29 @@ if(gauntletStarted){
   '<div class="challenge-dialog-bar"><span id="challengeHistoryTitle">PREVIOUS MATCH REPORTS</span><button type="button" id="closeHistoryModal" aria-label="Close match history">✕ CLOSE</button></div>'+
   '<div class="challenge-history-content">'+matchHistoryHtml(st.history)+'</div></dialog>';
 }
-body+='<div class="challenge-run-layout">'+
+if(isDraft)body+='<section class="panel challenge-draft-reels" aria-label="Scouting roll">'+
+ '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
+ '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
+ '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
+ '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+eligible().length+' ELIGIBLE</span></div></div></div>'+ 
+ '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
+ '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+eligible().length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
+ '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
+ '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
+ '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
+ '</section>';
+body+='<div class="challenge-run-layout stage-'+esc(st.phase)+(isShop&&shopDrawerOpen?' shop-open':'')+'">'+
+ '<div class="challenge-stage-toolbar" aria-label="Challenge gameplay tools">'+
+ (isDraft?'<div><strong>DRAFT ROOM · '+(filled+1)+' / 11</strong><small>Select an open position, then draft a Pokémon in the floating picker.</small></div>'+
+  '<button type="button" class="primary" id="openDraftPicker">CHOOSE '+esc(slots[st.selected]||'POSITION')+' POKÉMON →</button>':
+  isShop?'<div><strong>EQUIPMENT · ₽'+(1000-used)+' LEFT</strong><small>Select an item, then tap a Pokémon on the pitch to equip it.</small></div>'+
+  '<button type="button" class="primary" id="toggleShopDrawer">'+(shopDrawerOpen?'HIDE ITEM SHOP':'OPEN ITEM SHOP')+'</button>':
+  '<div><strong>FINAL XI · '+esc(st.formation)+'</strong><small>Your Pokémon lineup is locked for the Indigo League.</small></div>')+
+ '</div>'+
  '<section class="panel challenge-roster-panel"><div class="challenge-section-heading"><div><h2>'+(isDraft?'BUILD YOUR XI':isShop?'EQUIP YOUR TEAM':'YOUR FINAL XI')+'</h2>'+
- '<p>'+(isDraft?'Hover or click any open spot, then draft a Pokémon.':isShop?'Choose an item first, then assign it to a Pokémon using the shop.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
+ '<p>'+(isDraft?'Tap an open position to open the Pokémon picker.':isShop?'Choose an item in the floating shop, then click a compatible Pokémon on the pitch.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
  (isDraft||isShop?'<div class="challenge-drag-tip" role="note"><strong>⠿ DRAG &amp; DROP POKÉMON</strong><span>'+
-  (isDraft?'Click and hold a Pokémon in the scouting list, then drag its sprite onto an open pitch position. You can also use DRAFT.':
+  (isDraft?'Click an open spot to choose Pokémon in a popup, or drag a candidate from the picker onto the pitch.':
    st.moves>0?'Click and hold a Pokémon on the pitch to move or swap it (1 move). Drag shop items onto Pokémon to equip them.':
    'Your Pokémon move has been used. You can still drag shop items onto Pokémon to equip them.')+
   '</span></div>':'')+
@@ -708,9 +735,12 @@ body+=slots.map((pos,i)=>{
    const value=effective[key],base=s.baseStats[key],diff=value-base;
    return '<span class="slot-stat'+(diff>0?' stat-up':diff<0?' stat-down':'')+'" title="'+esc(label+': '+value+(diff?' (base '+base+', '+(diff>0?'+':'')+diff+' via '+item+')':''))+'"><b>'+label+'</b><span>'+value+'</span></span>';
   }).join('')+'</div>':'';
- return '<div data-slot-card="'+i+'" class="slot '+(isDraft&&st.selected===i?'active ':'')+(s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
+ return '<div data-slot-card="'+i+'" class="slot '+(isDraft&&st.selected===i?'active ':'')+
+  (isShop&&selectedShopItem&&s?(itemFor(s,selectedShopItem)?'shop-target ':'shop-not-eligible '):'')+
+  (s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
  '<span class="slot-name">'+(s?esc(displayPokemon(s,item).name):'OPEN SLOT')+'</span>'+
- '<button type="button" data-slot="'+i+'" '+(!isDraft||s?'disabled':'')+' aria-label="'+esc(pos+' '+(s?s.name:'empty slot'))+'"></button>'+
+ '<button type="button" data-slot="'+i+'" '+(!((isDraft&&!s)||(isShop&&s))?'disabled':'')+
+ ' aria-label="'+esc(isShop?'Equip selected item to '+(s?.name||'empty slot'):pos+' '+(s?s.name:'empty slot'))+'"></button>'+
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
  visibleStats+
  (s&&(isDraft||isShop)&&st.moves>0?'<span class="challenge-drag-grip slot-grip" data-drag-grip="pokemon" data-drag-value="'+i+'" title="Drag to move/swap (uses one move)">⠿</span>':'')+
@@ -727,21 +757,17 @@ body+='</div>'+
 '<div class="fit-role-row"><strong>Forwards · ST, LW, RW</strong><span>ATK 35% · SpA 20% · SPE 35% · HP 10%</span></div></div>'+
 '<p class="fit-tier-note">Tier boundaries: S ≥85 · A ≥75 · B ≥65 · C ≥55 · D below 55. Fit scores remain hidden; the tier updates with items.</p>'+
 '<p>On-pitch numbers show item-adjusted stats. Highlighted values differ from base stats; hover a number to see the change.</p></div></details>'+
-'<div class="challenge-roster-footer"><span>'+(isDraft?'Drag a scouted Pokémon onto an empty slot.':isShop?'Drag items onto Pokémon · ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div>'+
+'<div class="challenge-roster-footer"><span>'+(isDraft?'Click an empty position to open the scout picker.':isShop?'Tap an eligible Pokémon to equip the selected shop item · ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div>'+
  (dragStatus?'<p class="challenge-drop-status" id="challengeDropStatus" role="status">'+esc(dragStatus)+'</p>':'')+'</section><div class="challenge-side-stack">';
 if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
- body+='<section class="panel challenge-draft-panel"><div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2>MAKE YOUR PICK</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
- '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
- '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+opts.length+' ELIGIBLE</span></div></div></div>'+ 
- '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
- '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+opts.length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendaryCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
- '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
- '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
- '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
+ body+='<dialog id="challengeDraftModal" class="challenge-dialog challenge-draft-panel" aria-modal="false" aria-labelledby="challengeDraftTitle">'+
+  '<div class="challenge-dialog-bar"><span>POKÉFC · SCOUTING</span><button type="button" id="closeDraftPicker" aria-label="Close Pokémon picker">✕ CLOSE</button></div>'+
+  '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2 id="challengeDraftTitle">CHOOSE YOUR POKÉMON</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
+  '<p class="challenge-draft-modal-help">Pick a Pokémon for your selected position, or drag it onto an empty pitch slot. One Pokémon per species.</p>'+
+  '<label class="challenge-draft-search" for="draftSearch"><span>SEARCH ELIGIBLE POKÉMON</span><input id="draftSearch" type="search" placeholder="Name, number or type" autocomplete="off" aria-controls="challengePickGrid"></label>'+
+  '<p class="draft-search-count" id="draftSearchCount">'+opts.length+' MATCHING POKÉMON</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
  '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
  const tier=cachedDraftTier(s,slots[st.selected]);
@@ -749,15 +775,17 @@ if(st.phase==='draft'){
  const stats=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
  const statText=stats.map(([short,key])=>'<span><b>'+short+'</b> '+s.baseStats[key]+'</span>').join('');
  return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><span class="challenge-drag-grip pick-grip" data-drag-grip="candidate" data-drag-value="'+s.id+'" title="Drag onto an empty position">⠿</span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
-}).join('')+'</div></section>';
+}).join('')+'</div></dialog>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
- body+='<section class="panel"><h2>ONE-TIME DRAFT ADJUSTMENTS</h2><p>These resources expire when the Final XI is locked.</p>';
+ body+='<details class="panel challenge-team-options"><summary>TEAM OPTIONS · FORMATION &amp; MOVES</summary><div class="challenge-team-options-content"><p>These resources expire when the Final XI is locked.</p>';
  if(st.formationChanges>0)body+='<div class="controls-inline"><label>Change formation <select id="formationChange">'+Object.keys(FORMS).map(x=>'<option '+(x===st.formation?'selected':'')+'>'+x+'</option>').join('')+'</select></label><button id="applyFormation">CHANGE FORMATION · 1 LEFT</button></div>';
  if(st.moves>0&&filled>0)body+='<div class="controls-inline"><label>Move or swap Pokémon <select id="moveFrom">'+st.roster.map((id,i)=>id?'<option value="'+i+'">'+slots[i]+' · '+esc(BY.get(id).name)+'</option>':'').join('')+'</select></label><label>To position <select id="moveTo">'+slots.map((pos,i)=>'<option value="'+i+'">'+pos+' · '+esc(BY.get(st.roster[i])?.name||'EMPTY')+'</option>').join('')+'</select></label><button id="movePick">MOVE / SWAP · 1 LEFT</button></div>';
- body+='</section>';
+ body+='</div></details>';
 }
-if(st.phase==='shop')body+=shopMarkup(used);
+if(st.phase==='shop')body+='<aside id="challengeShopDrawer" class="challenge-shop-drawer" aria-label="Floating item shop" '+(!shopDrawerOpen?'hidden':'')+'>'+
+ '<div class="challenge-shop-drawer-bar"><strong>ITEM SHOP · EQUIP YOUR XI</strong><button type="button" id="closeShopDrawer" aria-label="Hide item shop">✕ HIDE SHOP</button></div>'+
+ shopMarkup(used)+'</aside>';
 if(gauntletStarted){
  const opponent=BOSSES[st.round];
  if(opponent&&Array.isArray(opponent.roster)&&opponent.roster.length===11){
@@ -786,7 +814,9 @@ if(gauntletStarted){
     (stats?'<span class="opponent-row-stats">'+statNames.map(([label,key])=>'<span><b>'+label+'</b> '+stats[key]+'</span>').join('')+'</span>':'')+
     '</div></div>';
   }).join('');
-  body+='<section class="panel challenge-opponent-panel" aria-label="Opponent XI: '+esc(opponent.leader)+'">'+
+  body+='<dialog id="challengeOpponentModal" class="challenge-dialog challenge-opponent-dialog" aria-label="Opponent XI: '+esc(opponent.leader)+'">'+
+   '<div class="challenge-dialog-bar"><span>GAUNTLET · OPPONENT SCOUTING</span><button type="button" id="closeOpponentModal">✕ CLOSE</button></div>'+
+   '<section class="panel challenge-opponent-panel">'+
    '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">GAUNTLET '+(st.round+1)+' / 6 · '+(st.phase==='locked'?'NEXT OPPONENT':'MATCH OPPONENT')+'</span><h2>'+esc(opponent.leader.toUpperCase())+' · OPPONENT XI</h2>'+
    '<p>'+esc((opponent.region||'Indigo League')+' · '+opponent.roster.length+' fixed Pokémon · '+(opponent.tactic||'balanced')+' tactics')+'</p></div>'+
    '<span class="formation-tag">'+esc(enemyFormation)+' · '+(opponentTeamScore(opponent)?.toFixed(1)||'—')+' TEAM</span></div>'+
@@ -795,7 +825,7 @@ if(gauntletStarted){
    opponentCards+'</div>'+
    '<div class="opponent-pitch-legend"><span><b class="opponent-signature-marker">★</b> Signature Pokémon</span><span>Item markers show Mega Stones / Light Ball</span></div>'+
    '<details class="opponent-roster-details"><summary>VIEW ALL 11 POKÉMON &amp; STATS</summary><div class="opponent-roster-list">'+opponentRows+'</div></details>'+
-   '</section>';
+   '</section></dialog>';
  }
 
 }
@@ -817,6 +847,54 @@ if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><d
  '<div class="challenge-dialog-bar"><span>POKÉFC · GAUNTLET RESULTS</span><button type="button" id="closeRunModal" aria-label="Close run results">✕ CLOSE</button></div>'+
  completedRunCard()+'</dialog>';
 body+='</div></div><section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
+if(isDraft){
+ const picker=document.getElementById('challengeDraftModal');
+ const openPicker=()=>{draftPickerOpen=true;openFloatingDialog(picker)};
+ const closePicker=()=>{draftPickerOpen=false;closeDialog(picker)};
+ document.getElementById('openDraftPicker').onclick=openPicker;
+ document.getElementById('closeDraftPicker').onclick=closePicker;
+ if(picker){
+  picker.oncancel=()=>{draftPickerOpen=false};
+  picker.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault?.();closePicker()}};
+  if(draftPickerOpen)openPicker();
+ }
+ const search=document.getElementById('draftSearch');
+ if(search)search.oninput=()=>{
+  const query=String(search.value||'').trim().toLocaleLowerCase();
+  const grid=document.getElementById('challengePickGrid');
+  let count=0;
+  for(const card of grid?.children||[]){
+   const pokemon=BY.get(Number(card.dataset?.speciesId));
+   const haystack=pokemon?[pokemon.name,pokemon.id,String(pokemon.id).padStart(4,'0'),...(pokemon.types||[])].join(' ').toLocaleLowerCase():'';
+   card.hidden=Boolean(query&&!haystack.includes(query));
+   if(!card.hidden)count++;
+  }
+  const status=document.getElementById('draftSearchCount');
+  if(status)status.textContent=count+' MATCHING POKÉMON';
+ };
+}
+if(isShop){
+ const toggle=()=>{
+  const catalog=document.getElementById('shopCatalog');
+  shopScrollTop=catalog?.scrollTop||shopScrollTop;
+  shopDrawerOpen=!shopDrawerOpen;render();
+ };
+ document.getElementById('toggleShopDrawer').onclick=toggle;
+ document.getElementById('closeShopDrawer').onclick=()=>{
+  const catalog=document.getElementById('shopCatalog');
+  shopScrollTop=catalog?.scrollTop||shopScrollTop;
+  shopDrawerOpen=false;render();
+ };
+}
+if(gauntletStarted){
+ const modal=document.getElementById('challengeOpponentModal');
+ const open=document.getElementById('openOpponentModal'),close=document.getElementById('closeOpponentModal');
+ if(modal&&open&&close){
+  open.onclick=()=>openDialog(modal);
+  close.onclick=()=>closeDialog(modal);
+  modal.onclick=e=>{if(e?.target===modal)closeDialog(modal)};
+ }
+}
 if(gauntletStarted&&st.history.length){
  const historyModal=document.getElementById('challengeHistoryModal');
  const closeHistory=()=>closeDialog(historyModal);
@@ -867,6 +945,7 @@ function displayDraftPosition(index,commit){
   }
   showingRole=group;
  }
+ if(commit){draftPickerOpen=true;openFloatingDialog(document.getElementById('challengeDraftModal'))}
  if(!commit||!changed)return;
  const grid=document.getElementById('challengePickGrid');
  if(!grid||!grid.children||typeof grid.appendChild!=='function')return;
@@ -925,7 +1004,15 @@ app.querySelectorAll('[data-slot-card]').forEach(card=>{
 });
 app.querySelectorAll('[data-slot]').forEach(b=>{
  const index=Number(b.dataset.slot);
- b.onclick=()=>displayDraftPosition(index,true);
+ b.onclick=()=>{
+  if(isShop){
+   if(!selectedShopItem){shopMessage='Select an item in the shop first.';shopDrawerOpen=true;render();return}
+   const result=equipShopItem(selectedShopItem,index);
+   shopMessage=result.ok?'Equipped '+selectedShopItem+' to '+(BY.get(st.roster[index])?.name||'Pokémon')+'.':result.error;
+   if(result.ok)render();
+   else{shopDrawerOpen=true;const status=document.getElementById('shopFeedback');if(status)status.textContent=shopMessage}
+  }else displayDraftPosition(index,true);
+ };
  b.onfocus=()=>displayDraftPosition(index,false);
  b.onblur=()=>displayDraftPosition(st.selected,false);
 });
@@ -1068,7 +1155,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;shopStatFilters.clear();autoEquipSummary='';Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
@@ -1118,7 +1205,7 @@ if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  window.PFC_CHALLENGE_DND.mount(app,{canDrag,canDrop,onDrop});
 }
 
-document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;save();render()}})}
+document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
  const key='pokefc-challenge-personal-records-v1';
