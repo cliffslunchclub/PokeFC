@@ -22,6 +22,7 @@ jobs:
         run: |
           node --check challenge/drag-drop.js
           node --check challenge/performance.js
+          node --check challenge/item-optimizer.js
           node --check challenge/run-card.js
       - name: Run Challenge regressions
         run: |
