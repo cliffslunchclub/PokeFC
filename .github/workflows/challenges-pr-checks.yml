@@ -9,6 +9,9 @@ on:
       - "favicon.svg"
       - "site.css"
       - "index.html"
+      - "builder.js"
+      - "builder.css"
+      - "tests/test-free-builder.cjs"
       - "play/index.html"
       - "franchise/index.html"
       - "ratings/index.html"
@@ -31,6 +34,7 @@ jobs:
         run: |
           node tests/test-branding.cjs
           node tests/test-newtro-ui.cjs
+          node tests/test-free-builder.cjs
       - name: Check Challenge JavaScript
         run: |
           node --check challenge/picker-window.js
