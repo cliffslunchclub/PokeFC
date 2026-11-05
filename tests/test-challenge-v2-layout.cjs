@@ -9,6 +9,12 @@ const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-frame \.challenge-run-layout\{display:flex!important/,'Active stage is not two-column');
 assert.match(css,/\.challenge-shop-drawer\{position:fixed/,'Item Shop is floating, not another column');
 assert.match(css,/\.challenge-draft-panel.+position:fixed!important/,'Draft popup floats above the pitch');
+assert.match(css,/width:min\(500px,calc\(100vw - 32px\)\)!important;max-width:500px!important;max-height:min\(79dvh,720px\)!important/,
+ 'Desktop scouting window uses reduced width and height');
+assert.match(css,/\.challenge-draft-panel \.challenge-pick-grid\{max-height:min\(30dvh,330px\)\}/,
+ 'Pokémon candidate list scrolls within the smaller picker');
+assert.match(css,/width:100vw!important;height:100dvh!important;max-width:none!important;max-height:100dvh!important/,
+ 'Mobile picker remains full-screen for touch-friendly selection');
 const roster=[233,6,9,94,25,1,2,3,4,5,7];
 function launch(phase){
  const state={version:1,phase,pool:4,legends:false,formation:'4-3-3',tactic:'balanced',
