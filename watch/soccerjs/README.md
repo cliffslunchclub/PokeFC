@@ -45,3 +45,28 @@ A further 220 Quick Sim results passed the Watch bridge `snapshot` / `scoreAt` v
 3. Make the renderer assets deployable in a controlled branch-only build; verify all relative URLs and same-origin messaging.
 4. Keep TacticMesh as a temporary fallback only until the new renderer passes all modes; remove it in a separate cleanup.
 5. Implement Challenge / Franchise integration after preserving current v2 report, saved run and tournament behavior.
+
+
+## Inline 2.5D Quick Play viewport — implementation checkpoint
+
+On the development branch, `/play/?watch=soccerjs` now **mounts Soccer-JS inside the existing LIVE MATCH CENTER pitch panel**. The flat `#matchPitch` canvas is hidden only while the opt-in Watch is active. The game page owns the scoreboard, play/pause/speed, **Sim to End**, one-time **Record Official Result**, Cancel Watch, Isometric/Broadcast/Top-down projection, and Wide/Follow-ball framing. The iframe renders **only the angled pitch** (no duplicate demo menus or modal overlay). Finished 2.5D play remains visible after recording until the next match.
+
+The viewer loads in `?embedded=1&inline=1`, announces its camera mode, accepts same-origin control messages, and reports only official Quick Sim scoring changes. The bridge rejects non-isometric startup, score mismatches, and mismatched iframe origins/sources. The existing legacy Watch route remains untouched outside the test flag.
+
+Run the new headless state-machine regression (no Chromium/native rendering required):
+
+```sh
+node watch/soccerjs/test-inline-bridge.cjs
+```
+
+To validate the **opt-in staging distribution** without changing the normal SiteGround build:
+
+```sh
+bash watch/soccerjs/build-local.sh
+PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
+python3 -m http.server 8765 --directory dist
+```
+
+Then open `http://127.0.0.1:8765/play/?watch=soccerjs`; regular `/play/` still uses the existing Watch implementation. The bundle and native Soccer-JS assets are only included when `PFC_INCLUDE_SOCCERJS=1`. Do **not** set this flag for production until the actual browser regression passes.
+
+**Verification limit:** the old public workflow has a passing native Soccer-JS browser artifact, and the current inline-bridge state machine passed source-level tests. The latest inline viewer bundle has not yet been built or screenshot-verified in this environment: upstream network access and local Chromium navigation were blocked. This is not proof of a live SiteGround deployment or successful fully integrated 2.5D rendering.
