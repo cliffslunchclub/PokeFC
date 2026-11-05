@@ -94,8 +94,8 @@ for page in pages:
     for mode in ["play","challenge","franchise"]:
         if f'href="{expected}{mode}/"' not in h:raise SystemExit(f"Missing game mode link: {page}: {mode}")
 for mode in ["franchise","play"]:
-    for f in ["tm-worker.js","tm-engine-bridge.js","tacticmesh/vendor/installed.json","tacticmesh/vendor/core.js","tacticmesh/vendor/engine-facade.js","tacticmesh/vendor/LICENSE"]:
-        if not (root/mode/f).is_file():raise SystemExit("Missing real watched-match dependency: "+mode+"/"+f)
+    for f in ["hybrid-sim.js","tm-worker.js","tm-engine-bridge.js","tacticmesh/vendor","tacticmesh/optimized"]:
+        if (root/mode/f).exists():raise SystemExit("Retired TM runtime must not deploy: "+mode+"/"+f)
 policy=(root/".htaccess")
 if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htaccess")
 rules=policy.read_text()
