@@ -14,11 +14,18 @@ const makeState=champion=>{
 function launch(champion,withShotData=false){
  const saved=makeState(champion);
  if(withShotData)saved.history.forEach((match,i)=>{
-  if(i%2===0)match.report={stats:{shotsOnTarget:[i+3,i+1]},
+  if(i%2===0)match.report={stats:{shotsOnTarget:[i+3,i+1],
+    passes:[100+i*10,90],completedPasses:[75+i*8,70],
+    tackles:[2+i,3],tackleAttempts:[5+i,9],possession:[55+i,45-i]},
    playerShotsOnTarget:[
     {side:0,player:'Jolteon',count:i+3},
     {side:0,player:'Charizard',count:0},
     {side:1,player:'Lapras',count:i+1}
+   ],
+   playerTackles:[
+    {side:0,player:'Jolteon',attempts:5+i,won:2+i},
+    {side:0,player:'Charizard',attempts:0,won:0},
+    {side:1,player:'Lapras',attempts:9,won:3}
    ]};
  });
  let stored=JSON.stringify(saved);
@@ -59,6 +66,8 @@ function launch(champion,withShotData=false){
  assert.doesNotMatch(lost.app.innerHTML,/SHOTS ON GOAL · TOTAL/,'No team-level shot totals in recap');
  assert.match(lost.app.innerHTML,/Individual shots on goal recorded for 0 of 5 matches/,'Legacy shot coverage clearly disclosed');
  assert.match(lost.app.innerHTML,/class="pokemon-shot-stat"><b>—<\/b>SOG/,'Legacy Pokémon show unknown, not zero');
+ assert.match(lost.app.innerHTML,/class="pokemon-tackle-stat"><b>—<\/b>TCK/,'Older saves show unavailable tackles, never fake zero');
+ assert.match(lost.app.innerHTML,/Passing, tackle and possession statistics were not saved for this run/,'No fabricated team passing for legacy runs');
  assert.match(lost.app.innerHTML,/Individual Pokémon shots on goal were not recorded for this match/,'Legacy detailed match does not invent shooters');
  assert.match(lost.app.innerHTML,/<dialog id="runCompleteModal"/,'Completed run is rendered inside a dialog');
  assert.equal(lost.elements.runCompleteModal.open,true,'Loss opens run results modal');
@@ -106,6 +115,15 @@ function launch(champion,withShotData=false){
  assert.doesNotMatch(withShots.app.innerHTML,/class="run-shots-summary"/,'No aggregate team shooting panel');
  assert.match(withShots.app.innerHTML,/POKÉMON SHOTS ON GOAL/,'Expanded game shows individual shooter lines');
  assert.match(withShots.app.innerHTML,/Jolteon<\/strong><b>3 SOG/,'Scoring report attributes shot to correct Pokémon');
+ assert.match(withShots.app.innerHTML,/TEAM PASSING &amp; DEFENSE/,'Team aggregate passing and defense panel is shown');
+ assert.match(withShots.app.innerHTML,/273 \/ 360/,'Completed and attempted passes sum over recorded games');
+ assert.match(withShots.app.innerHTML,/75\.8%/,'Pass accuracy computed from recorded team totals');
+ assert.match(withShots.app.innerHTML,/12 \/ 21/,'Tackle attempts and wins reconcile over available games');
+ assert.match(withShots.app.innerHTML,/57\.1%/,'Tackle win rate computed from recorded tackles');
+ assert.match(withShots.app.innerHTML,/Pokémon tackle data recorded for 3 of 6 matches/,'Player tackle coverage disclosed');
+ assert.match(withShots.app.innerHTML,/class="pokemon-tackle-stat"><b>12\/21<\/b>TCK/,'Jolteon tournament tackle stats displayed');
+ assert.match(withShots.app.innerHTML,/class="pokemon-tackle-stat"><b>0\/0<\/b>TCK/,'Recorded zero tackles distinct from missing');
+ assert.match(withShots.app.innerHTML,/Individual passes are not yet tracked by Quick Sim/,'Per-player passing limitations disclosed');
  const won=launch(true);
  assert.match(won.app.innerHTML,/CHALLENGE CHAMPION/);
  assert.equal(won.elements.runCompleteModal.open,true,'Champion completion opens results modal');

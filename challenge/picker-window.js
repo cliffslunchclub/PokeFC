@@ -34,6 +34,8 @@
   }
   function down(e){
    if(disposed||!isDesktop()||dialog.hidden||(dialog.tagName==='DIALOG'&&dialog.open===false)||e.button!==0||drag)return;
+   // The full title bar is the handle, but its Close/Hide button must click normally.
+   if(e.target?.closest?.('button, a, input, select, textarea, [data-no-window-drag]'))return;
    const box=position();
    drag={pointerId:e.pointerId,x:number(e.clientX),y:number(e.clientY),left:box.left,top:box.top};
    handle.setPointerCapture?.(e.pointerId);
@@ -49,7 +51,7 @@
    if(handle.hasPointerCapture?.(e.pointerId))handle.releasePointerCapture?.(e.pointerId);
   }
   function keydown(e){
-   if(disposed||!isDesktop())return;
+   if(disposed||!isDesktop()||(e.target&&e.target!==handle))return;
    const offsets={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
    const amount=offsets[e.key];if(!amount)return;
    const box=position(),step=e.shiftKey?64:20;

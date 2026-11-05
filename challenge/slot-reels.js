@@ -24,12 +24,12 @@
   const {root:el,result,onDone}=slot;
   setText(el.querySelector('[data-reel-value="region"]'),result.region);
   setText(el.querySelector('[data-reel-value="type"]'),result.type);
-  setText(el.querySelector('[data-reel-value="pool"]'),result.count+' ELIGIBLE');
+  setText(el.querySelector('[data-reel-value="pool"]'),'READY');
   el.querySelectorAll('.slot-reel').forEach(x=>setAnimationClass(x,false));
   if(el.classList)el.classList.remove('slot-machine-spinning');
   const skip=el.querySelector('[data-reel-skip]');if(skip)skip.hidden=true;
   const live=el.querySelector('[data-reel-live]');
-  setText(live,result.region+' · '+result.type+' · '+result.count+' eligible Pokémon. Choose your position and draft.');
+  setText(live,result.region+' · '+result.type+' · ready to draft. Choose your position and Pokémon.');
   active=null;
   if(typeof onDone==='function')onDone();
  }
@@ -40,7 +40,7 @@
   const region=REGIONS[(Math.max(1,Number(result.gen)||1)-1)%REGIONS.length];
   const data={region,type:String(result.type||'NORMAL').toUpperCase(),count:Math.max(0,Number(result.count)||0)};
   const reels={region:el.querySelector('[data-reel-value="region"]'),type:el.querySelector('[data-reel-value="type"]'),pool:el.querySelector('[data-reel-value="pool"]')};
-  if(!Object.values(reels).every(Boolean))return;
+  if(!Object.values(reels).every(Boolean)){onDone();return}
   const willSpin=Boolean(opts.animate)&&typeof setInterval==='function'&&typeof setTimeout==='function'&&!(root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
   const slot={root:el,result:data,timers:[],timeouts:[],cancelled:false,onDone};
   active=slot;
@@ -49,11 +49,11 @@
   const skip=el.querySelector('[data-reel-skip]');if(skip){skip.hidden=false;skip.onclick=()=>finish(slot)}
   const live=el.querySelector('[data-reel-live]');setText(live,'Drawing your next Pokémon scouting pool…');
   // Uniform visual cycling only. The final region / type / eligible count are already saved.
-  const poolCounts=[6,12,8,19,31,14,25,3,17,22];
+  const draftStates=['SCOUTING','SEARCHING','ROLLING','DISCOVER','PREPARING'];
   const animationFields=[
    {name:'region',sequence:REGIONS.slice(0,Math.max(1,Math.min(9,Number(opts.pool)||4))),delay:850},
    {name:'type',sequence:TYPES,delay:1200},
-   {name:'pool',sequence:poolCounts.map(n=>n+' ELIGIBLE'),delay:1510}
+   {name:'pool',sequence:draftStates,delay:1510}
   ];
   for(const field of animationFields){
    const node=reels[field.name];
@@ -70,7 +70,7 @@
    slot.timeouts.push(setTimeout(()=>{
     if(slot.cancelled)return;
     clearInterval(timer);
-    setText(node,field.name==='pool'?data.count+' ELIGIBLE':data[field.name]);
+    setText(node,field.name==='pool'?'READY':data[field.name]);
     setAnimationClass(node?.closest('.slot-reel'),false);
    },field.delay));
   }

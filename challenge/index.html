@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=24">
+<link rel="stylesheet" href="./challenge.css?v=28">
 </head>
 <body>
 <header class="pfc-header">
@@ -71,7 +71,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=2"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./picker-window.js?v=2"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=5"></script><script src="../play/opponents.js"></script><script>
+<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=3"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=6"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -473,10 +473,17 @@ function matchReportHtml(match){
  const source=label==='tacticmesh'?'WATCHED MATCH':label==='hybrid'?'WATCH → QUICK SIM':'QUICK SIM';
  const score=Array.isArray(match.score)?match.score:[0,0];
  const scoreText=esc(score.join(' – '));
- const stats=report?.stats||{shots:match.shots,passes:match.passes};
+ const rawStats=report?.stats||{shots:match.shots,passes:match.passes};
+ const rate=(made,total)=>made!=null&&total!=null&&Number.isFinite(Number(made))&&
+  Number.isFinite(Number(total))&&Number(total)>0&&Number(made)>=0&&Number(made)<=Number(total)?
+  (100*Number(made)/Number(total)).toFixed(1):null;
+ const stats={...rawStats,
+  passAccuracy:[0,1].map(side=>rate(rawStats.completedPasses?.[side],rawStats.passes?.[side])),
+  tackleSuccess:[0,1].map(side=>rate(rawStats.tackles?.[side],rawStats.tackleAttempts?.[side]))};
  const rows=[
   ['SHOTS','shots',''],['POSSESSION','possession','%'],
-  ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['TACKLES WON','tackles',''],['SAVES','saves','']
+  ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['PASS ACCURACY','passAccuracy','%'],
+  ['TACKLES ATTEMPTED','tackleAttempts',''],['TACKLES WON','tackles',''],['TACKLE WIN RATE','tackleSuccess','%'],['SAVES','saves','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
  const table=rows.map(([label,key,unit])=>
   '<div class="match-stat-row"><strong>'+esc(stats[key][0]??'—')+(stats[key][0]==null?'':unit)+'</strong><span>'+label+'</span><strong>'+
@@ -519,6 +526,27 @@ function completedRunCard(){
  const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
  const tournament=tournamentStats(),playerStats=tournament?.players||lineupPerformance(r.line,r.formation,st.locked?.items||st.items).map(p=>({...p,goals:0,assists:0,saves:0,penalties:0,potm:0,appearances:r.matches.length,cleanSheets:0}));
  const recordedShotMatches=r.matches.filter(m=>m.report?.playerShotsOnTarget?.some?.(p=>Number(p.side)===0)).length;
+ const recordedTackleMatches=r.matches.filter(m=>m.report?.playerTackles?.some?.(p=>Number(p.side)===0)).length;
+ const validTotals=(part,total)=>part!=null&&total!=null&&Number.isFinite(Number(part))&&
+  Number.isFinite(Number(total))&&Number(part)>=0&&Number(total)>=Number(part);
+ const passMatches=r.matches.filter(m=>validTotals(m.report?.stats?.completedPasses?.[0],m.report?.stats?.passes?.[0]));
+ const tackleMatches=r.matches.filter(m=>validTotals(m.report?.stats?.tackles?.[0],m.report?.stats?.tackleAttempts?.[0]));
+ const possessionMatches=r.matches.filter(m=>m.report?.stats?.possession?.[0]!=null&&
+  Number.isFinite(Number(m.report.stats.possession[0])));
+ const sumStat=(matches,key)=>matches.reduce((n,m)=>n+Number(m.report.stats[key][0]),0);
+ const attemptedPasses=sumStat(passMatches,'passes'),completedPasses=sumStat(passMatches,'completedPasses');
+ const tackleAttempts=sumStat(tackleMatches,'tackleAttempts'),tacklesWon=sumStat(tackleMatches,'tackles');
+ const teamTotals='<div class="tournament-team-summary"><h4>TEAM PASSING &amp; DEFENSE</h4>'+
+  ((passMatches.length||tackleMatches.length||possessionMatches.length)?
+   '<div class="tournament-team-metrics">'+
+   (passMatches.length?'<div><small>COMPLETED PASSES</small><strong>'+completedPasses+' / '+attemptedPasses+'</strong></div>'+
+    '<div><small>PASS ACCURACY</small><strong>'+(attemptedPasses?(100*completedPasses/attemptedPasses).toFixed(1)+'%':'—')+'</strong></div>':'')+
+   (tackleMatches.length?'<div><small>TACKLES WON</small><strong>'+tacklesWon+' / '+tackleAttempts+'</strong></div>'+
+    '<div><small>TACKLE WIN RATE</small><strong>'+(tackleAttempts?(100*tacklesWon/tackleAttempts).toFixed(1)+'%':'—')+'</strong></div>':'')+
+   (possessionMatches.length?'<div><small>AVG POSSESSION</small><strong>'+(sumStat(possessionMatches,'possession')/possessionMatches.length).toFixed(1)+'%</strong></div>':'')+
+   '</div><p>Passing '+passMatches.length+'/'+r.matches.length+' matches · Tackles '+tackleMatches.length+'/'+r.matches.length+
+   ' matches · Possession '+possessionMatches.length+'/'+r.matches.length+' matches. Totals include only matches with recorded data.</p>':
+   '<p>Passing, tackle and possession statistics were not saved for this run.</p>')+'</div>';
  const tournamentBest=tournament?.best;
  const tournamentBadge=tournamentBest?'<div class="tournament-mvp">'+
   '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+tournamentBest.spriteId+'.png">'+
@@ -534,7 +562,10 @@ function completedRunCard(){
    '<span><b>'+p.appearances+'</b>APP</span><span><b>'+p.potm+'</b>POTM</span>'+
    '<span class="pokemon-shot-stat"><b>'+(p.shotGames?p.shotsOnGoal:'—')+'</b>SOG</span>'+
    (p.pos==='GK'?'<span><b>'+p.saves+'</b>SV</span><span><b>'+p.cleanSheets+'</b>CS</span>':'')+
-   (p.penalties?'<span><b>'+p.penalties+'</b>PK</span>':'')+'</div></div>';
+   (p.penalties?'<span><b>'+p.penalties+'</b>PK</span>':'')+
+   '<span class="pokemon-tackle-stat"><b>'+(p.tackleGames?p.tacklesWon+'/'+p.tackleAttempts:'—')+'</b>TCK</span>'+
+   '<span class="pokemon-tackle-rate"><b>'+(p.tackleGames&&p.tackleAttempts?(100*p.tacklesWon/p.tackleAttempts).toFixed(0)+'%':'—')+'</b>WIN</span>'+
+   '</div></div>';
  }).join('')+'</div>';
  const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name)+'</span>').join('');
  const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
@@ -556,7 +587,11 @@ function completedRunCard(){
    '<div class="run-share-actions"><button id="copyRunSummary" type="button">COPY RUN SUMMARY</button>'+
    '<button id="postTwitter" type="button" disabled title="X posting is not available yet">POST TO X / TWITTER · COMING SOON</button></div>'+
    '<p id="runShareStatus" role="status" aria-live="polite"></p></div>'+
-  '<section class="run-tournament-panel"><h3>TOURNAMENT STATS</h3>'+tournamentBadge+'<p>G = goals · A = assists · APP = appearances · POTM = match awards · SOG = individual shots on goal · PK = shootout conversions · SV/CS = goalkeeper saves/clean sheets.</p>'+tournamentCards+'<p class="run-sog-coverage">Individual shots on goal recorded for '+recordedShotMatches+' of '+r.matches.length+' matches. A dash (—) means player-level shot data was unavailable; a zero is a recorded zero.</p></section>'+ 
+  '<section class="run-tournament-panel"><h3>TOURNAMENT STATS</h3>'+tournamentBadge+
+  teamTotals+'<p>G = goals · A = assists · APP = appearances · POTM = match awards · SOG = individual shots on goal · TCK = tackles won/attempted · WIN = tackle win % · PK = shootout conversions · SV/CS = goalkeeper saves/clean sheets.</p>'+
+  tournamentCards+'<p class="run-sog-coverage">Individual shots on goal recorded for '+recordedShotMatches+' of '+r.matches.length+
+  ' matches. Pokémon tackle data recorded for '+recordedTackleMatches+' of '+r.matches.length+
+  ' matches. A dash (—) means player-level data was unavailable; zero means a recorded zero. Individual passes are not yet tracked by Quick Sim.</p></section>'+ 
    '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+
   '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '</section>';
@@ -734,9 +769,9 @@ const draftRollMarkup=isDraft?'<section class="panel challenge-draft-reels" aria
  '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
  '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
  '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+eligible().length+' ELIGIBLE</span></div></div></div>'+ 
+ '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">DRAFT STATUS</span><div class="slot-window"><span data-reel-value="pool">'+(pendingRollAnimation?'SCOUTING':'READY')+'</span></div></div></div>'+ 
  '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
- '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+eligible().length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
+ '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+(pendingRollAnimation?'Drawing Pokémon scouting options…':'Choose a Pokémon for your selected position.')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
  '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
@@ -796,15 +831,17 @@ if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
  body+='<dialog id="challengeDraftModal" class="challenge-dialog challenge-draft-panel" aria-modal="false" aria-labelledby="challengeDraftTitle">'+
-  '<div class="challenge-dialog-bar"><button type="button" id="challengeDraftDragHandle" class="challenge-draft-drag-handle" aria-label="Move Pokémon picker with the mouse or arrow keys" title="Drag to move · Arrow keys to nudge">⠿ MOVE PICKER</button><span class="challenge-mobile-picker-label">POKÉMON DRAFT</span><button type="button" id="closeDraftPicker" aria-label="Close Pokémon picker">✕ CLOSE</button></div>'+
+  '<div id="challengeDraftDragHandle" class="challenge-dialog-bar challenge-draft-titlebar" role="group" tabindex="0" aria-label="Move Pokémon draft window with mouse or arrow keys" title="Drag title bar to move · Arrow keys to nudge"><span class="challenge-draft-drag-handle" aria-hidden="true">⠿ MOVE WINDOW</span><span class="challenge-mobile-picker-label">POKÉMON DRAFT</span><button type="button" id="closeDraftPicker" aria-label="Close Pokémon picker" title="Close Pokémon picker">✕ CLOSE</button></div>'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2 id="challengeDraftTitle">CHOOSE YOUR POKÉMON</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
   '<p class="challenge-draft-modal-help">Select a pitch position or choose it below, then draft a Pokémon. On desktop, you can drag picks onto empty slots.</p>'+
   '<label class="challenge-draft-position" for="draftPositionSelect"><span>DRAFT PICK '+(filled+1)+' OF 11</span><select id="draftPositionSelect" aria-label="Choose an empty position">'+
   slots.map((pos,i)=>!st.roster[i]?'<option value="'+i+'" '+(i===st.selected?'selected':'')+'>'+esc(pos)+' · SLOT '+(i+1)+'</option>':'').join('')+
   '</select></label>'+
   draftRollMarkup+
+  '<p id="challengeDraftRollingNote" class="challenge-draft-rolling-note" role="status"'+(!pendingRollAnimation?' hidden':'')+'>SCOUTING IN PROGRESS · Pokémon choices appear when the reels stop.</p>'+
+  '<div id="challengeDraftCandidates" class="challenge-draft-candidates"'+(pendingRollAnimation?' hidden':'')+'>'+
   '<label class="challenge-draft-search" for="draftSearch"><span>SEARCH ELIGIBLE POKÉMON</span><input id="draftSearch" type="search" placeholder="Name, number or type" autocomplete="off" aria-controls="challengePickGrid"></label>'+
-  '<p class="draft-search-count" id="draftSearchCount">'+opts.length+' MATCHING POKÉMON</p>'+
+  '<p class="draft-search-count" id="draftSearchCount">MATCHING POKÉMON</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
  '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
  const tier=cachedDraftTier(s,slots[st.selected]);
@@ -812,7 +849,7 @@ if(st.phase==='draft'){
  const stats=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
  const statText=stats.map(([short,key])=>'<span><b>'+short+'</b> '+s.baseStats[key]+'</span>').join('');
  return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><span class="challenge-drag-grip pick-grip" data-drag-grip="candidate" data-drag-value="'+s.id+'" title="Drag onto an empty position">⠿</span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
-}).join('')+'</div></dialog>';
+}).join('')+'</div></div></dialog>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
  body+='<details class="panel challenge-team-options"><summary>TEAM OPTIONS · FORMATION &amp; MOVES</summary><div class="challenge-team-options-content"><p>These resources expire when the Final XI is locked.</p>';
@@ -821,7 +858,7 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
  body+='</div></details>';
 }
 if(st.phase==='shop')body+='<aside id="challengeShopDrawer" class="challenge-shop-drawer" aria-label="Floating item shop" '+(!shopDrawerOpen?'hidden':'')+'>'+
- '<div class="challenge-shop-drawer-bar"><button type="button" id="challengeShopDragHandle" class="challenge-shop-drag-handle" aria-label="Move Item Shop window with mouse or arrow keys" title="Drag to move · Arrow keys to nudge">⠿ ITEM SHOP · MOVE</button><strong class="challenge-shop-mobile-label">ITEM SHOP · EQUIP YOUR XI</strong><button type="button" id="closeShopDrawer" aria-label="Hide item shop">✕ HIDE SHOP</button></div>'+
+ '<div id="challengeShopDragHandle" class="challenge-shop-drawer-bar" role="group" tabindex="0" aria-label="Move Item Shop window with mouse or arrow keys" title="Drag title bar to move · Arrow keys to nudge"><span class="challenge-shop-drag-handle" aria-hidden="true">⠿ ITEM SHOP · MOVE WINDOW</span><strong class="challenge-shop-mobile-label">ITEM SHOP · EQUIP YOUR XI</strong><button type="button" id="closeShopDrawer" aria-label="Hide item shop" title="Hide item shop">✕ HIDE SHOP</button></div>'+
  shopMarkup(used)+'</aside>';
 if(gauntletStarted){
  const opponent=BOSSES[st.round];
@@ -971,7 +1008,7 @@ if(isDraft){
    if(!card.hidden)count++;
   }
   const status=document.getElementById('draftSearchCount');
-  if(status)status.textContent=count+' MATCHING POKÉMON';
+  if(status)status.textContent=count?'MATCHING POKÉMON':'NO MATCHING POKÉMON';
  };
 }
 if(isShop){
@@ -1008,11 +1045,18 @@ if(st.phase==='draft'){
  const wasTriggered=pendingRollAnimation;
  pendingRollAnimation=false;
  slotAnimationBusy=wasTriggered;
+ const revealDraftCandidates=()=>{
+  slotAnimationBusy=false;
+  const candidates=document.getElementById('challengeDraftCandidates');
+  const note=document.getElementById('challengeDraftRollingNote');
+  if(candidates)candidates.hidden=false;
+  if(note)note.hidden=true;
+ };
  if(SLOT){
   SLOT.mount(document.getElementById('challengeSlotMachine'),{
    gen:st.roll?.gen,type:st.roll?.type,count:eligible().length
-  },{animate:wasTriggered,pool:st.pool,onDone:()=>{slotAnimationBusy=false}});
- }else slotAnimationBusy=false;
+  },{animate:wasTriggered,pool:st.pool,onDone:revealDraftCandidates});
+ }else revealDraftCandidates();
 }else{SLOT?.cancel();slotAnimationBusy=false;pendingRollAnimation=false}
 // Per-render role cache and badge references keep hover light; committed clicks
 // reorder the grid in ONE DOM replacement, then animate only visible cards.

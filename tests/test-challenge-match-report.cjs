@@ -11,10 +11,12 @@ const fixture={
 };
 const result={
  score:[2,1],origin:'quick-sim',
- box:{'c9-6':{shotsOnTarget:5},'c10-25':{shotsOnTarget:2},'c4-233':{shotsOnTarget:0},
-  'boss9-131':{shotsOnTarget:3},'boss3-80':{shotsOnTarget:1}},
- stats:[{shots:14,shotsOnTarget:7,passes:340,completedPasses:275,possession:59.2,tackles:11,saves:3},
-        {shots:9,shotsOnTarget:4,passes:265,completedPasses:205,possession:40.8,tackles:8,saves:5}],
+ box:{'c9-6':{shotsOnTarget:5,tackleAttempts:9,tackles:3},'c10-25':{shotsOnTarget:2,tackleAttempts:5,tackles:2},
+  'c4-233':{shotsOnTarget:0,tackleAttempts:7,tackles:4},
+  'boss9-131':{shotsOnTarget:3,tackleAttempts:6,tackles:2},
+  'boss3-80':{shotsOnTarget:1,tackleAttempts:4,tackles:1}},
+ stats:[{shots:14,shotsOnTarget:7,passes:340,completedPasses:275,possession:59.2,tackleAttempts:21,tackles:9,saves:3},
+        {shots:9,shotsOnTarget:4,passes:265,completedPasses:205,possession:40.8,tackleAttempts:10,tackles:3,saves:5}],
  events:[
   {type:'goal',team:'e4-lorelei',minute:66.1,minuteLabel:'67',player:'boss9-131',assist:'boss3-80',origin:'quick-sim'},
   {type:'goal',team:'challenger',minute:11.4,minuteLabel:'12',player:'c9-6',assist:'c10-25',origin:'quick-sim'},
@@ -40,7 +42,11 @@ assert.deepEqual(Array.from(r.playerShotsOnTarget.filter(p=>p.side===0),p=>[p.pl
  [['Charizard',5],['Pikachu',2],['Porygon2',0]],'Shooters reflect exact engine box data');
 assert.equal(r.playerShotsOnTarget.filter(p=>p.side===1).reduce((n,p)=>n+p.count,0),4,'Opponent shot totals reconcile');
 assert.equal(r.stats.possession[1],40.8);
-assert.equal(r.stats.tackles[0],11);
+assert.equal(r.stats.tackles[0],9);
+assert.equal(r.stats.tackleAttempts[0],21,'Team tackle attempts are retained');
+assert.equal(r.playerTackles.length,5,'Actual player-box tackles saved, including zero coverage');
+assert.equal(r.playerTackles.filter(p=>p.side===0).reduce((sum,p)=>sum+p.won,0),9);
+assert.equal(r.playerTackles.filter(p=>p.side===0).reduce((sum,p)=>sum+p.attempts,0),21);
 const hybrid=report.fromResult({...result,origin:'hybrid',handoff:{minute:45},events:result.events.map((e,i)=>({...e,origin:i===0?'quick-continuation':'tacticmesh'}))},fixture);
 assert.equal(hybrid.status,'complete');
 assert.equal(hybrid.origin,'hybrid');
@@ -51,6 +57,7 @@ const unavailable=report.fromResult({score:[2,1],stats:[{shots:9},{shots:7}],ori
 assert.equal(unavailable.status,'unavailable');
 assert.equal(unavailable.goals.length,0,'Never invent a scorer or time for old saves');
 assert.equal(unavailable.playerShotsOnTarget.length,0,'No player SOG invented from team shots');
+assert.equal(unavailable.playerTackles.length,0,'No player tackle ledger invented from team totals');
 assert.equal(unavailable.timeline.length,0,'No individual events fabricated from summary stats');
 assert.doesNotMatch(report.renderTimeline(unavailable.timeline),/GOAL|SAVE|FOUL/,'Missing event log stays empty');
 assert.equal(unavailable.stats.possession[0],null,'Missing possession must not become 0%');

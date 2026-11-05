@@ -8,7 +8,15 @@ const inline=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</scrip
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-frame \.challenge-run-layout\{display:flex!important/,'Active stage is not two-column');
 assert.match(css,/\.challenge-shop-drawer\{position:fixed/,'Item Shop is floating, not another column');
-assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag handle');
+assert.match(css,/\.challenge-shop-drawer\{position:fixed;[^\n]*top:76px;right:0;/,
+ 'Item Shop defaults to the literal viewport right edge, not the centered page container');
+assert.match(css,/\.challenge-frame \.challenge-dialog\.challenge-draft-panel\{position:fixed!important;[^\n]*top:90px!important;right:0!important;/,
+ 'Draft window defaults to the viewport right edge, not the centered page container');
+assert.match(css,/@media\(max-width:980px\)\{[\s\S]*?\.challenge-shop-drawer\{width:375px;right:0\}/,
+ 'Tablet-sized desktop Item Shop stays aligned right');
+
+assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag label');
+assert.match(css,/\.challenge-shop-drawer-bar\{cursor:grab/,'Entire Item Shop title bar can be dragged');
 assert.match(css,/\.challenge-shop-mobile-label\{display:block/,'Mobile keeps simple title instead of drag handle');
 assert.match(css,/\.challenge-run-layout\.stage-shop\.shop-open>\.challenge-roster-panel\{padding-right:20px!important\}/,
  'Desktop pitch no longer reserves a shop sidebar');
@@ -20,7 +28,7 @@ assert.match(css,/\.challenge-draft-panel \.challenge-pick-grid\{max-height:min\
 assert.match(css,/width:100vw!important;height:100dvh!important;max-width:none!important;max-height:100dvh!important/,
  'Mobile picker remains full-screen for touch-friendly selection');
 const roster=[233,6,9,94,25,1,2,3,4,5,7];
-function launch(phase){
+function launch(phase,slotApi=null){
  const state={version:1,phase,pool:4,legends:false,formation:'4-3-3',tactic:'balanced',
   roster:phase==='draft'?Array(11).fill(null):roster,items:Array(11).fill(null),
   roll:phase==='draft'?{gen:1,type:'fire'}:null,rollHistory:['1:fire'],
@@ -80,7 +88,7 @@ function launch(phase){
   });
   return nodes.get(id);
  }};
- const win={},ctx=vm.createContext({window:win,document,console,
+ const win=slotApi?{PFC_CHALLENGE_SLOT_REELS:slotApi}:{},ctx=vm.createContext({window:win,document,console,
   crypto:{getRandomValues(x){x[0]=78249;return x}},
   localStorage:{getItem(){return stored},setItem(_k,value){stored=value}},
   confirm:()=>true,alert:s=>{throw Error('Unexpected alert: '+s)}
@@ -94,6 +102,11 @@ const draft=launch('draft');
 assert.match(draft.app.innerHTML,/class="challenge-run-layout stage-draft"/);
 assert.match(draft.app.innerHTML,/id="challengeDraftModal"/);
 assert.match(draft.app.innerHTML,/id="draftSearch"/);
+assert.match(draft.app.innerHTML,/data-reel="pool"><span class="slot-reel-label">DRAFT STATUS<\/span>/,
+ 'Three-reel draft status replaces numeric Pokémon pool');
+assert.doesNotMatch(draft.app.innerHTML,/POKÉMON POOL|\d+ ELIGIBLE|\d+ MATCHING POKÉMON/,
+ 'Scouting UI no longer exposes pool counts');
+
 const pickerAt=draft.app.innerHTML.indexOf('id="challengeDraftModal"');
 const machineAt=draft.app.innerHTML.indexOf('id="challengeSlotMachine"');
 const candidateAt=draft.app.innerHTML.indexOf('id="challengePickGrid"');
@@ -101,11 +114,23 @@ assert(pickerAt>=0&&machineAt>pickerAt&&candidateAt>machineAt,
  'Animated scouting reel is inside the Pokémon picker, before the candidate cards');
 assert.equal((draft.app.innerHTML.match(/id="challengeSlotMachine"/g)||[]).length,1,'No duplicate scouting machine');
 assert.match(draft.app.innerHTML,/id="draftPositionSelect"/,'Position selector available for mobile and keyboard');
-assert.match(draft.app.innerHTML,/id="challengeDraftDragHandle"/,'Desktop picker includes an accessible move handle');
+assert.match(draft.app.innerHTML,/id="challengeDraftDragHandle" class="challenge-dialog-bar challenge-draft-titlebar"/,
+ 'Entire draft title bar is the drag handle');
+assert.match(draft.app.innerHTML,/⠿ MOVE WINDOW/,'Draft title is Move Window, not Move Picker');
+assert.doesNotMatch(draft.app.innerHTML,/MOVE PICKER/,'Old Move Picker label removed');
+assert.match(css,/\.challenge-draft-titlebar\{cursor:grab/,'Desktop title bar has grab cursor');
+assert.match(css,/details>summary::after\{\s*content:"\+"/,'Collapsed sections show a plus control');
+assert.match(css,/details\[open\]>summary::after\{content:"−"/,'Expanded sections show a minus control');
 assert.match(css,/height:100dvh!important/,'Mobile picker fills the viewport');
 assert.match(css,/\.challenge-draft-panel \.pick-grip\{display:none!important\}/,'Mobile hides precision drag handles');
 assert.equal(draft.nodes.get('challengeDraftModal').open,true,'Pokémon picker automatically opens on a new draft');
 assert.equal((draft.app.innerHTML.match(/id="challengePickGrid"/g)||[]).length,1,'Exactly one candidate grid');
+assert.match(draft.app.innerHTML,/id="challengeDraftCandidates" class="challenge-draft-candidates"/,
+ 'Candidate list has its own reveal container');
+assert.match(css,/\.challenge-draft-candidates\[hidden\],\.challenge-draft-rolling-note\[hidden\]\{display:none!important\}/,
+ 'Hidden candidate list and spinner status are not visually rendered');
+assert.match(css,/\.challenge-draft-candidates\{display:contents\}/,
+ 'Revealed candidate list keeps original mobile flex and desktop scrolling layout');
 draft.nodes.get('closeDraftPicker').onclick();
 assert.equal(draft.nodes.get('challengeDraftModal').open,false,'Picker can close to show the pitch');
 draft.nodes.get('openDraftPicker').onclick();
@@ -127,6 +152,27 @@ assert(keeperPick?.onclick,'Eligible goalkeeper draft option available');
 keeperPick.onclick();
 assert.equal(draft.state().roster[0]>0,true,'Single DRAFT tap fills the selected dropdown position');
 assert.equal(draft.state().selected,8,'Next draft automatically returns to remaining priority position');
+
+// Use a controllable reel callback to test the whole hide / reveal lifecycle.
+const pendingFinishes=[];
+const rolling=launch('draft',{mount(_el,_outcome,opts){
+ if(opts.animate)pendingFinishes.push(opts.onDone);
+ else opts.onDone();
+},cancel(){}});
+const rollingPick=rolling.app.querySelectorAll('[data-pick]').find(button=>!button.disabled);
+assert(rollingPick?.onclick,'Scouting list has an eligible initial pick');
+rollingPick.onclick();
+assert.equal(pendingFinishes.length,1,'Next draw waits for all reels to finish');
+assert.match(rolling.app.innerHTML,/id="challengeDraftCandidates" class="challenge-draft-candidates" hidden/,
+ 'Pokémon cards, search and tier sorting start hidden before the spinner can paint');
+assert.doesNotMatch(rolling.app.innerHTML,/id="challengeDraftRollingNote"[^>]* hidden/,
+ 'Scouting progress note is visible while the spinner runs');
+const pendingCandidates=rolling.nodes.get('challengeDraftCandidates');
+const pendingNote=rolling.nodes.get('challengeDraftRollingNote');
+pendingCandidates.hidden=true;pendingNote.hidden=false; // Reflect HTML hidden attributes in the test DOM stub.
+pendingFinishes.shift()(); // The same completion path handles natural finish, Skip and reduced-motion.
+assert.equal(pendingCandidates.hidden,false,'Spinner finish reveals all Pokémon choices');
+assert.equal(pendingNote.hidden,true,'Spinner finish removes scouting progress note');
 
 const shop=launch('shop');
 assert.match(shop.app.innerHTML,/class="challenge-run-layout stage-shop shop-open"/);
