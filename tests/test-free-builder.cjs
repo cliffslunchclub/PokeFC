@@ -37,7 +37,7 @@ function start(store=new Map()){
 const {get,store,env,api}=start();
 assert.equal(env.window.FXI_SPECIES.length,1025,'National Gen I-IX data available');
 assert(api,'Builder initializes');
-const showcase=[144,91,76,151,112,135,65,145,150,149,142];
+const showcase=[144,91,76,151,112,135,65,145,149,150,142];
 assert.deepEqual(Array.from(api.getState().lineup),showcase,'Strong, nonduplicated Gen I showcase starts filled');
 assert.equal(new Set(api.getState().lineup).size,11,'Every showcase species appears once');
 assert(api.getState().lineup.every(id=>env.window.FXI_SPECIES[id-1].gen===1));
@@ -64,6 +64,11 @@ assert.doesNotMatch(get('pitchSlots').innerHTML,/\d+(?:\.\d+)?\s*OVR/);
 assert.doesNotMatch(get('prospects').innerHTML,/raw-stats|BST\s*\d+|\d+\.\d+<\/b>/);
 assert.match(get('prospects').innerHTML,/<b class="grade-[a-f]">[A-F]<\/b>/);
 
+// Loading the preset is explicit for returning visitors; cancellation preserves XI.
+get('loadGen1').events.click();
+assert.equal(get('builderConfirmTitle').textContent,'LOAD BEST GEN I XI?');
+get('builderConfirmCancel').events.click();
+assert.deepEqual(Array.from(api.getState().lineup),showcase);
 // Canceling either action is non-destructive; confirming is deliberate.
 get('randomize').events.click();
 assert.equal(get('builderConfirm').open,true,'Random XI uses an in-app dialog');
@@ -89,6 +94,12 @@ assert.equal(api.getState().lineup.filter(Boolean).length,0,'Clear removes all e
 assert.equal(api.getState().selected,0);
 const next=start(store);
 assert.equal(next.api.getState().lineup.filter(Boolean).length,0,'Intentionally cleared lineup stays empty on reload');
+const restored=start(store);
+restored.get('loadGen1').events.click();
+assert.deepEqual(Array.from(restored.api.getState().lineup),showcase,'Old empty saves can explicitly load the Gen I preset');
+restored.get('clear').events.click();
+restored.get('builderConfirmOk').events.click();
+
 assert.equal(next.get('genFilter').value,'1','Filter defaults to Gen I on every page load');
 
 // Clicking prospects still fills the selected slot and rejects duplicates.
@@ -107,6 +118,7 @@ for(const link of ['./play/','./challenge/','./franchise/'])assert(html.includes
 assert.match(html,/id="genFilter"[^>]*>\s*<option value="1" selected>Gen I<\/option>/);
 assert.match(html,/Gen IX<\/option><option value="">All 9 Generations<\/option>/);
 assert(html.includes('id="builderConfirm"'),'Branded dialog exists');
+assert(html.includes('id="loadGen1"'),'User can load best Gen I XI after a saved clear');
 assert(html.includes('id="builderConfirmCancel"'),'Dialog has cancel control');
 assert(html.includes('id="builderConfirmOk"'),'Dialog has explicit action control');
 assert(html.includes('id="spriteStyle"'));
