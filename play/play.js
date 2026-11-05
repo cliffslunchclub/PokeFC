@@ -127,7 +127,7 @@ function selectOpponent(){
  const o=opponent();if(!o)return;
  $('awayName').textContent=o.leader.toUpperCase();
  $('opponentCard').innerHTML='<strong>'+esc(o.leader)+'</strong><p>'+esc(o.city)+' · '+esc(o.region)+' · '+(o.tier==='gym'?'GYM LEADER':o.tier==='elite'?'ELITE FOUR':'CHAMPION')+'</p><span class="type-chip">'+esc(o.type.toUpperCase())+' SPECIALIST</span> <span class="type-chip">'+(o.roster?'FIXED ELITE XI':'GENERATED XI')+'</span>';
- if(!busy){preview=null;latestSnapshot=null;currentResult=null;$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
+ if(!busy){preview=null;latestSnapshot=null;currentResult=null;liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
 }
 function drawPitch(snapshot){
  const el=$('matchPitch'),ctx=el.getContext('2d');if(!ctx)return;
@@ -167,14 +167,17 @@ function scoreFromSnapshot(snapshot){
  if(typeof s==='object')return [Number(s.home??s.homeGoals)||0,Number(s.away??s.awayGoals)||0];
  return null;
 }
-function renderLiveTimeline(events=liveEvents,origin='tacticmesh'){
+function renderLiveTimeline(events=liveEvents,origin='tacticmesh',complete=false){
  const el=$('liveEventFeed'),count=$('liveEventCount');
  if(!el||!count)return;
  const report=window.PFC_MATCH_REPORT;
  const timeline=preview&&report?.timelineFromEvents?report.timelineFromEvents(events,preview,origin):[];
  count.textContent=timeline.length+' RECORDED';
- el.innerHTML=report?.renderTimeline?.(timeline.slice(-30).reverse(),{
-  empty:'No supported events recorded yet. Watching the genuine match event stream.'
+ // Show newest events first in both modes; full-time shows the complete
+ // authoritative event history, while active play limits DOM work.
+ const shown=complete?timeline:timeline.slice(-30);
+ el.innerHTML=report?.renderTimeline?.(shown.slice().reverse(),{
+  empty:complete?'No individual events were recorded for this match.':'No supported events recorded yet. Watching the genuine match event stream.'
  })||'<p class="match-event-empty">The match event feed is unavailable.</p>';
 }
 function showSnapshot(s,ev){
@@ -234,14 +237,12 @@ function showResult(result){
  $('modeTag').textContent=result.origin==='tacticmesh'?'WATCHED':result.origin==='hybrid'?'WATCH → SIM':'QUICK SIM';
  const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
  const statRows=rows.map(([label,key])=>'<div class="stat-row"><span>'+ (result.stats?.[0]?.[key]??'—') +(key==='possession'?'%':'')+'</span><small>'+label+'</small><span>'+(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+'</span></div>').join('');
- const report=window.PFC_MATCH_REPORT;
- const timeline=report?.timelineFromEvents?.(result.events||[],preview,result.origin)||[];
- const eventsMarkup=report?.renderTimeline?.(timeline,{empty:'No individual events were recorded for this match.'})||
-  '<p class="match-event-empty">No match timeline available.</p>';
  $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?'<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+
   '<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div>'+
-  '<div class="stat-table">'+statRows+'</div><div class="event-feed"><h3>RECORDED MATCH TIMELINE</h3>'+eventsMarkup+'</div>';
- renderLiveTimeline(result.events||[],result.origin);
+  '<div class="stat-table">'+statRows+'</div>';
+ // One feed serves live commentary and official full-time history.
+ // Events still retain their WATCHED/QUICK continuation origin in the match data.
+ renderLiveTimeline(result.events||[],result.origin,true);
 }
 function stateBusy(isBusy){
  busy=isBusy;
