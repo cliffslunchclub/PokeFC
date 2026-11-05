@@ -15,8 +15,13 @@ function launch(phase){
   roster:phase==='draft'?Array(11).fill(null):roster,items:Array(11).fill(null),
   roll:phase==='draft'?{gen:1,type:'fire'}:null,rollHistory:['1:fire'],
   selected:9,rng:78249,rerollType:1,rerollGen:1,moves:1,formationChanges:1,
-  locked:phase==='locked'?{roster:roster.slice(),items:Array(11).fill(null),formation:'4-3-3',tactic:'balanced',score:70}:null,
-  round:0,result:null,history:[]};
+  locked:['locked','result'].includes(phase)?{roster:roster.slice(),items:Array(11).fill(null),formation:'4-3-3',tactic:'balanced',score:70}:null,
+  round:0,result:phase==='result'?{boss:'Lorelei',round:1,score:[2,1],outcome:'Victory',origin:'quick-sim',
+   report:{version:3,score:[2,1],status:'complete',goals:[
+    {side:0,minute:18,minuteLabel:'19',player:'Charizard',origin:'quick-sim'},
+    {side:1,minute:38,minuteLabel:'39',player:'Lapras',origin:'quick-sim'},
+    {side:0,minute:77,minuteLabel:'78',player:'Pikachu',origin:'quick-sim'}
+   ],timeline:[{type:'goal',side:0,minute:18,minuteLabel:'19',player:'Charizard',origin:'quick-sim'}]}}:null,history:[]};
  let stored=JSON.stringify(state),cache=new Map();
  const app={markup:'',get innerHTML(){return this.markup},set innerHTML(v){this.markup=v;cache.clear()},querySelectorAll(sel){
   if(cache.has(sel))return cache.get(sel);
@@ -27,7 +32,8 @@ function launch(phase){
    '[data-slot-card]':[/data-slot-card="(\d+)"/g,'slotCard'],
    '[data-shop-pick]':[/\<button type="button" data-shop-pick="([^"]+)"([^>]*)>/g,'shopPick'],
    '[data-shop-stat]':[/data-shop-stat="([^"]+)"/g,'shopStat'],
-   '[data-shop-clear]':[/data-shop-clear="(\d+)"/g,'shopClear']
+   '[data-shop-clear]':[/data-shop-clear="(\d+)"/g,'shopClear'],
+   '[data-pokemon-info]':[/data-pokemon-info="(\d+)"/g,'pokemonInfo']
   };
   const parsed=patterns[sel];
   if(parsed)buttons=[...this.markup.matchAll(parsed[0])].map(match=>({
@@ -94,6 +100,15 @@ choose('Leftovers');
 assert.match(shop.app.innerHTML,/shop-target/,'Compatible pitch targets highlight after selecting item');
 tap(0);
 assert.equal(shop.state().items[0],'Leftovers','Clicking Porygon2 equipped selected held item');
+const info=shop.app.querySelectorAll('[data-pokemon-info]').find(b=>Number(b.dataset.pokemonInfo)===0);
+assert(info?.onclick,'Filled pitch Pokémon provide dedicated details button when equipment selected');
+info.onclick({stopPropagation(){}});
+assert.equal(shop.nodes.get('challengePokemonDetailModal').open,true,'Info button opens player profile during item shop');
+assert.match(shop.nodes.get('pokemonDetailContent').innerHTML,/Porygon2/);
+assert.match(shop.nodes.get('pokemonDetailContent').innerHTML,/Leftovers/);
+assert.match(shop.nodes.get('pokemonDetailContent').innerHTML,/\+10 FROM ITEM/,'Profile shows effective stat boost from held item');
+shop.nodes.get('closePokemonDetailModal').onclick();
+assert.equal(shop.nodes.get('challengePokemonDetailModal').open,false,'Profile close works');
 choose('Muscle Band');
 shop.nodes.get('closeShopDrawer').onclick();
 assert.match(shop.app.innerHTML,/id="challengeShopDrawer"[^>]*hidden/,'Item drawer can collapse without removing pitch');
@@ -105,9 +120,30 @@ assert.doesNotMatch(shop.app.innerHTML,/id="challengeShopDrawer"[^>]*hidden/,'It
 
 const locked=launch('locked');
 assert.match(locked.app.innerHTML,/id="openOpponentModal"/,'Opponent scouting available from Gauntlet strip');
+const card=locked.app.querySelectorAll('[data-slot]').find(b=>Number(b.dataset.slot)===0);
+assert(card?.onclick&&!card.disabled,'Occupied pitch positions are clickable when XI is locked');
+card.onclick();
+assert.equal(locked.nodes.get('challengePokemonDetailModal').open,true,'Clicking occupied pitch shows player profile');
+assert.match(locked.nodes.get('pokemonDetailContent').innerHTML,/EFFECTIVE PLAYER STATS/);
+assert.match(locked.nodes.get('pokemonDetailContent').innerHTML,/TIER/);
+locked.nodes.get('closePokemonDetailModal').onclick();
 assert.match(locked.app.innerHTML,/id="challengeOpponentModal"/,'Opponent pitch lives in dialog');
 locked.nodes.get('openOpponentModal').onclick();
 assert.equal(locked.nodes.get('challengeOpponentModal').open,true);
 locked.nodes.get('closeOpponentModal').onclick();
 assert.equal(locked.nodes.get('challengeOpponentModal').open,false);
-console.log('PASS Challenges v2: single pitch, scouting modal, candidate callback, responsive shop drawer, pitch equip and opponent scouting modal');
+const result=launch('result');
+assert.match(result.app.innerHTML,/<dialog id="challengeMatchResultModal"/,'Victory report is a modal');
+assert.equal(result.nodes.get('challengeMatchResultModal').open,true,'Saved victory autopens after reload or returning from watched match');
+assert.match(result.app.innerHTML,/MATCH EVENT TIMELINE/,'Match report remains in result modal');
+assert.match(result.app.innerHTML,/id="next"[^>]*>ADVANCE TO BRUNO/,'Advance button is inside result modal');
+assert.equal((result.app.innerHTML.match(/id="next"/g)||[]).length,1,'Exactly one Advance button');
+result.nodes.get('closeMatchResultModal').onclick();
+assert.equal(result.nodes.get('challengeMatchResultModal').open,false,'Result modal can be dismissed');
+result.nodes.get('openMatchResultModal').onclick();
+assert.equal(result.nodes.get('challengeMatchResultModal').open,true,'Result modal reopens from Gauntlet progress');
+result.nodes.get('next').onclick();
+assert.equal(result.state().phase,'locked','Advancing via result modal preserves locked XI and gauntlet state');
+assert.equal(result.state().round,1,'Advance increments exactly one boss');
+assert.equal(result.state().roster[0],roster[0],'Lineup persists through modal advancement');
+console.log('PASS Challenges v2: single pitch, scout and equipment overlays, Pokémon profile, and boss result modal with advance');
