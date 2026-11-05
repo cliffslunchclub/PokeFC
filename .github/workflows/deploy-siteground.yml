@@ -37,6 +37,7 @@ on:
       - "tests/test-newtro-ui.cjs"
       - "tests/test-play.cjs"
       - "tests/test-phase10-quickplay-lifecycle.cjs"
+      - "tests/test-watch-fullscreen.cjs"
       - "tests/test-phase10-director.cjs"
       - "tests/test-soccerjs-sprite-loading.cjs"
       - "tests/test-challenge-play.cjs"
@@ -104,6 +105,7 @@ jobs:
           node tests/test-play.cjs
           node tests/test-phase10-quickplay-lifecycle.cjs
           node watch/soccerjs/test-isometric-motion.cjs
+          node tests/test-watch-fullscreen.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node tests/test-soccerjs-shot-ledger.cjs
           node tests/test-soccerjs-sprite-loading.cjs

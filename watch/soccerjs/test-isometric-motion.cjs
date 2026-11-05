@@ -46,11 +46,35 @@ assert.throws(()=>shotSummary([{...fixture.stats[0],saves:100},fixture.stats[1]]
 const goal=fixture.events.find(e=>e.type==='goal');
 assert(goal);
 const steady=playbackRate(0,fixture.events,1);
-assert.equal(steady,.32,'Current default 1x must remain at its deployed clock rate');
-assert.equal(playbackRate(0,fixture.events,4),1.28,'4x must preserve current user-facing speed');
-assert(playbackRate(goal.minute-.3,fixture.events,1)<steady,'Goal approach should slow down');
-assert(playbackRate(goal.minute+.1,fixture.events,1)<steady,'After the goal should slow down');
-assert.equal(playbackRate(0,[{type:'save',minute:0}],1),.32,'A save should not be mistaken for a goal');
-assert.equal(playbackRate(15,[],2),.64,'An empty goal ledger retains normal rate');
+assert.equal(steady,1/60,'1x must be exactly one match second per real second');
+assert.equal(playbackRate(goal.minute-.3,fixture.events,1),1/60,'Goal buildup must not speed up/slow real-time 1x');
+assert.equal(playbackRate(goal.minute+.1,fixture.events,1),1/60,'Goal aftermath must remain true 1:1');
+assert.equal(playbackRate(0,fixture.events,4),4/60,'4x advances four match seconds per real second');
+assert(playbackRate(goal.minute-.3,fixture.events,4)<4/60,'Faster rates can emphasize official goals');
+assert.equal(playbackRate(0,[{type:'save',minute:0}],1),1/60,'A save cannot trigger goal slow-motion');
+assert.equal(playbackRate(15,[],2),2/60,'2x with no goals stays exact');
+assert.equal(playbackRate(0,[],1)*60*90,90,'90 minutes at 1x requires 90 real minutes');
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+let maxTransition=0;
+for(let cycle=1;cycle<210;cycle++){
+ const t=cycle*.35;
+ const left=motionFrame(fixture,t-0.000001,field);
+ const right=motionFrame(fixture,t+0.000001,field);
+ maxTransition=Math.max(maxTransition,distance(left.ball,right.ball),
+  ...left.actors.map((player,i)=>distance(player,right.actors[i])));
+}
+assert(maxTransition<.15,'Off-ball players/ball teleport at a possession boundary: '+maxTransition);
+for(const event of fixture.events.filter(e=>e.type==='goal')){
+ for(const moment of [event.minute-.7,event.minute+.22]){
+  const left=motionFrame(fixture,moment-.000001,field);
+  const right=motionFrame(fixture,moment+.000001,field);
+  assert(distance(left.ball,right.ball)<.15,'Ball teleports at goal scene boundary');
+  assert(Math.max(...left.actors.map((p,i)=>distance(p,right.actors[i])))<.15,
+   'Defenders jump when goal sequence begins/ends');
+ }
+}
+const joggingA=motionFrame(fixture,2,field),joggingB=motionFrame(fixture,2+1/60,field);
+assert(joggingA.actors.some((p,i)=>distance(p,joggingB.actors[i])>.02),
+ 'Off-ball Pokémon must keep moving when the ball is elsewhere');
 assert.equal(JSON.stringify(fixture),initial,'Source match mutated by visuals');
 console.log('PASS Phase10 isometric motion: '+runs+' identical five-minute frames, passes, contests, dribbles, all 3 official scorers, no source change');
