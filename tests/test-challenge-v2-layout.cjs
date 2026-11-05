@@ -261,7 +261,7 @@ assert.match(result.app.innerHTML,/<dialog id="challengeMatchResultModal"/,'Vict
 assert.equal(result.nodes.get('challengeMatchResultModal').open,true,'Saved victory autopens after reload or returning from watched match');
 assert.match(result.app.innerHTML,/MATCH TIMELINE/,'Match report remains in result modal');
  assert.match(result.app.innerHTML,/MATCH 1 · VS LORELEI/,'Immediate result identifies the opponent');
- assert.match(result.app.innerHTML,/id="challengeMatchResultTitle"[^>]*>VICTORY<\/h2>/,'Victory heading describes player's outcome');
+ assert.match(result.app.innerHTML,/id="challengeMatchResultTitle"[^>]*>VICTORY<\/h2>/,'Victory heading describes player outcome');
  assert.match(result.app.innerHTML,/VS LORELEI · WIN/,'Gauntlet progress uses a clear player win');
  assert.doesNotMatch(result.app.innerHTML,/LORELEI DEFEATED/,'Ambiguous opponent defeated wording removed');
 assert.match(result.app.innerHTML,/id="next"[^>]*>ADVANCE TO BRUNO/,'Advance button is inside result modal');
