@@ -80,6 +80,7 @@ assert.equal(store.get('pokefc-challenge-alpha-1'),before,'Cancel leaves locked 
 el('watch').events.click();
 assert.equal(sessions.length,2);
 sessions[1].simToEnd();
+assert.match(el('matchResult').innerHTML,/SHOTS ON TARGET/,'Final official shot stats visible before Record');
 assert.equal(store.get('pokefc-challenge-alpha-1'),before,'Sim to End alone cannot advance a boss');
 assert.equal(el('soccerRecord').disabled,false);
 el('soccerRecord').events.click();
