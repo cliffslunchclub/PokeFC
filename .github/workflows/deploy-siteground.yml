@@ -12,6 +12,7 @@ on:
       - "builder.css"
       - "builder.js"
       - "site.css"
+      - "newtro.css"
       - "national-species.js"
       - "play/**"
       - "watch/**"
@@ -33,6 +34,7 @@ on:
       - "tests/test-national-dex.cjs"
       - "tests/test-free-builder.cjs"
       - "tests/test-branding.cjs"
+      - "tests/test-newtro-ui.cjs"
       - "tests/test-play.cjs"
       - "tests/test-phase10-quickplay-lifecycle.cjs"
       - "tests/test-phase10-director.cjs"
@@ -117,6 +119,7 @@ jobs:
           node tests/test-challenge-tier-positions.cjs
           node tests/test-free-builder.cjs
           node tests/test-branding.cjs
+          node tests/test-newtro-ui.cjs
           node tests/test-challenge-special-items.cjs
           node tests/test-challenge-primal-items.cjs
           node tests/test-challenge-match-report.cjs
