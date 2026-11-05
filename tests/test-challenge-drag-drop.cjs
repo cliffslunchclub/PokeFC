@@ -24,7 +24,12 @@ function launch(seed){
       getBoundingClientRect(){return {width:35,height:35}}}:null}
    }));
    make('[data-slot]',/data-slot="(\d+)"/g,m=>({dataset:{slot:m[1]},classList:cls()}));
-   make('[data-shop-pick]',/data-shop-pick="([^"]+)"/g,m=>({dataset:{shopPick:m[1]},classList:cls(),draggable:false}));
+   make('[data-shop-pick]',/data-shop-pick="([^"]+)"/g,m=>({
+    dataset:{shopPick:m[1]},classList:cls(),draggable:false,
+    querySelector(){const slug=m[1].toLowerCase().replace(/[^a-z0-9]+/g,'-');
+     return {src:'https://sprites.example/items/'+slug+'.png',width:29,height:29,
+      getBoundingClientRect(){return {width:29,height:29}}}}
+   }));
    make('[data-shop-clear]',/data-shop-clear="(\d+)"/g,m=>({dataset:{shopClear:m[1]},classList:cls()}));
    make('[data-species-id]',/data-species-id="(\d+)"/g,m=>({
     dataset:{speciesId:m[1]},classList:cls(),draggable:false,
@@ -36,7 +41,8 @@ function launch(seed){
    make('[data-drag-grip]',/data-drag-grip="([^"]+)" data-drag-value="([^"]+)"/g,m=>({
     dataset:{dragGrip:m[1],dragValue:m[2]},classList:cls(),
     closest(){return m[1]==='candidate'?thisApp.querySelectorAll('[data-species-id]').find(x=>x.dataset.speciesId===m[2]):
-      m[1]==='pokemon'?thisApp.querySelectorAll('[data-slot-card]').find(x=>x.dataset.slotCard===m[2]):null}
+      m[1]==='pokemon'?thisApp.querySelectorAll('[data-slot-card]').find(x=>x.dataset.slotCard===m[2]):
+      m[1]==='item'?thisApp.querySelectorAll('[data-shop-pick]').find(x=>x.dataset.shopPick===m[2]):null}
    }));
   },get innerHTML(){return this.html;},
   querySelectorAll(sel){return this.nodes[sel]||[]}
@@ -89,7 +95,10 @@ const shop=launch(initial());
 assert.match(shop.app.innerHTML,/data-drag-grip="item"/);
 assert.match(shop.app.innerHTML,/data-drag-grip="pokemon"/);
 assert.match(shop.app.innerHTML,/DRAG &amp; DROP POKÉMON/,'Visible Pokémon drag hint by the pitch');
-shop.start(shop.node('[data-shop-pick]','Leftovers','shopPick'));
+assert.match(shop.app.innerHTML,/sprites\/items\/leftovers\.png/,'Item shop uses item images');
+const itemPreview=shop.start(shop.node('[data-shop-pick]','Leftovers','shopPick'));
+assert.match(itemPreview.img.src,/\/items\/leftovers\.png$/,'Native item drag uses item icon');
+assert.equal(itemPreview.x,15);assert.equal(itemPreview.y,15);
 shop.drop(0);
 assert.equal(shop.state().items[0],'Leftovers','Drop equips item onto occupied Porygon2');
 shop.start(shop.node('[data-shop-pick]','Leftovers','shopPick'));
@@ -112,6 +121,15 @@ assert.equal(shop.state().roster[1],233,'Pokémon swaps positions');
 assert.equal(shop.state().items[1],'Eviolite','Held item stays with moved Pokémon');
 assert.equal(shop.state().items[0],null,'Former slot no longer holds Eviolite');
 assert.equal(shop.state().moves,0,'Swap consumes exactly the existing one-time move');
+const mouseItem=launch(initial());
+const itemCard=mouseItem.node('[data-shop-pick]','Leftovers','shopPick');
+assert.equal(typeof itemCard.onpointerdown,'function','Entire item card supports pointer dragging on desktop');
+mouseItem.setTarget(7);
+itemCard.onpointerdown({pointerType:'mouse',button:0,clientX:120,clientY:240,cancelable:true,preventDefault(){}});
+assert.equal(mouseItem.lastGhost().tagName,'img','Desktop item pointer ghost uses item sprite');
+mouseItem.listeners.pointermove({clientX:130,clientY:250,cancelable:true,preventDefault(){}});
+mouseItem.listeners.pointerup({clientX:130,clientY:250});
+assert.equal(mouseItem.state().items[7],'Leftovers','Dragging item card with mouse equips target');
 assert.equal(shop.node('[data-slot-card]',1,'slotCard').draggable,false,'No additional moves draggable');
 
 const touch=launch(initial());
@@ -120,6 +138,8 @@ assert(grip?.onpointerdown,'Touch grip available');
 touch.setTarget(3);
 grip.onpointerdown({pointerType:'touch',clientX:70,clientY:300,cancelable:true,preventDefault(){}});
 assert.equal(touch.ghosts(),1,'Touch drag creates floating preview');
+assert.equal(touch.lastGhost().tagName,'img','Touch item uses item sprite');
+assert.match(touch.lastGhost().src,/\/items\/leftovers\.png$/);
 touch.listeners.pointerup({clientX:70,clientY:300});
 assert.equal(touch.state().items[3],'Leftovers','Touch release equips item');
 
