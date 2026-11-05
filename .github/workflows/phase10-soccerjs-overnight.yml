@@ -1,12 +1,6 @@
 name: PokéFC Phase 10 — Soccer-JS overnight feasibility
 
 on:
-  push:
-    branches:
-      - experiment/phase10-soccerjs-overnight
-    paths:
-      - ".github/workflows/phase10-soccerjs-overnight.yml"
-      - "scripts/phase10-soccerjs-overnight.cjs"
   workflow_dispatch:
 
 permissions:
