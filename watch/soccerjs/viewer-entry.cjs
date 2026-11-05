@@ -4,12 +4,13 @@ const {Settings}=require('./kernel/settings.js');
 const {Simulator}=require('./kernel/providers/simulator/simulator.js');
 const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
-const {motionFrame}=require('./phase10-motion.cjs');
+const {motionFrame,shotSummary,playbackRate,cameraFocus}=require('./phase10-motion.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1;
+let trackedCamera=null,trackedMinute=null;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -39,7 +40,7 @@ function scoreAt(t){
  const s=[0,0];for(const g of match.events)if(g.minute<=t)s[g.team===match.home.id?0:1]++;
  return s;
 }
-function cameraFit(canvas,field,ball){
+function cameraFit(canvas,field,ball,t){
  const p=Settings.projectionMode;
  // Screen extents per one world unit, from the unchanged original Soccer-JS
  // projection transforms (Utils.toScreen). Do not substitute our own art.
@@ -48,16 +49,18 @@ function cameraFit(canvas,field,ball){
  const h=p==='isometric'?(field.width+field.height)*.3:field.height*.8;
  const fit=Math.min(canvas.width*.78/w,canvas.height*.70/h);
  const camera=$('camera').value==='follow'?'follow':'wide';
- Settings.camera.scale=fit*(camera==='follow'?1.43:1);
+ Settings.camera.scale=fit*(camera==='follow'?1.20:1);
  const corners=[[0,0],[field.width,0],[0,field.height],[field.width,field.height]]
    .map(([x,y])=>Utils.toScreen(x,y,0));
  const xs=corners.map(v=>v.x),ys=corners.map(v=>v.y);
  const center={x:(Math.min(...xs)+Math.max(...xs))/2,y:(Math.min(...ys)+Math.max(...ys))/2};
  const focus=Utils.toScreen(ball.x,ball.y,0);
  if(camera==='follow'){
-  center.x=mix(center.x,focus.x,.82);
-  center.y=mix(center.y,focus.y,.82);
- }
+  const desired={x:mix(center.x,focus.x,.62),y:mix(center.y,focus.y,.62)};
+  trackedCamera=cameraFocus(trackedCamera,desired,trackedMinute===null?NaN:t-trackedMinute);
+  trackedMinute=t;
+  center.x=trackedCamera.x;center.y=trackedCamera.y;
+ }else{trackedCamera=null;trackedMinute=null;}
  return {projection:p,camera,scale:Settings.camera.scale,
   tx:canvas.width/2-center.x,ty:canvas.height/2-center.y,
   visibleWorld:[field.width,field.height]};
@@ -75,7 +78,7 @@ function render(t){
  sim.ball.vx=sim.ball.vy=sim.ball.vz=0;
  sim.scoreA=s[0];sim.scoreB=s[1];sim.matchTimer=t*60;
  const canvas=$('pitch'),ctx=canvas.getContext('2d');
- const camera=cameraFit(canvas,field,script.ball);
+ const camera=cameraFit(canvas,field,script.ball,t);
  window.__PFC_DRAWN__=0;window.__PFC_REAL_SPRITES_DRAWN__=0;
  const distances=script.actors.map(p=>Math.hypot(p.x-script.ball.x,p.y-script.ball.y));
  const nearest=Math.min(...distances);ballCarrier=nearest<12?distances.indexOf(nearest):-1;
@@ -114,13 +117,13 @@ function render(t){
 }
 function step(now){
  if(playing){
-  if(last!==null)minute=Math.min(stopAt,minute+Math.min(.1,(now-last)/1000)*.5*speed);
+  if(last!==null)minute=Math.min(stopAt,minute+Math.min(.1,(now-last)/1000)*playbackRate(minute,match.events,speed));
   if(minute>=stopAt)playing=false;
   last=now;render(minute);
  }
  requestAnimationFrame(step);
 }
-function seek(t){playing=false;last=null;minute=Math.max(0,Math.min(90,t));render(minute);}
+function seek(t){playing=false;last=null;trackedCamera=null;trackedMinute=null;minute=Math.max(0,Math.min(90,t));render(minute);}
 async function boot(){
  try{
   window.__APP_ROOT__=new URL('./',location.href).href;
@@ -159,8 +162,7 @@ async function boot(){
      (helper?' (assist '+helper.name+')':'');
    list.append(row);
   }
-  $('stats').textContent='Shots '+match.stats[0].shots+'–'+match.stats[1].shots+
-   ' · On target '+match.stats[0].shotsOnTarget+'–'+match.stats[1].shotsOnTarget;
+  $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{if(minute>=90)minute=0;stopAt=90;last=null;playing=true;};
   $('playFive').onclick=()=>{if(minute>=90)minute=0;stopAt=Math.min(90,(Math.floor(minute/5)+1)*5);last=null;playing=true;};
   $('pause').onclick=()=>seek(minute);
@@ -178,7 +180,7 @@ async function boot(){
    sim.pitch?.invalidateRenderCache?.();
    render(minute);
   };
-  $('camera').onchange=()=>{sim.pitch?.invalidateRenderCache?.();render(minute);};
+  $('camera').onchange=()=>{trackedCamera=null;trackedMinute=null;sim.pitch?.invalidateRenderCache?.();render(minute);};
   $('showNumbers').onchange=()=>render(minute);
   for(const id of ['play','playFive','pause','restart','skip','nextGoal','scrub'])$(id).disabled=false;
   window.addEventListener('message',e=>{
@@ -209,7 +211,7 @@ async function boot(){
     $('projection').value=msg.projection;Settings.projectionMode=msg.projection;
     sim.pitch?.invalidateRenderCache?.();render(minute);
    }else if(msg.action==='camera'&&['wide','follow'].includes(msg.camera)){
-    $('camera').value=msg.camera;sim.pitch?.invalidateRenderCache?.();render(minute);
+    $('camera').value=msg.camera;trackedCamera=null;trackedMinute=null;sim.pitch?.invalidateRenderCache?.();render(minute);
    }else if(msg.action==='numbers'){
     $('showNumbers').checked=!!msg.visible;render(minute);
    }
