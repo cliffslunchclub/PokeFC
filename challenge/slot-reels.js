@@ -40,7 +40,7 @@
   const region=REGIONS[(Math.max(1,Number(result.gen)||1)-1)%REGIONS.length];
   const data={region,type:String(result.type||'NORMAL').toUpperCase(),count:Math.max(0,Number(result.count)||0)};
   const reels={region:el.querySelector('[data-reel-value="region"]'),type:el.querySelector('[data-reel-value="type"]'),pool:el.querySelector('[data-reel-value="pool"]')};
-  if(!Object.values(reels).every(Boolean))return;
+  if(!Object.values(reels).every(Boolean)){onDone();return}
   const willSpin=Boolean(opts.animate)&&typeof setInterval==='function'&&typeof setTimeout==='function'&&!(root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
   const slot={root:el,result:data,timers:[],timeouts:[],cancelled:false,onDone};
   active=slot;
