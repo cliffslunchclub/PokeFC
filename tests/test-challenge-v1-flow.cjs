@@ -38,12 +38,15 @@ function runCase(pool,legends){
  document.getElementById('leg').value=legends?'on':'off';
  document.getElementById('start').onclick();
  assert.equal(get().phase,'draft');
+ assert.equal(get().selected,9,'First default 4-3-3 pick is ST, not LW');
+ assert.match(app.innerHTML,/ST POSITION/,'Selected position label starts at striker');
  let picks=0;
  while(get().phase==='draft'&&picks<12){
   const opts=bound.get('[data-pick]')||[];
   const choice=opts.find(x=>!x.disabled);
   assert(choice,'There must be an eligible Pokémon for every draft slot ('+pool+', '+legends+')');
   choice.onclick();picks++;
+  if(picks===1)assert.equal(get().selected,8,'After ST, draft continues to LW');
  }
  assert.equal(picks,11,'11 picks complete');
  assert.equal(get().phase,'shop');
@@ -62,6 +65,11 @@ function runCase(pool,legends){
  document.getElementById('lock').onclick();
  document.getElementById('challengeMessageConfirm').onclick();
  assert.equal(get().phase,'locked');
+ assert.match(app.innerHTML,/aria-label="Gauntlet match controls"/,'Quick Sim/Watch controls are inside the full-width Gauntlet');
+ assert(app.innerHTML.indexOf('id="play"')<app.innerHTML.indexOf('challenge-run-layout'),'Quick Sim appears before pitch columns');
+ assert(app.innerHTML.indexOf('WATCH MATCH')<app.innerHTML.indexOf('challenge-run-layout'),'Watch Match appears before pitch columns');
+ assert.equal((app.innerHTML.match(/id="play"/g)||[]).length,1,'Only one Quick Sim action exists');
+ assert.equal((app.innerHTML.match(/WATCH MATCH/g)||[]).length,1,'Only one Watch Match action exists');
  assert.equal(get().locked.items[0],'Leftovers');
  for(let round=0;round<6;round++){
   assert.equal(get().round,round);
