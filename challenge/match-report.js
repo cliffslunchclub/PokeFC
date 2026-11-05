@@ -21,7 +21,7 @@
    if(!period&&side==null)continue;
    const minute=num(e.minute);
    let minuteLabel=safe(e.minuteLabel).replace(/'$/,'').trim();
-   if(!validLabel(minuteLabel))minuteLabel=inRange(minute)?String(Math.floor(minute)+1):'?';
+   if(!validLabel(minuteLabel))minuteLabel=inRange(minute)?String(Math.floor(minute)+(period?0:1)):'?';
    const rawCard=typeof e.card==='string'?e.card:typeof e.card?.type==='string'?e.card.type:'';
    const card=/red/i.test(rawCard)?'red':/yellow/i.test(rawCard)?'yellow':null;
    all.push({type:e.type,side,minute:inRange(minute)?scalar(minute):null,minuteLabel,
