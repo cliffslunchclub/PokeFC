@@ -1152,3 +1152,17 @@
 .challenge-draft-candidates{display:contents}
 .challenge-draft-candidates[hidden],.challenge-draft-rolling-note[hidden]{display:none!important}
 .challenge-draft-rolling-note{display:block;margin:12px 16px 18px!important;padding:16px 12px;border:1px dashed #8dbb97;border-radius:9px;background:#193e3d;color:#d9f6dc!important;font-size:11px!important;font-weight:900!important;letter-spacing:.045em;text-align:center}
+
+
+/* Recap additions use only the saved Quick Sim match-box/side totals.
+   Older runs show dashes rather than simulated-but-unrecorded player data. */
+.tournament-team-summary{margin:13px 0 12px;padding:12px;border:1px solid #52746f;border-radius:9px;background:#173842}
+.tournament-team-summary h4{margin:0 0 9px;font-size:11px;font-weight:950;letter-spacing:.085em;color:#cdebc6}
+.tournament-team-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.tournament-team-metrics>div{display:flex;flex-direction:column;gap:3px;min-width:0;border:1px solid #527076;border-radius:6px;padding:9px 5px;background:#1d3749;text-align:center}
+.tournament-team-metrics small{color:#b7d3d5;font-size:8px;font-weight:900;letter-spacing:.035em;line-height:1.25}
+.tournament-team-metrics strong{color:#f6eed0;font-size:15px;font-weight:1000;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tournament-team-summary p{margin:8px 0 0!important;color:#b9d2d0!important;font-size:9px!important;line-height:1.45!important}
+.tournament-pokemon-stats .pokemon-tackle-stat,.tournament-pokemon-stats .pokemon-tackle-rate{background:#263e4b;border:1px solid #63818b;border-radius:4px;padding:1px 4px}
+.tournament-pokemon-stats .pokemon-tackle-stat b,.tournament-pokemon-stats .pokemon-tackle-rate b{color:#d4e5cb}
+@media(max-width:680px){.tournament-team-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.tournament-team-metrics strong{font-size:14px}}
