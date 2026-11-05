@@ -8,10 +8,13 @@ const cases=[['4-3-3',9],['4-2-3-1',10],['4-4-2',9],['3-5-2',9],['5-3-2',9]];
 for(const [formation,expectedStriker] of cases){
  let saved=null;
  const controls={};
- const app={innerHTML:'',querySelectorAll(sel){
-  if(sel==='[data-pick]')return [...this.innerHTML.matchAll(/<button data-pick="(\d+)"([^>]*)>/g)]
+ const bound=new Map();
+ const app={html:'',set innerHTML(value){this.html=value;bound.clear()},get innerHTML(){return this.html},querySelectorAll(sel){
+  if(bound.has(sel))return bound.get(sel);
+  let nodes=[];
+  if(sel==='[data-pick]')nodes=[...this.innerHTML.matchAll(/<button data-pick="(\d+)"([^>]*)>/g)]
     .map(x=>({dataset:{pick:x[1]},disabled:/\bdisabled\b/.test(x[2]),onclick:null}));
-  return [];
+  bound.set(sel,nodes);return nodes;
  }};
  const doc={getElementById(id){
   if(id==='app')return app;
