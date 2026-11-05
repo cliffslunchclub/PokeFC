@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=30">
+<link rel="stylesheet" href="./challenge.css?v=31">
 <link rel="stylesheet" href="../newtro.css?v=1">
 </head>
 <body>
@@ -504,7 +504,7 @@ function leaderboardMarkup(){
   '<button class="leaderboard-category '+(c.id===selected.id?'active':'')+'" id="lb-'+c.id+'" type="button" aria-pressed="'+(c.id===selected.id?'true':'false')+'">'+esc(c.label)+'</button>').join('');
  const listing=rows.length?rows.map((run,i)=>{
    const players=(run.roster||[]).map(id=>BY.get(id)?.name||'Unknown').join(' · ');
-   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(m.boss)+' '+esc(m.score.join('–')+penaltyScore(m))+'</summary>'+matchReportHtml(m)+'</details>').join('');
+   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(versusLabel(m.boss))+' · '+esc(resultLabel(m.outcome,true))+' · '+esc(m.score.join('–')+penaltyScore(m))+'</summary>'+matchReportHtml(m)+'</details>').join('');
    return '<div class="leaderboard-row">'+
     '<span class="lb-rank">#'+(i+1)+'</span><div class="lb-identity"><strong>'+(run.champion?'🏆 CHAMPION RUN':'INDIGO RUN')+'</strong><small>'+
     esc(run.formation||'4-3-3')+' · '+esc(String(run.finishedAt||'').slice(0,10))+'</small></div>'+
@@ -546,6 +546,13 @@ function runStats(){
  return {matches,wins,lost,champion,line,formation,score:Number.isFinite(score)?score:teamScore(),
   category:(st.pool===4?'CLASSIC · GEN I–IV':'NATIONAL · GEN I–IX')+' / LEGENDS '+(st.legends?'ON':'OFF')};
 }
+function resultLabel(outcome,compact=false){
+ if(outcome==='Victory')return compact?'WIN':'VICTORY';
+ if(outcome==='Defeat')return compact?'LOSS':'DEFEAT';
+ if(outcome==='Draw')return 'DRAW';
+ return 'RESULT';
+}
+function versusLabel(boss){return 'VS '+String(boss||'OPPONENT').toUpperCase()}
 function runShareText(){
  const r=runStats();
  const roster=r.line.map((id,i)=>FORMS[r.formation][i]+' '+displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name).join(', ');
@@ -555,7 +562,7 @@ function runShareText(){
   r.category,
   'TEAM SCORE: '+r.score.toFixed(1)+' · FORMATION: '+r.formation,
   'RECORD: '+r.wins+'W–'+r.lost+'L · MATCHES: '+r.matches.length+'/6',
-  'RESULTS: '+r.matches.map(m=>m.boss+' '+m.score.join('–')+penaltyScore(m)+' ('+m.outcome+')').join(' | '),
+  'RESULTS: '+r.matches.map(m=>versusLabel(m.boss)+' · '+resultLabel(m.outcome,true)+' · '+m.score.join('–')+penaltyScore(m)).join(' | '),
   'FINAL XI: '+roster,
   'HELD ITEMS: '+(equipment.length?equipment.join(', '):'None'),
   'Try the challenge: https://pfc.cliffslunchclub.com/challenge/',
@@ -580,9 +587,9 @@ function shootoutMarkup(match){
   '<details class="shootout-kicks"><summary>VIEW PENALTY KICKS · '+attempts.length+' ATTEMPTS</summary>'+rows+'</details>'+
   '<small>Provisional seeded Quick Sim shootout. Attempts are modeled separately from match goals; full extra-time and penalty physics are not yet available.</small></section>';
 }
-function penaltyScore(match){
+function penaltyScore(match,verbose=false){
  const p=match?.shootout;
- return p?' (P '+p.home+'–'+p.away+')':'';
+ return p?' ('+(verbose?'PENALTIES ':'P ')+p.home+'–'+p.away+')':'';
 }
 function lineupPerformance(ids,formation,items=[],boss=null){
  const positions=FORMS[formation]||FORMS['4-3-3'];
@@ -677,8 +684,8 @@ function matchReportHtml(match){
 function matchHistoryHtml(history){
  if(!history?.length)return '';
  return '<div class="gauntlet-history"><h3>PREVIOUS MATCH REPORTS</h3>'+
-  history.map((m,i)=>'<details class="gauntlet-history-game"><summary><span>0'+(i+1)+' · '+esc(m.boss||'Opponent')+'</span>'+
-  '<strong>'+esc((m.score||[0,0]).join(' – ')+penaltyScore(m))+'</strong><small>'+esc(m.outcome||'—')+'</small></summary>'+
+  history.map((m,i)=>'<details class="gauntlet-history-game"><summary><span>0'+(i+1)+' · '+esc(versusLabel(m.boss))+'</span>'+
+  '<strong>'+esc((m.score||[0,0]).join(' – ')+penaltyScore(m))+'</strong><small>'+esc(resultLabel(m.outcome,true))+'</small></summary>'+
   matchReportHtml(m)+'</details>').join('')+'</div>';
 }
 function completedRunCard(){
@@ -727,9 +734,9 @@ function completedRunCard(){
    '</div></div>';
  }).join('')+'</div>';
  const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name)+'</span>').join('');
- const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
+ const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(versusLabel(m.boss))+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(resultLabel(m.outcome,true))+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
-  '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
+  '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 SIX WINS · CHAMPION':'LOSS · '+esc(versusLabel(last?.boss)))+'</span></div>'+
   '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
   '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Save your squad and results or try another draft.')+'</p>'+
   '<div class="run-metrics"><div><span>TEAM SCORE</span><strong>'+r.score.toFixed(1)+'</strong></div>'+
@@ -902,9 +909,9 @@ if(gauntletStarted){
   '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>{
    const result=st.history[i],current=i===st.round;
    const status=result?(result.outcome==='Victory'?'✓':'×'):current?'●':'–';
-   return '<div class="challenge-road-step'+(result?' done '+(result.outcome==='Victory'?'won':'lost'):'')+(current?' current':'')+'" aria-label="'+esc(boss.leader+' · '+(result?(result.outcome||'Played'):'Upcoming'))+'">'+
-    '<span class="road-step-number">MATCH '+(i+1)+'</span><strong>'+esc(boss.leader.toUpperCase())+'</strong>'+
-    '<span class="road-step-status">'+(result?esc((result.score?.join(' – ')||status)+penaltyScore(result)):status)+'</span></div>';
+   return '<div class="challenge-road-step'+(result?' done '+(result.outcome==='Victory'?'won':'lost'):'')+(current?' current':'')+'" aria-label="'+esc(versusLabel(boss.leader)+' · '+(result?resultLabel(result.outcome,true):'UPCOMING'))+'">'+
+    '<span class="road-step-number">MATCH '+(i+1)+'</span><strong>'+esc(versusLabel(boss.leader))+'</strong>'+
+    '<span class="road-step-status">'+(result?esc(resultLabel(result.outcome,true)+' · '+(result.score?.join(' – ')||status)+penaltyScore(result)):status)+'</span></div>';
   }).join('')+'</div>'+
   '<div class="challenge-versus-rating" aria-label="Team rating comparison">'+
    '<div class="team-rating home"><span>YOUR XI · '+esc(st.formation)+'</span><strong>'+playerScore.toFixed(1)+'</strong></div>'+
@@ -912,13 +919,13 @@ if(gauntletStarted){
    '<div class="team-rating away"><span>'+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+' · '+esc(currentBoss?.formation||'—')+'</span><strong>'+(bossScore==null?'—':bossScore.toFixed(1))+'</strong></div></div>'+
   '<p class="challenge-rating-note">Team scores are average positional-fit ratings (0–100), including held-item effects—not predicted match odds.</p>'+
   (st.phase==='locked'?'<div class="challenge-gauntlet-actions" aria-label="Gauntlet match controls">'+
-   '<div class="challenge-gauntlet-action-copy"><strong>MATCH '+(st.round+1)+' / 6 · '+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+'</strong>'+
+   '<div class="challenge-gauntlet-action-copy"><strong>MATCH '+(st.round+1)+' / 6 · '+esc(versusLabel(currentBoss?.leader))+'</strong>'+
    '<span>'+esc(currentBoss?.formation||'4-3-3')+' · '+esc(currentBoss?.tactic||'balanced')+' tactics · Final XI and items locked</span></div>'+
    '<div class="challenge-gauntlet-action-buttons"><button id="play" class="primary" type="button">QUICK SIM →</button>'+
    '<a class="challenge-watch-link" href="../play/?challenge=1&amp;watch=soccerjs">WATCH MATCH ↗</a></div>'+
    '<p class="challenge-gauntlet-action-note">Watch the same locked XI and boss, or Quick Sim instantly. Watched matches can hand off to Quick Sim.</p></div>':
    st.phase==='result'&&st.result?.outcome==='Victory'?'<div class="challenge-gauntlet-actions challenge-gauntlet-next" aria-label="Match result access">'+
-   '<div class="challenge-gauntlet-action-copy"><strong>'+esc(st.result.boss||'OPPONENT')+' DEFEATED</strong><span>Review the score and recorded match events before facing the next boss.</span></div>'+
+   '<div class="challenge-gauntlet-action-copy"><strong>'+esc(versusLabel(st.result.boss))+' · WIN</strong><span>Review the score and recorded match events before facing the next boss.</span></div>'+
    '<div class="challenge-gauntlet-action-buttons"><button id="openMatchResultModal" class="primary" type="button">VIEW MATCH RESULT →</button></div></div>':'')+
  '</section>';
  if(hasReports)body+='<dialog id="challengeHistoryModal" class="challenge-dialog challenge-history-dialog" aria-labelledby="challengeHistoryTitle">'+
@@ -1067,8 +1074,8 @@ if(st.phase==='result'){
  body+='<dialog id="challengeMatchResultModal" class="challenge-dialog challenge-match-result-dialog" aria-labelledby="challengeMatchResultTitle">'+
   '<div class="challenge-dialog-bar"><span>MATCH '+(st.round+1)+' / 6 · OFFICIAL RESULT</span>'+
   '<button type="button" id="closeMatchResultModal" aria-label="Close match result">✕ CLOSE</button></div>'+
-  '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">INDIGO LEAGUE · VICTORY</span>'+
-  '<h2 id="challengeMatchResultTitle">'+esc(st.result?.boss||'Opponent')+' DEFEATED</h2>'+
+  '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">MATCH '+(st.round+1)+' · '+esc(versusLabel(st.result?.boss))+'</span>'+
+  '<h2 id="challengeMatchResultTitle" class="challenge-result-verdict '+(st.result?.outcome==='Victory'?'win':'loss')+'">'+esc(resultLabel(st.result?.outcome))+'</h2>'+
   '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – '))+'</h1></div>'+
   matchReportHtml(st.result)+'</div>'+
   '<footer class="challenge-match-result-actions"><button type="button" id="closeMatchResultFooter">BACK TO MY XI</button>'+
@@ -1076,17 +1083,17 @@ if(st.phase==='result'){
  '</dialog>';
 }
 if(st.phase==='finished'&&st.result)body+='<section class="panel challenge-last-match" aria-label="Final match summary">'+
- '<span class="pfc-eyebrow">FINAL GAUNTLET MATCH · '+esc(st.result.outcome||'RESULT')+'</span>'+
- '<h2>'+esc(st.result.boss||'OPPONENT')+' · '+esc((st.result.score||[0,0]).join(' – ')+penaltyScore(st.result))+'</h2>'+
+ '<span class="pfc-eyebrow">FINAL MATCH · '+esc(versusLabel(st.result?.boss))+'</span>'+
+ '<h2>'+esc(resultLabel(st.result?.outcome))+' · '+esc((st.result.score||[0,0]).join(' – ')+penaltyScore(st.result,true))+'</h2>'+
  '<p class="challenge-last-match-summary">Review the last match first, then continue to your tournament overview.</p>'+
  '<button type="button" id="openLastMatchModal" class="primary">VIEW FINAL MATCH →</button></section>';
 if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><div><strong>RUN COMPLETE</strong><p>Your finished Gauntlet results are saved in this browser.</p></div><button type="button" id="openRunModal" class="primary">VIEW TOURNAMENT OVERVIEW →</button></section>'+
  '<dialog id="runCompleteModal" class="challenge-dialog challenge-run-dialog" aria-labelledby="runRecapModalTitle">'+
  '<div class="challenge-dialog-bar"><span id="runRecapModalTitle">POKÉFC · MATCH RESULT</span><button type="button" id="closeRunModal" aria-label="Close results">✕ CLOSE</button></div>'+
  '<div id="runFinishMatchStep" class="challenge-run-step">'+
- '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">FINAL MATCH · '+esc(st.result?.outcome||'RESULT')+'</span>'+
- '<h2 id="finalMatchHeading">'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'RESULT')+'</h2>'+
- '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – ')+penaltyScore(st.result))+'</h1></div>'+
+ '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">FINAL MATCH · '+esc(versusLabel(st.result?.boss))+'</span>'+
+ '<h2 id="finalMatchHeading" class="challenge-result-verdict '+(st.result?.outcome==='Victory'?'win':'loss')+'">'+esc(resultLabel(st.result?.outcome))+'</h2>'+
+ '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – '))+'</h1>'+(st.result?.shootout?'<p class="challenge-shootout-caption">PENALTIES '+esc(st.result.shootout.home+'–'+st.result.shootout.away)+'</p>':'')+'</div>'+
  matchReportHtml(st.result)+'</div>'+
  '<footer class="challenge-match-result-actions"><button type="button" id="finishCloseMatch">BACK TO PITCH</button>'+
  '<button type="button" id="continueTournamentOverview" class="primary">CONTINUE TO TOURNAMENT OVERVIEW →</button></footer></div>'+
