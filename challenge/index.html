@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=11">
+<link rel="stylesheet" href="./challenge.css?v=12">
 </head>
 <body>
 <header class="pfc-header">
@@ -70,8 +70,8 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
  </div>
 </dialog>
 </div>
-<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
-<script src="./drag-drop.js?v=2"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js?v=2"></script>
+<script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -94,12 +94,18 @@ function displayPokemon(s,item){
  if(!form)return {name:s.name,spriteId:fallbackId,fallbackId,mega:false};
  const variant=form.form.split('-mega')[1]||'';
  const suffix=variant?' '+variant.replace(/^-/, '').toUpperCase():'';
- return {name:'Mega '+s.name+suffix,spriteId:window.PFC_CHALLENGE_MEGA_SPRITES?.[form.form]||fallbackId,fallbackId,mega:true};
+ const name=form.primal?'Primal '+s.name:'Mega '+s.name+suffix;
+ return {name,spriteId:window.PFC_CHALLENGE_MEGA_SPRITES?.[form.form]||fallbackId,fallbackId,mega:true};
 }
 function displaySprite(s,item,cssClass=''){
  const data=displayPokemon(s,item);
  const root='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
  return '<img class="'+cssClass+'" loading="lazy" alt="" src="'+root+data.spriteId+'.png" onerror="this.onerror=null;this.src=\''+root+data.fallbackId+'.png\'">';
+}
+function itemSprite(name,className='item-sprite'){
+ if(!name)return '';
+ const slug=String(name).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ return '<img class="'+className+'" loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/'+slug+'.png" onerror="this.onerror=null;this.style.display=\'none\'">';
 }
 function itemFor(s,name){
  if(!s||!name)return null;
@@ -136,7 +142,8 @@ function shopCatalog(){
 }
 function itemEffect(item){
  if(item[0]==='Eviolite')return '+20 to every base stat (evolvable only)';
- if(st.roster.some(id=>megaForm(BY.get(id),item[0])))return 'Mega Evolution · one per XI';
+ const form=st.roster.map(id=>megaForm(BY.get(id),item[0])).find(Boolean);
+ if(form)return (form.primal?'Primal Reversion':'Mega Evolution')+' · one transformation per XI';
  return Object.entries(item[2]).map(([k,v])=>k.replace('spAttack','Sp. Atk').replace('spDefense','Sp. Def')+' +'+v).join(' · ');
 }
 function itemTargets(name){
@@ -151,7 +158,7 @@ function equipShopItem(name,index){
  if(previous!==-1&&previous!==i)proposal[previous]=null; // Moving a unique item is allowed until lock.
  proposal[i]=name||null; // The replaced item is automatically refunded.
  const megaCount=proposal.filter((item,j)=>Boolean(megaForm(BY.get(st.roster[j]),item))).length;
- if(megaCount>1)return {ok:false,error:'Only one Mega Evolution is allowed per team.'};
+ if(megaCount>1)return {ok:false,error:'Only one Mega Evolution or Primal Reversion is allowed per team.'};
  const total=proposal.reduce((sum,item,j)=>sum+(itemFor(BY.get(st.roster[j]),item)?.[1]||0),0);
  if(total>1000)return {ok:false,error:'That assignment exceeds your ₽1,000 equipment budget.'};
  if(new Set(proposal.filter(Boolean)).size!==proposal.filter(Boolean).length)return {ok:false,error:'Each held item is unique.'};
@@ -164,21 +171,25 @@ function shopMarkup(used){
  const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
  if(!current)selectedShopItem=catalog[0]?.[0]||null;
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
- const eligible=itemTargets(name),held=st.items.indexOf(name);
+ const order=draftOrder(st.formation).sort((a,b)=>Number(FORMS[st.formation][b]==='ST')-Number(FORMS[st.formation][a]==='ST'));
+ const eligible=itemTargets(name).sort((a,b)=>order.indexOf(a.i)-order.indexOf(b.i)),held=st.items.indexOf(name);
  const selected=eligible.find(x=>x.i===held)||eligible[0];
  const options=eligible.map(x=>'<option value="'+x.i+'" '+(x.i===selected?.i?'selected':'')+'>'+esc(FORMS[st.formation][x.i]+' · '+x.pokemon.name)+(st.items[x.i]&&st.items[x.i]!==name?' · replacing '+esc(st.items[x.i]):'')+'</option>').join('');
- const assigned=st.items.map((n,i)=>n?'<div class="shop-equipped-row"><span>'+esc(BY.get(st.roster[i]).name)+' <small>('+FORMS[st.formation][i]+')</small></span><b>'+esc(n)+'</b><button data-shop-clear="'+i+'" type="button" aria-label="Remove '+esc(n)+' from '+esc(BY.get(st.roster[i]).name)+'">×</button></div>':'').filter(Boolean).join('');
+ const assigned=draftOrder(st.formation).map(i=>{
+  const n=st.items[i];if(!n)return '';
+  return '<div class="shop-equipped-row"><span>'+esc(displayPokemon(BY.get(st.roster[i]),n).name)+' <small>('+FORMS[st.formation][i]+')</small></span><b class="shop-equipped-item">'+itemSprite(n)+esc(n)+'</b><button data-shop-clear="'+i+'" type="button" aria-label="Remove '+esc(n)+' from '+esc(BY.get(st.roster[i]).name)+'">×</button></div>';
+ }).filter(Boolean).join('');
  return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
-  '<p>Drag an item onto a Pokémon on the pitch, or use the Pokémon dropdown below. Item compatibility, refunds, and budget rules still apply.</p>'+
+  '<p>Drag an item card or its DRAG grip directly onto a Pokémon on the pitch, or use the Pokémon dropdown (forwards first, GK last). Item compatibility, refunds, and budget rules still apply.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
   '<div id="shopCatalog" class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
    const n=it[0],holder=st.items.indexOf(n),targets=itemTargets(n),active=n===selectedShopItem;
    return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
-    '<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span><span class="challenge-drag-grip item-grip" data-drag-grip="item" data-drag-value="'+esc(n)+'" title="Drag onto Pokémon">⠿ DRAG</span><small>'+esc(itemEffect(it))+'</small>'+
+    '<span class="shop-item-main">'+itemSprite(n)+'<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span></span><span class="challenge-drag-grip item-grip" data-drag-grip="item" data-drag-value="'+esc(n)+'" title="Drag onto Pokémon">⠿ DRAG</span><small>'+esc(itemEffect(it))+'</small>'+
     '<span class="shop-item-status">'+(holder>=0?'✓ EQUIPPED · '+esc(BY.get(st.roster[holder]).name):targets.length?'CHOOSE ITEM':'NOT ELIGIBLE')+'</span></button>';
   }).join('')+'</div>'+
-  '<div class="shop-assign-panel"><h3>'+esc(name)+'</h3><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
+  '<div class="shop-assign-panel"><div class="shop-selected-item">'+itemSprite(name)+'<h3>'+esc(name)+'</h3></div><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
    '<label for="shopTarget">Assign to Pokémon</label><select id="shopTarget" '+(!eligible.length?'disabled':'')+'>'+options+'</select>'+
    '<button type="button" id="equipShopItem" class="primary" '+(!eligible.length?'disabled':'')+'>'+(held>=0?'MOVE / REASSIGN ITEM':'EQUIP ITEM')+'</button>'+
    (held>=0?'<button type="button" id="removeSelectedItem" class="shop-remove">REMOVE FROM '+esc(BY.get(st.roster[held]).name.toUpperCase())+'</button>':'')+
@@ -609,7 +620,7 @@ body+=slots.map((pos,i)=>{
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
  visibleStats+
  (s&&(isDraft||isShop)&&st.moves>0?'<span class="challenge-drag-grip slot-grip" data-drag-grip="pokemon" data-drag-value="'+i+'" title="Drag to move/swap (uses one move)">⠿</span>':'')+
- (s&&st.items[i]?'<span class="held-item-badge" '+(isShop?'data-held-item-source="'+i+'" data-drag-grip="held-item" data-drag-value="'+i+'" ':'')+'title="'+esc(st.items[i])+'">'+esc(st.items[i])+'</span>':'')+'</div>';
+ (s&&st.items[i]?'<span class="held-item-badge" '+(isShop?'data-held-item-source="'+i+'" data-drag-grip="held-item" data-drag-value="'+i+'" ':'')+'title="'+esc(st.items[i])+'">'+itemSprite(st.items[i])+'<span>'+esc(st.items[i])+'</span></span>':'')+'</div>';
 }).join('');
 body+='</div>'+
 '<details class="challenge-fit-guide"><summary>HOW POSITION FIT WORKS <small>ROLE WEIGHTS · ITEMS · TIERS</small></summary>'+

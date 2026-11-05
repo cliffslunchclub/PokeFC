@@ -42,6 +42,7 @@ on:
       - "tests/test-challenge-slot-reels.cjs"
       - "tests/test-challenge-tier-positions.cjs"
       - "tests/test-challenge-special-items.cjs"
+      - "tests/test-challenge-primal-items.cjs"
       - "tests/test-challenge-match-report.cjs"
       - "tests/test-challenge-drag-drop.cjs"
       - "tests/test-challenge-penalties.cjs"
@@ -94,6 +95,7 @@ jobs:
           node tests/test-free-builder.cjs
           node tests/test-branding.cjs
           node tests/test-challenge-special-items.cjs
+          node tests/test-challenge-primal-items.cjs
           node tests/test-challenge-match-report.cjs
           node tests/test-challenge-drag-drop.cjs
           node tests/test-challenge-penalties.cjs
