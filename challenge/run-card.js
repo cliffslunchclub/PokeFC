@@ -26,7 +26,7 @@
    players:line.map((id,i)=>{
     const item=String(st.locked.items?.[i]||''),base=String(byId.get(id)?.name||'Unknown');
     const mega=(root.PFC_CHALLENGE_SPECIAL?.megas?.[id]||[]).find(x=>x.stone===item),suffix=mega?.form?.split('-mega')[1]||'';
-    return {id,role:positions[i],name:mega?'Mega '+base+(suffix?' '+suffix.replace(/^-/, '').toUpperCase():''):base,
+    return {id,role:positions[i],name:mega?(mega.primal?'Primal '+base:'Mega '+base+(suffix?' '+suffix.replace(/^-/, '').toUpperCase():'')):base,
      spriteId:mega?root.PFC_CHALLENGE_MEGA_SPRITES?.[mega.form]||id:id,item};
    }),
    results:st.history.map(m=>({boss:String(m.boss||''),score:Array.isArray(m.score)?m.score.slice(0,2):[0,0],outcome:String(m.outcome||'Defeat'),shootout:m.shootout?{home:Number(m.shootout.home)||0,away:Number(m.shootout.away)||0}:null})),
