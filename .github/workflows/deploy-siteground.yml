@@ -23,12 +23,8 @@ on:
       - "species.js"
       - "quick-sim.js"
       - "calibration-profile.js"
-      - "hybrid-sim.js"
-      - "tm-engine-bridge.js"
       - "tactical-viewer.js"
       - "soccerjs-franchise-viewer.js"
-      - "tm-worker.js"
-      - "tacticmesh/vendor/**"
       - "scripts/build-siteground.sh"
       - "tests/test-national-dex.cjs"
       - "tests/test-free-builder.cjs"
@@ -45,7 +41,6 @@ on:
       - "tests/test-challenge-run-card.cjs"
       - "tests/test-challenge-v1-flow.cjs"
       - "tests/test-challenge-striker-first.cjs"
-      - "tests/test-challenge-watch-v1.cjs"
       - "tests/test-challenge-slot-reels.cjs"
       - "tests/test-challenge-unique-rerolls.cjs"
       - "tests/test-challenge-tier-positions.cjs"
@@ -62,7 +57,6 @@ on:
       - "tests/test-v08-league.cjs"
       - "tests/test-franchise-soccerjs-watch.cjs"
       - "tests/test-challenge-soccerjs-watch.cjs"
-      - "tests/test-hybrid.cjs"
       - ".github/workflows/deploy-siteground.yml"
 
 permissions:
@@ -111,7 +105,6 @@ jobs:
           node tests/test-challenge-run-card.cjs
           node tests/test-challenge-v1-flow.cjs
           node tests/test-challenge-striker-first.cjs
-          node tests/test-challenge-watch-v1.cjs
           node tests/test-challenge-slot-reels.cjs
           node tests/test-challenge-unique-rerolls.cjs
           node tests/test-challenge-tier-positions.cjs
@@ -130,7 +123,6 @@ jobs:
           node tests/test-v08-league.cjs
           node tests/test-franchise-soccerjs-watch.cjs
           node tests/test-challenge-soccerjs-watch.cjs
-          node tests/test-hybrid.cjs
 
       - name: Check out pinned Soccer-JS native renderer
         uses: actions/checkout@v4
@@ -164,7 +156,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/soccerjs-franchise-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
+          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/tactical-viewer.js franchise/soccerjs-franchise-viewer.js ; do
             test -s "dist/$file"
           done
           test -s dist/.htaccess
@@ -180,10 +172,16 @@ jobs:
           test ! -e dist/legacy-v05
           test ! -e dist/legacy-v07c
           test ! -e dist/career.js
+          for mode in play franchise; do
+            test ! -e "dist/$mode/tacticmesh/vendor"
+            test ! -e "dist/$mode/tm-worker.js"
+            test ! -e "dist/$mode/tm-engine-bridge.js"
+            test ! -e "dist/$mode/hybrid-sim.js"
+          done
           test ! -e dist/tacticmesh/vendor
           test ! -e dist/calibration
           test ! -e dist/tests
-          echo "All five pages validated: Home, Ratings guide and three modes (Play, Challenges, Franchise)."
+          echo "All five pages validated; 2.5D Soccer-JS native runtime present, legacy TacticMesh absent."
 
       - name: Check deployment credentials
         id: ftp
