@@ -96,10 +96,12 @@ for page in pages:
     for word in ["QUICK PLAY","CHALLENGES","FRANCHISE"]:
         if word not in h:raise SystemExit(f"Missing global nav entry {word}: {page}")
     expected='../' if page.parent!=root else './'
-    if f'href="{expected}favicon.svg?v=1"' not in h:
+    if f'href="{expected}favicon.svg?v=2"' not in h:
         raise SystemExit(f"Missing shared favicon link: {page}")
-    if f'src="{expected}favicon.svg?v=1"' not in h:
-        raise SystemExit(f"Missing shared soccer-ball brand icon: {page}")
+    if f'src="{expected}favicon.svg?v=2"' not in h:
+        raise SystemExit(f"Missing shared Poké Ball brand icon: {page}")
+    if f'href="{expected}newtro.css?v=1"' not in h:
+        raise SystemExit(f"Missing final newtro theme: {page}")
     for mode in ["play","challenge","franchise"]:
         if f'href="{expected}{mode}/"' not in h:raise SystemExit(f"Missing game mode link: {page}: {mode}")
 for mode in ["franchise","play"]:
@@ -110,7 +112,7 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["favicon.svg","newtro.css","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
