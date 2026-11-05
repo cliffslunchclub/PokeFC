@@ -394,6 +394,22 @@ function awardMarkup(match){
   '<small>'+esc(extras||(a.method==='position-fit-fallback'?'Fit-based pick · player-level events unavailable':'Clean sheet / positional fit'))+'</small></div>'+
   '</div>';
 }
+// Shots on goal are recorded match shots on target; never infer missing counts.
+function shotsOnGoal(match){
+ const source=match?.report?.stats?.shotsOnTarget||match?.shotsOnTarget;
+ return [0,1].map(i=>{
+  const n=Array.isArray(source)?source[i]:null;
+  return n===null||n===undefined||n===''||!Number.isFinite(Number(n))?null:Number(n);
+ });
+}
+function shotsOnGoalSummary(matches){
+ const valid=(matches||[]).map(shotsOnGoal).filter(([home,away])=>home!==null&&away!==null);
+ return valid.length?{home:valid.reduce((a,v)=>a+v[0],0),away:valid.reduce((a,v)=>a+v[1],0),recorded:valid.length}:null;
+}
+function matchSogLabel(match){
+ const [home,away]=shotsOnGoal(match);
+ return 'SOG '+(home??'—')+'–'+(away??'—');
+}
 function matchReportHtml(match){
  if(!match)return '<p class="match-report-note">No game record available.</p>';
  const report=match.report;
@@ -403,7 +419,7 @@ function matchReportHtml(match){
  const scoreText=esc(score.join(' – '));
  const stats=report?.stats||{shots:match.shots,passes:match.passes};
  const rows=[
-  ['SHOTS','shots',''],['SHOTS ON TARGET','shotsOnTarget',''],['POSSESSION','possession','%'],
+  ['SHOTS','shots',''],['SHOTS ON GOAL','shotsOnTarget',''],['POSSESSION','possession','%'],
   ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['TACKLES WON','tackles',''],['SAVES','saves','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
  const table=rows.map(([label,key,unit])=>
@@ -439,6 +455,7 @@ function matchHistoryHtml(history){
 }
 function completedRunCard(){
  const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
+ const shotsTotal=shotsOnGoalSummary(r.matches);
  const tournament=tournamentStats(),playerStats=tournament?.players||lineupPerformance(r.line,r.formation,st.locked?.items||st.items).map(p=>({...p,goals:0,assists:0,saves:0,penalties:0,potm:0,appearances:r.matches.length,cleanSheets:0}));
  const tournamentBest=tournament?.best;
  const tournamentBadge=tournamentBest?'<div class="tournament-mvp">'+
@@ -457,7 +474,7 @@ function completedRunCard(){
    (p.penalties?'<span><b>'+p.penalties+'</b>PK</span>':'')+'</div></div>';
  }).join('')+'</div>';
  const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name)+'</span>').join('');
- const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
+ const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><span class="run-fixture-score"><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(matchSogLabel(m))+'</small></span><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
   '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
@@ -466,6 +483,9 @@ function completedRunCard(){
   '<div><span>RECORD</span><strong>'+r.wins+'W · '+r.lost+'L</strong></div>'+
   '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
   '<div><span>FORMATION</span><strong>'+esc(r.formation)+'</strong></div></div>'+
+  '<div class="run-shots-summary" aria-label="Tournament shots on goal"><div class="run-shots-home"><strong>SHOTS ON GOAL · TOTAL</strong><span>YOUR XI</span><b>'+(shotsTotal?shotsTotal.home:'—')+'</b></div>'+
+  '<span class="run-shots-divider">VS</span><div class="run-shots-away"><span>OPPONENTS</span><b>'+(shotsTotal?shotsTotal.away:'—')+'</b></div>'+
+  '<small>'+(shotsTotal?'From '+shotsTotal.recorded+' of '+r.matches.length+' matches with saved shot data.':'Shots on goal were not saved for these earlier matches.')+'</small></div>'+
   '<p class="run-category">'+esc(r.category)+'</p>'+
   '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="downloadRunCard" class="run-download">↓ DOWNLOAD PNG CARD</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
   '<div id="runSharePanel" class="run-share-panel" hidden>'+
