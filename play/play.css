@@ -50,3 +50,19 @@
 .soccerjs-actions label{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;color:#bcded6}
 .soccerjs-actions label select{min-width:110px}
 @media(max-width:600px){.soccerjs-actions{align-items:stretch}.soccerjs-actions .play-btn{flex:1 1 45%}.soccerjs-actions label{flex:1 1 100%;justify-content:space-between}.soccerjs-inline-frame{aspect-ratio:1120 / 650}}
+
+/* One match feed: goals open by default; saves and documented incidents are
+   in a second, independently expandable section. */
+.pfc-timeline-groups{display:grid;gap:7px}
+.pfc-timeline-group{border:1px solid #446b75;border-radius:8px;overflow:hidden;background:#122a3a}
+.pfc-timeline-group>summary{display:flex;align-items:center;justify-content:space-between;gap:7px;list-style:none;cursor:pointer;background:#203d4b;padding:11px 12px;color:#e1f5e9;font-size:11px;font-weight:950;letter-spacing:.045em}
+.pfc-timeline-group>summary::-webkit-details-marker{display:none}
+.pfc-timeline-group>summary:before{content:"▸";font-size:12px;color:#f0d28c}
+.pfc-timeline-group[open]>summary:before{content:"▾"}
+.pfc-timeline-group>summary>span{flex:1}
+.pfc-timeline-group>summary>strong{color:#f0dba3;font-size:10px;white-space:nowrap}
+.pfc-timeline-goals>summary{background:#21483f}
+.pfc-timeline-group-body{padding:4px 8px 9px}
+.pfc-timeline-group-body .pfc-event-timeline{margin:4px 0!important}
+.pfc-timeline-group>summary:focus-visible{outline:2px solid #ffe2a2;outline-offset:-2px}
+.play-live-feed{overscroll-behavior:contain;scrollbar-gutter:stable}
