@@ -176,7 +176,11 @@ function equipShopItem(name,index){
 }
 function shopMarkup(used){
  const fullCatalog=shopCatalog();
- const catalog=shopStatFilters.size?fullCatalog.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):fullCatalog;
+ const remaining=Math.max(0,1000-used);
+ // Keep existing equipment visible for reassignment/removal, but hide new
+ // purchases that cannot fit in the remaining budget.
+ const withinBudget=fullCatalog.filter(it=>it[1]<=remaining||st.items.includes(it[0]));
+ const catalog=shopStatFilters.size?withinBudget.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):withinBudget;
  const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
  if(!current)selectedShopItem=catalog[0]?.[0]||null;
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
@@ -190,13 +194,13 @@ function shopMarkup(used){
  }).filter(Boolean).join('');
  return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
-  '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Opponent XI remains hidden until your Pokémon and items are locked. Item compatibility, refunds, and budget rules still apply.</p>'+
+  '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Items above your remaining budget disappear; equipped items stay listed so you can move or remove them. Opponents stay hidden until lock.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
   '<div class="shop-auto-equip"><div><strong>AI ITEM PICK</strong><small>Finds the best legal item combination for your current positions. Replaces your existing items.</small></div>'+
    '<button type="button" id="autoEquip" class="primary">AUTO-EQUIP · MAX SCORE →</button>'+
    (autoEquipSummary?'<p role="status" class="shop-auto-result">'+esc(autoEquipSummary)+'</p>':'')+'</div>'+
   '<div class="shop-stat-filter" role="group" aria-label="Filter items by boosted stats">'+
-   '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS</span></div>'+
+   '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS · ₽'+remaining+' LEFT</span></div>'+
    '<div class="shop-stat-buttons">'+SHOP_STAT_FILTERS.map(([key,label])=>'<button type="button" data-shop-stat="'+key+'" class="shop-stat-button'+(shopStatFilters.has(key)?' active':'')+'" aria-pressed="'+shopStatFilters.has(key)+'">+'+label+'</button>').join('')+'</div>'+
    '<small>Choose one or more boosts (matches any). Tap a selected filter again to clear it.</small></div>'+
   '<div id="shopCatalog" class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
@@ -204,7 +208,7 @@ function shopMarkup(used){
    return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
     '<span class="shop-item-main">'+itemSprite(n)+'<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span></span><span class="challenge-drag-grip item-grip" data-drag-grip="item" data-drag-value="'+esc(n)+'" title="Drag onto Pokémon">⠿ DRAG</span><small>'+esc(itemEffect(it))+'</small>'+
     '<span class="shop-item-status">'+(holder>=0?'✓ EQUIPPED · '+esc(BY.get(st.roster[holder]).name):targets.length?'CHOOSE ITEM':'NOT ELIGIBLE')+'</span></button>';
-  }).join('')+(catalog.length?'':'<p class="shop-filter-empty">No items boost the selected stats.</p>')+'</div>'+
+  }).join('')+(catalog.length?'':'<p class="shop-filter-empty">No affordable items match your filters. Remove equipment or clear the stat filters to see more items.</p>')+'</div>'+
   '<div class="shop-assign-panel"><div class="shop-selected-item">'+itemSprite(name)+'<h3>'+esc(name)+'</h3></div><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
    '<label for="shopTarget">Assign to Pokémon</label><select id="shopTarget" '+(!eligible.length?'disabled':'')+'>'+options+'</select>'+
    '<button type="button" id="equipShopItem" class="primary" '+(!eligible.length?'disabled':'')+'>'+(held>=0?'MOVE / REASSIGN ITEM':'EQUIP ITEM')+'</button>'+
