@@ -37,7 +37,7 @@
  function renderTimeline(entries,opts={}){
   const list=Array.isArray(entries)?entries.filter(x=>TYPES.has(x?.type)):[];
   if(!list.length)return '<p class="match-event-empty">'+escape(opts.empty||'No individual match events were recorded.')+'</p>';
-  const labels={goal:'GOAL',save:'SAVE',foul:'FOUL',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
+  const labels={goal:'GOAL',save:'SHOT ON TARGET · SAVED',foul:'FOUL',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
   const symbols={goal:'⚽',save:'🧤',foul:'⚑',card:'▣',substitution:'⇄','half-time':'◷','second-half':'▶','full-time':'■'};
   return '<ol class="pfc-event-timeline">'+list.map(e=>{
    const type=e.type,side=e.side===0?'home':e.side===1?'away':'neutral';

@@ -9,7 +9,7 @@ const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1;
+let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -36,7 +36,7 @@ function verify(m){
   if(!side.lineup.some(p=>p.id===e.player))throw Error('Invalid goal scorer');
 }
 function scoreAt(t){
- const s=[0,0];for(const g of match.events)if(g.minute<=t)s[g.team===match.home.id?0:1]++;
+ const s=[0,0];for(const g of match.events)if(g.type==='goal'&&g.minute<=t)s[g.team===match.home.id?0:1]++;
  return s;
 }
 function cameraFit(canvas,field,ball){
@@ -48,16 +48,23 @@ function cameraFit(canvas,field,ball){
  const h=p==='isometric'?(field.width+field.height)*.3:field.height*.8;
  const fit=Math.min(canvas.width*.78/w,canvas.height*.70/h);
  const camera=$('camera').value==='follow'?'follow':'wide';
- Settings.camera.scale=fit*(camera==='follow'?1.43:1);
+ // Deliberately tighter television-style framing; camera tracks the ball.
+ Settings.camera.scale=fit*(camera==='follow'?2.45:1.25);
  const corners=[[0,0],[field.width,0],[0,field.height],[field.width,field.height]]
    .map(([x,y])=>Utils.toScreen(x,y,0));
  const xs=corners.map(v=>v.x),ys=corners.map(v=>v.y);
  const center={x:(Math.min(...xs)+Math.max(...xs))/2,y:(Math.min(...ys)+Math.max(...ys))/2};
  const focus=Utils.toScreen(ball.x,ball.y,0);
  if(camera==='follow'){
-  center.x=mix(center.x,focus.x,.82);
-  center.y=mix(center.y,focus.y,.82);
+  center.x=mix(center.x,focus.x,.94);
+  center.y=mix(center.y,focus.y,.94);
  }
+ // Soften abrupt changes of possession in illustrative sequences.
+ if(playing&&smoothedFocus&&smoothedFocus.projection===p&&smoothedFocus.camera===camera){
+  center.x=mix(smoothedFocus.x,center.x,.15);
+  center.y=mix(smoothedFocus.y,center.y,.15);
+ }
+ smoothedFocus={x:center.x,y:center.y,projection:p,camera};
  return {projection:p,camera,scale:Settings.camera.scale,
   tx:canvas.width/2-center.x,ty:canvas.height/2-center.y,
   visibleWorld:[field.width,field.height]};
@@ -105,7 +112,7 @@ function render(t){
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
   animation:script.action,ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
-  cameraOffset:[camera.tx,camera.ty],
+  cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,
   actualSprites:!!ImageDB.get('player_Brazil_main')&&!!ImageDB.get('player_Argentina_main'),
   pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length,
   pokemonSpritesDrawn:window.__PFC_REAL_SPRITES_DRAWN__,pokemonEntitiesDrawn:window.__PFC_DRAWN__,
@@ -114,13 +121,13 @@ function render(t){
 }
 function step(now){
  if(playing){
-  if(last!==null)minute=Math.min(stopAt,minute+Math.min(.1,(now-last)/1000)*.5*speed);
+  if(last!==null)minute=Math.min(stopAt,minute+Math.min(.1,(now-last)/1000)*.32*speed);
   if(minute>=stopAt)playing=false;
   last=now;render(minute);
  }
  requestAnimationFrame(step);
 }
-function seek(t){playing=false;last=null;minute=Math.max(0,Math.min(90,t));render(minute);}
+function seek(t){playing=false;last=null;smoothedFocus=null;minute=Math.max(0,Math.min(90,t));render(minute);}
 async function boot(){
  try{
   window.__APP_ROOT__=new URL('./',location.href).href;
@@ -132,9 +139,12 @@ async function boot(){
   verify(match);
   Settings.app={canvas:$('pitch'),camX:0,camY:0};
   Settings.HEADLESS=false;Settings.showFPS=false;Settings.showTime=false;
-  Settings.soundsMuted=true;Settings.camera.scale=8.6;
+  Settings.soundsMuted=true;
+   // Cosmetic only: enlarge the drawn ball, never its physics radius.
+   Settings.BALL_DRAW_RADIUS=14;Settings.camera.scale=8.6;
   Settings.camera.type='centered';Settings.camera.offsetX=0;Settings.camera.offsetY=0;
-  Settings.projectionMode='isometric';
+  Settings.projectionMode='orthographic';
+   $('projection').value='orthographic';$('camera').value='follow';
   $('status').textContent='GENERATING REAL SOCCER-JS SPRITES…';
   sim=new Simulator({seed:12345});await sim.start();sim.active=true;
   // Keep native sprite/pitch/ball rendering; suppress upstream kickoff/score overlays.
@@ -151,7 +161,7 @@ async function boot(){
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
    throw Error('Original Soccer-JS sprite generation failed');
   const list=$('goals');list.replaceChildren();
-  for(const e of match.events){
+  for(const e of match.events.filter(e=>e.type==='goal')){
    const side=e.team===match.home.id?match.home:match.away;
    const row=document.createElement('div'),scorer=side.lineup.find(p=>p.id===e.player);
    const helper=side.lineup.find(p=>p.id===e.assist);
@@ -178,7 +188,7 @@ async function boot(){
    sim.pitch?.invalidateRenderCache?.();
    render(minute);
   };
-  $('camera').onchange=()=>{sim.pitch?.invalidateRenderCache?.();render(minute);};
+  $('camera').onchange=()=>{smoothedFocus=null;sim.pitch?.invalidateRenderCache?.();render(minute);};
   $('showNumbers').onchange=()=>render(minute);
   for(const id of ['play','playFive','pause','restart','skip','nextGoal','scrub'])$(id).disabled=false;
   window.addEventListener('message',e=>{
@@ -206,10 +216,10 @@ async function boot(){
     const m=Number(msg.minute);
     if(Number.isFinite(m)&&m>=0&&m<=90)seek(m);
    }else if(msg.action==='projection'&&validViews.has(msg.projection)){
-    $('projection').value=msg.projection;Settings.projectionMode=msg.projection;
+    $('projection').value=msg.projection;Settings.projectionMode=msg.projection;smoothedFocus=null;
     sim.pitch?.invalidateRenderCache?.();render(minute);
    }else if(msg.action==='camera'&&['wide','follow'].includes(msg.camera)){
-    $('camera').value=msg.camera;sim.pitch?.invalidateRenderCache?.();render(minute);
+    $('camera').value=msg.camera;smoothedFocus=null;sim.pitch?.invalidateRenderCache?.();render(minute);
    }else if(msg.action==='numbers'){
     $('showNumbers').checked=!!msg.visible;render(minute);
    }

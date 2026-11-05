@@ -481,7 +481,7 @@ function matchReportHtml(match){
   passAccuracy:[0,1].map(side=>rate(rawStats.completedPasses?.[side],rawStats.passes?.[side])),
   tackleSuccess:[0,1].map(side=>rate(rawStats.tackles?.[side],rawStats.tackleAttempts?.[side]))};
  const rows=[
-  ['SHOTS','shots',''],['POSSESSION','possession','%'],
+  ['SHOTS','shots',''],['SHOTS ON TARGET','shotsOnTarget',''],['POSSESSION','possession','%'],
   ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['PASS ACCURACY','passAccuracy','%'],
   ['TACKLES ATTEMPTED','tackleAttempts',''],['TACKLES WON','tackles',''],['TACKLE WIN RATE','tackleSuccess','%'],['SAVES','saves','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
@@ -512,6 +512,7 @@ function matchReportHtml(match){
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
   individualShotsHtml(match)+
+  '<p class="match-report-note">Corners, free kicks and in-match penalty kicks are not yet tracked by Quick Sim. Provisional knockout shootouts are shown separately.</p>'+
   shootoutMarkup(match)+
  '</div>';
 }
