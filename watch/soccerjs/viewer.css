@@ -9,3 +9,15 @@
 
 .sprite-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:#DCEBEA}
 .sprite-toggle input{width:16px;height:16px;accent-color:#EBC63C}
+
+
+/* In-match embedded 2.5D: the Quick Play UI owns scoreboard and controls. */
+html.pfc-inline,html.pfc-inline body{width:100%;height:100%;min-height:0;margin:0;overflow:hidden;background:#0b2230}
+html.pfc-inline body>header,html.pfc-inline main>.intro,html.pfc-inline main>.scoreline,html.pfc-inline main>footer,html.pfc-inline main>.layout>aside{display:none!important}
+html.pfc-inline main{width:100%;max-width:none;height:100%;padding:0;margin:0}
+html.pfc-inline main>.layout{display:block;width:100%;height:100%;margin:0}
+html.pfc-inline main>.layout>.viewer{width:100%;height:100%;min-height:0;border:0;border-radius:0;background:#103127}
+html.pfc-inline .viewer>.cap,html.pfc-inline .viewer>.controls,html.pfc-inline .viewer>.seek,html.pfc-inline .viewer>.motion-status{display:none!important}
+html.pfc-inline .pitchwrap{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;margin:0;border:0;border-radius:0;background:#123d35}
+html.pfc-inline .pitchwrap canvas{display:block;width:100%;height:100%;object-fit:contain;aspect-ratio:1120 / 650}
+html.pfc-inline #toast:not([hidden]){bottom:5%;max-width:90%;white-space:normal;text-align:center;font-size:clamp(10px,1.2vw,14px)}
