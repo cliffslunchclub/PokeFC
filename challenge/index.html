@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=10">
+<link rel="stylesheet" href="./challenge.css?v=11">
 </head>
 <body>
 <header class="pfc-header">
@@ -71,7 +71,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js"></script>
-<script src="./drag-drop.js?v=1"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="./drag-drop.js?v=2"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -587,6 +587,11 @@ if(gauntletStarted){
 body+='<div class="challenge-run-layout">'+
  '<section class="panel challenge-roster-panel"><div class="challenge-section-heading"><div><h2>'+(isDraft?'BUILD YOUR XI':isShop?'EQUIP YOUR TEAM':'YOUR FINAL XI')+'</h2>'+
  '<p>'+(isDraft?'Hover or click any open spot, then draft a Pokémon.':isShop?'Choose an item first, then assign it to a Pokémon using the shop.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
+ (isDraft||isShop?'<div class="challenge-drag-tip" role="note"><strong>⠿ DRAG &amp; DROP POKÉMON</strong><span>'+
+  (isDraft?'Click and hold a Pokémon in the scouting list, then drag its sprite onto an open pitch position. You can also use DRAFT.':
+   st.moves>0?'Click and hold a Pokémon on the pitch to move or swap it (1 move). Drag shop items onto Pokémon to equip them.':
+   'Your Pokémon move has been used. You can still drag shop items onto Pokémon to equip them.')+
+  '</span></div>':'')+
  '<div class="challenge-pitch">'+
  '<div class="pitch-line"></div><div class="pitch-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div>';
 body+=slots.map((pos,i)=>{
