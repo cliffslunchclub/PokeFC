@@ -454,9 +454,15 @@ function loadChallengeSnapshot(division){
  }
  const label=SAVE_DIVISIONS.find(d=>d.id===division)?.label||division;
  const restore=()=>{
+  const previous=st;
   st=JSON.parse(JSON.stringify(slot.state));
+  try{save()}catch{
+   st=previous;
+   showChallengeMessage('LOAD FAILED','The browser could not update its autosave. Check available storage and try again.');
+   return;
+  }
   resetManualView();
-  save();render();
+  render();
   showChallengeMessage('RUN LOADED',label+' restored from its manual save slot. Your active run is now this saved snapshot.');
  };
  if(st.phase!=='setup'){
