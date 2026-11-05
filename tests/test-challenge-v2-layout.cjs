@@ -8,11 +8,11 @@ const inline=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</scrip
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-frame \.challenge-run-layout\{display:flex!important/,'Active stage is not two-column');
 assert.match(css,/\.challenge-shop-drawer\{position:fixed/,'Item Shop is floating, not another column');
-assert.match(css,/\.challenge-shop-drawer\{position:fixed;[^\n]*top:76px;right:8px;/,
- 'Item Shop defaults to the viewport right edge, not the centered page container');
-assert.match(css,/\.challenge-frame \.challenge-dialog\.challenge-draft-panel\{position:fixed!important;[^\n]*top:90px!important;right:8px!important;/,
+assert.match(css,/\.challenge-shop-drawer\{position:fixed;[^\n]*top:76px;right:0;/,
+ 'Item Shop defaults to the literal viewport right edge, not the centered page container');
+assert.match(css,/\.challenge-frame \.challenge-dialog\.challenge-draft-panel\{position:fixed!important;[^\n]*top:90px!important;right:0!important;/,
  'Draft window defaults to the viewport right edge, not the centered page container');
-assert.match(css,/@media\(max-width:980px\)\{[\s\S]*?\.challenge-shop-drawer\{width:375px;right:8px\}/,
+assert.match(css,/@media\(max-width:980px\)\{[\s\S]*?\.challenge-shop-drawer\{width:375px;right:0\}/,
  'Tablet-sized desktop Item Shop stays aligned right');
 
 assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag label');
@@ -102,6 +102,11 @@ const draft=launch('draft');
 assert.match(draft.app.innerHTML,/class="challenge-run-layout stage-draft"/);
 assert.match(draft.app.innerHTML,/id="challengeDraftModal"/);
 assert.match(draft.app.innerHTML,/id="draftSearch"/);
+assert.match(draft.app.innerHTML,/data-reel="pool"><span class="slot-reel-label">DRAFT STATUS<\/span>/,
+ 'Three-reel draft status replaces numeric Pokémon pool');
+assert.doesNotMatch(draft.app.innerHTML,/POKÉMON POOL|\d+ ELIGIBLE|\d+ MATCHING POKÉMON/,
+ 'Scouting UI no longer exposes pool counts');
+
 const pickerAt=draft.app.innerHTML.indexOf('id="challengeDraftModal"');
 const machineAt=draft.app.innerHTML.indexOf('id="challengeSlotMachine"');
 const candidateAt=draft.app.innerHTML.indexOf('id="challengePickGrid"');
