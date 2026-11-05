@@ -5,7 +5,7 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 ## Implemented on `main`
 
 - [x] National Gen I–IX (1,025 base species) Home XI Builder with formations, ratings, sprites, browser-local persistence.
-- [x] Quick Play against Gym/Elite Four/Champion opponents with Quick Sim and legacy TacticMesh Watch → Sim to End.
+- [x] Quick Play against Gym/Elite Four/Champion opponents with instant Quick Sim, **default Soccer-JS 2.5D Watch**, one-way Watch → Sim to End, and explicit legacy `?watch=tacticmesh` rollback.
 - [x] Franchise Gen I–IV (493 species), 32 Gyms, 22-week season, 16-team playoffs, 25 senior + up to 10 Practice Squad, draft/scouting and save export/import.
 - [x] Challenges Classic/National six-boss Gauntlet with local four-division leaderboards, downloadable results card, seeded match reports and saved run history.
 - [x] Challenges S/A/B/C/D position tiers; rapid tier re-sort, hover-to-preview, animated three-stage scouting reels, one-time rerolls and locked team.
@@ -15,17 +15,18 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 - [x] Goals-first expandable match timelines in Play/Challenges (other recorded events collapsed initially); save event provenance unchanged, with no invented set pieces.
 - [x] Pokémon picker and Item Shop single-scroll desktop panels, reduced scroll redraw, visible scrollbar gutters and preserved item shop scroll position; mobile uses simplified full-screen dropdown draft.
 - [x] Local and GitHub test/deployment workflow for the three primary game modes.
-- [x] **Soccer-JS 2.5D Quick Play opt-in merged and deployed** in PR #21: native isometric field, 22 Pokémon sprites, red/white markers, official Quick Sim-authoritative Watch→Sim, cancel and record-once. Native public fixture browser tests passed; default Watch remains legacy until complete mode testing.
+- [x] **Soccer-JS 2.5D primary Watch deployed in all three modes:** [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) Quick Play, [PR #26](https://github.com/cliffslunchclub/PokeFC/pull/26) Challenges/Franchise, and [PR #28](https://github.com/cliffslunchclub/PokeFC/pull/28) Quick Play default. Real desktop SiteGround browser run [passed](https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/42097420753), and native 390px mobile fixture test [passed](https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/42099546920). Result/score/save-once and cancel-without-save regression tests passed.
 
 ## Current priorities — not yet fully implemented
 
-- [ ] **P0 — Complete Soccer-JS rollout**: [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) is merged, the 2.5D build/deploy pipeline succeeded and 22/22 sprites rendered in the [public Chromium fixture test](https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/42082614996). **Still pending:** independent hosted-site browser smoke, true mobile/touch/performance, full 90-minute realism, Challenge/Franchise mode parity and default-switch approval.
+- [ ] **P0 — Finish Soccer-JS parity before TM deletion**: all three desktop hosted modes and native mobile fixture now pass, and Quick Play default is deployed. **Still pending:** hosted mobile browser testing (cloud runner receives intermittent HTTP 202), sustained 90-minute pacing/low-end device performance, reduced motion, gameplay compatibility, full extra-time and penalty contract, and rights review.
 - [ ] **P0 — Watch→Sim state integrity:** test 0–90' playback, seeking, pause/resume, skip, cancel-without-save, idempotent record, unchanged official score/box/events, reduced motion and errors in real browsers.
-- [x] **Opt-in SiteGround packaging**: CI builds pinned Soccer-JS MIT assets, allowlists the embedded iframe runtime, validates source-level Quick Play lifecycle and preserves existing default Watch.
-- [ ] **P1 — Default Watch rollout:** complete hosted-site browser/mobile and mode parity, include tested fallback/rollback until final TacticMesh removal; keep heavy browser and engine tests in the public lab.
-- [ ] **P1 — Challenges Watch integration:** preserve latest v2 UI, boss locked XI/items, victory and terminal run popups, timeline, four local leaderboard categories, save history, and one-only progression.
-- [ ] **P1 — Franchise Watch integration:** preserve 32-club calendar, week results, tactical preview, save compatibility, full 90' results, playoffs, extra time and penalties.
-- [ ] **P1 — Remove TacticMesh:** after Soccer-JS parity and rollback checks pass across all modes, delete old worker/vendor/fallback/deployment dependencies in a separate reviewed change. **Not yet removed.**
+- [x] **SiteGround native runtime packaging**: CI builds pinned Soccer-JS MIT assets, allowlists the embedded iframe for all three game modes and tests Quick Play, Challenge and Franchise result integrity. TacticMesh fallback remains packaged until separately removed.
+- [x] **P1 — Default Watch rollout:** all three modes now start Soccer-JS 2.5D; old Quick Play `?watch=tacticmesh` rollback still exists; previous real hosted desktop checks passed. Mobile hosted-site check remains unverified and is tracked separately.
+- [x] **P1 — Challenges Watch integration:** locked boss XI/items route through Soccer-JS, and official Quick Sim result advances/archives the run once on Record; browser and source-mode regression passed. Terminal UI still requires ongoing mobile validation.
+- [x] **P1 — Franchise 2.5D regular-season Tactical Viewer:** real Quick Sim precomputed result, correct species sprite IDs, 16-fixture matchweek saved once on Record; cancel/skip leave career unchanged. Existing 32-club schedule, draft, and saves preserved.
+- [ ] **P1 — Franchise playoff Watch, extra time and shootouts:** playoffs presently resolve through Quick Sim/provisional seeded tie-breaking; full knockout Watch sequences remain unimplemented.
+- [ ] **P1 — Remove TacticMesh:** pending final browser/mobile, knockouts/performance/rollback review. Retire old worker/vendor/fallback/deployment dependencies in a **separate** PR. See [retirement plan](docs/TACTICMESH-RETIREMENT.md). **Not yet removed.**
 - [ ] **P1 — Natural Match Director:** coherent passing, possession, shooting and goalkeeper animation, with derived movements labeled illustrative and goals/statistics fixed by Quick Sim.
 
 ## Additional open work
