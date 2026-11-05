@@ -844,13 +844,13 @@
 .challenge-shop-drawer .shop-auto-equip button{width:100%}
 .challenge-shop-drawer .challenge-section-heading h2{font-size:16px!important}
 .challenge-shop-drawer .shop-assign-panel{padding:10px}
-.challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:438px!important}
-.challenge-run-layout.stage-shop.shop-open .challenge-pitch{max-width:750px}
+.challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:20px!important}
+.challenge-run-layout.stage-shop.shop-open .challenge-pitch{max-width:780px}
 .challenge-opponent-dialog{width:min(92vw,780px)!important}
 .challenge-opponent-dialog .challenge-opponent-panel{margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
 .challenge-opponent-dialog .opponent-pitch{max-width:520px;margin:0 auto}
 @media(max-width:980px){
- .challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:390px!important}
+ .challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:20px!important}
  .challenge-shop-drawer{width:375px;right:10px}
  .challenge-frame .challenge-dialog.challenge-draft-panel{right:10px!important}
 }
@@ -1021,3 +1021,23 @@
  .challenge-draft-panel .challenge-pick-grid .pick-base-stats{display:none}
 }
 @media(prefers-reduced-motion:reduce){.challenge-draft-drag-handle{transition:none!important}}
+
+
+/* Challenges v2.5: desktop Item Shop moves like the Pokémon picker. The
+   movable window floats independently instead of reserving a second column. */
+.challenge-shop-mobile-label{display:none}
+.challenge-shop-drag-handle{
+ display:inline-flex!important;align-items:center;gap:7px;flex:1 1 auto;
+ min-height:34px!important;padding:7px 10px!important;text-align:left;
+ background:#285747!important;border:1px solid #79a58c!important;
+ border-radius:6px!important;color:#ebf8e8!important;
+ font-size:10px!important;font-weight:1000!important;letter-spacing:.065em;
+ cursor:grab!important;touch-action:none;user-select:none;-webkit-user-select:none
+}
+.challenge-shop-drag-handle:active{cursor:grabbing!important}
+.challenge-shop-drag-handle:focus-visible{outline:3px solid #ffdfa6!important;outline-offset:2px}
+.challenge-shop-drawer-bar #closeShopDrawer{flex:0 0 auto}
+@media(max-width:760px){
+ .challenge-shop-drag-handle{display:none!important}
+ .challenge-shop-mobile-label{display:block;font-size:11px;font-weight:1000;letter-spacing:.06em;color:#eaf8dc}
+}

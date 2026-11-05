@@ -33,7 +33,7 @@
    return next;
   }
   function down(e){
-   if(disposed||!isDesktop()||dialog.open===false||e.button!==0||drag)return;
+   if(disposed||!isDesktop()||dialog.hidden||(dialog.tagName==='DIALOG'&&dialog.open===false)||e.button!==0||drag)return;
    const box=position();
    drag={pointerId:e.pointerId,x:number(e.clientX),y:number(e.clientY),left:box.left,top:box.top};
    handle.setPointerCapture?.(e.pointerId);

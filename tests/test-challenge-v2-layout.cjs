@@ -8,6 +8,10 @@ const inline=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</scrip
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-frame \.challenge-run-layout\{display:flex!important/,'Active stage is not two-column');
 assert.match(css,/\.challenge-shop-drawer\{position:fixed/,'Item Shop is floating, not another column');
+assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag handle');
+assert.match(css,/\.challenge-shop-mobile-label\{display:block/,'Mobile keeps simple title instead of drag handle');
+assert.match(css,/\.challenge-run-layout\.stage-shop\.shop-open>\.challenge-roster-panel\{padding-right:20px!important\}/,
+ 'Desktop pitch no longer reserves a shop sidebar');
 assert.match(css,/\.challenge-draft-panel.+position:fixed!important/,'Draft popup floats above the pitch');
 assert.match(css,/width:min\(500px,calc\(100vw - 32px\)\)!important;max-width:500px!important;max-height:min\(79dvh,720px\)!important/,
  'Desktop scouting window uses reduced width and height');
@@ -56,6 +60,22 @@ function launch(phase){
    setAttribute(k){if(k==='open')this.open=true},
    removeAttribute(k){if(k==='open')this.open=false},
    show(){this.open=true},showModal(){this.open=true},close(){this.open=false},
+   listeners:new Map(),
+   addEventListener(name,fn){this.listeners.set(name,fn)},
+   removeEventListener(name,fn){if(this.listeners.get(name)===fn)this.listeners.delete(name)},
+   setPointerCapture(id){this.capturedPointer=id},
+   hasPointerCapture(id){return this.capturedPointer===id},
+   releasePointerCapture(id){if(this.capturedPointer===id)this.capturedPointer=null},
+   style:{
+    properties:new Map(),
+    setProperty(k,v){this.properties.set(k,v)},
+    removeProperty(k){this.properties.delete(k)}
+   },
+   getBoundingClientRect(){
+    const width=this.id==='challengeShopDrawer'?410:500;
+    const height=this.id==='challengeShopDrawer'?480:560;
+    return {left:Number.parseFloat(this.style.properties.get('left'))||550,top:Number.parseFloat(this.style.properties.get('top'))||76,width,height};
+   },
    onclick:null,onchange:null,oninput:null,onfocus:null,onkeydown:null
   });
   return nodes.get(id);
@@ -65,7 +85,7 @@ function launch(phase){
   localStorage:{getItem(){return stored},setItem(_k,value){stored=value}},
   confirm:()=>true,alert:s=>{throw Error('Unexpected alert: '+s)}
  });
- for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js'])
+ for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js','challenge/picker-window.js'])
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
  vm.runInContext(inline,ctx,{filename:'challenge-inline',timeout:20000});
  return {app,document,nodes,state:()=>JSON.parse(stored)};
@@ -112,6 +132,15 @@ const shop=launch('shop');
 assert.match(shop.app.innerHTML,/class="challenge-run-layout stage-shop shop-open"/);
 assert.match(shop.app.innerHTML,/id="challengeShopDrawer"/);
 assert.match(shop.app.innerHTML,/id="toggleShopDrawer"/);
+assert.match(shop.app.innerHTML,/id="challengeShopDragHandle"/);
+const grip=shop.nodes.get('challengeShopDragHandle');
+assert(grip.listeners.has('pointerdown'),'Desktop Item Shop attaches actual drag handlers');
+grip.listeners.get('pointerdown')({pointerId:5,button:0,clientX:90,clientY:90,preventDefault(){}});
+grip.listeners.get('pointermove')({pointerId:5,clientX:52,clientY:141});
+grip.listeners.get('pointerup')({pointerId:5});
+const dragPosition=shop.nodes.get('challengeShopDrawer').style.properties;
+assert.equal(dragPosition.get('left'),'512px','Item Shop moved left by desktop pointer drag');
+assert.equal(dragPosition.get('top'),'127px','Item Shop moved down by desktop pointer drag');
 const choose=name=>{
  const btn=shop.app.querySelectorAll('[data-shop-pick]').find(b=>b.dataset.shopPick===name);
  assert(btn?.onclick,'Item '+name+' remains selectable');btn.onclick();
@@ -122,6 +151,10 @@ const tap=index=>{
  btn.onclick();
 };
 choose('Leftovers');
+assert.equal(shop.nodes.get('challengeShopDrawer').style.properties.get('left'),'512px',
+ 'Shop position is preserved after selecting an item and rerendering');
+assert.equal(shop.nodes.get('challengeShopDrawer').style.properties.get('top'),'127px',
+ 'Shop vertical position persists after shop refresh');
 assert.match(shop.app.innerHTML,/shop-target/,'Compatible pitch targets highlight after selecting item');
 tap(0);
 assert.equal(shop.state().items[0],'Leftovers','Clicking Porygon2 equipped selected held item');
@@ -142,6 +175,10 @@ assert.equal(shop.state().items[1],'Muscle Band','Pitch still accepts selected i
 assert.match(shop.app.innerHTML,/id="challengeShopDrawer"[^>]*hidden/,'Pitch item assignment does not force drawer open');
 shop.nodes.get('toggleShopDrawer').onclick();
 assert.doesNotMatch(shop.app.innerHTML,/id="challengeShopDrawer"[^>]*hidden/,'Item drawer can reopen');
+assert.equal(shop.nodes.get('challengeShopDrawer').style.properties.get('left'),'512px',
+ 'Reopening the Item Shop preserves the dragged desktop position');
+assert(shop.nodes.get('challengeShopDragHandle').listeners.has('keydown'),
+ 'Item Shop supports keyboard arrow nudging with the same reusable drag helper');
 
 const locked=launch('locked');
 assert.match(locked.app.innerHTML,/id="openOpponentModal"/,'Opponent scouting available from Gauntlet strip');
