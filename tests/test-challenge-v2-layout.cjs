@@ -207,7 +207,7 @@ assert.equal(locked.nodes.get('challengeOpponentModal').open,false);
 const result=launch('result');
 assert.match(result.app.innerHTML,/<dialog id="challengeMatchResultModal"/,'Victory report is a modal');
 assert.equal(result.nodes.get('challengeMatchResultModal').open,true,'Saved victory autopens after reload or returning from watched match');
-assert.match(result.app.innerHTML,/MATCH EVENT TIMELINE/,'Match report remains in result modal');
+assert.match(result.app.innerHTML,/MATCH TIMELINE/,'Match report remains in result modal');
 assert.match(result.app.innerHTML,/id="next"[^>]*>ADVANCE TO BRUNO/,'Advance button is inside result modal');
 assert.equal((result.app.innerHTML.match(/id="next"/g)||[]).length,1,'Exactly one Advance button');
 result.nodes.get('closeMatchResultModal').onclick();
