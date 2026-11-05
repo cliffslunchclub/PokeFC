@@ -15,7 +15,7 @@ function el(id){
  if(id==='tacticalPitch'&&!tactical)return null;
  if(id==='tacticalPitch')return canvas;
  if(!els.has(id))els.set(id,{
-  value:id==='viewerMode'?'soccerjs':id==='viewerSpeed'?'4':id==='viewerProjection'?'isometric':id==='viewerCamera'?'wide':'',
+  value:id==='viewerMode'?'soccerjs':id==='viewerSpeed'?'1':id==='viewerProjection'?'orthographic':id==='viewerCamera'?'follow':'',
   hidden:id==='viewerSoccerRecord'||id==='viewerSoccerCancel',disabled:false,
   textContent:'',innerHTML:'',onchange:null,onclick:null,oninput:null,
   addEventListener(){},classList:{toggle(){},add(){},remove(){}}
@@ -85,6 +85,8 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(mounts,1);
  assert.equal(active?.ended,false);
  assert.equal(el('viewerSoccerRecord').disabled,true);
+ assert.equal(el('viewerProjection').value,'orthographic','Broadcast default in Franchise');
+ assert.equal(el('viewerCamera').value,'follow','Follow Ball default in Franchise');
  assert.equal(el('viewerMode').disabled,true,'Cannot change engines mid-replay');
  assert.equal(JSON.stringify(game.state()),before,'Opening Watch must not mutate career save');
  assert.equal(active.record(),false,'Cannot record prior to official full time');
