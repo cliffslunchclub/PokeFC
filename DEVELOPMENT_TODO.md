@@ -4,6 +4,8 @@ This backlog tracks deferred gameplay/UI work in the main PokéFC repository. Ke
 
 ## Completed
 
+- [x] **Unified Match Timeline**: one Play event panel updates from watched events, converts to the full recorded log at full time (Quick Sim, watched, hybrid), and does not repeat the same events in the result statistics section. Suppress individual WATCHED/SIM TO END/QUICK SIM tags in Play and Challenges while preserving genuine event origins and handoff metadata in stored reports.
+
 - [x] Challenge draft: **reorder eligible Pokémon by S → A → B → C → D tier when a new empty position is clicked**; alphabetize within tiers rather than expose the hidden OVR ranking.
 - [x] Challenge draft: hovering previews positional fit without reordering or committing the selected slot.
 - [x] Challenge draft: **fast tier re-sort with cached per-position-family grades, a single batched DOM move, and a 235 ms top-card shuffle animation**. Hover updates tier badges without list movement; reduced-motion settings disable animation.
