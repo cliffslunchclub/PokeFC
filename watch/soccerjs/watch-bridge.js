@@ -292,7 +292,7 @@
    simToEnd:()=>{
     if(!booted||finished||closed||error)return false;
     handedOff=true;announce('simulating-to-end',{fromMinute:minute});
-    return send('finish');
+    return duration===90?send('seek',{minute:duration}):send('finish');
    },
    nextKick:()=>!handedOff&&minute>=duration&&!!fixture.shootout&&kickIndex<fixture.shootout.attempts.length&&send('next-kick'),
    record:()=>{
