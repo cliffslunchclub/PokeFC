@@ -102,6 +102,7 @@ jobs:
           node tests/test-national-dex.cjs
           node tests/test-play.cjs
           node tests/test-phase10-quickplay-lifecycle.cjs
+          node watch/soccerjs/test-isometric-motion.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node tests/test-soccerjs-shot-ledger.cjs
           node tests/test-soccerjs-sprite-loading.cjs
