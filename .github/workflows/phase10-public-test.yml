@@ -1,0 +1,92 @@
+name: Publish free Phase 10 Match Director playtest
+
+on:
+  push:
+    branches: [experiment/phase10-match-director]
+    paths:
+      - "phase10-test/**"
+      - "match-director/timeline.js"
+      - "tests/test-phase10-web.cjs"
+      - ".github/workflows/phase10-public-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pokefc-phase10-public-playtest
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Verify and publish isolated Phase 10 public test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate animation preview and legacy match invariants
+        run: |
+          set -euo pipefail
+          node --check quick-sim.js
+          node --check match-director/timeline.js
+          node --check phase10-test/app.js
+          node tests/test-quick-seed-compat.cjs
+          node tests/test-phase10-director.cjs
+
+      - name: Package only the public browser playtest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/phase10-test
+          cp phase10-test/index.html phase10-test/styles.css phase10-test/app.js dist/phase10-test/
+          cp quick-sim.js dist/phase10-test/quick-sim.js
+          cp match-director/timeline.js dist/phase10-test/timeline.js
+          node tests/test-phase10-web.cjs
+          echo "Only static playtest files will deploy to the dedicated subdirectory."
+
+      - name: Require existing SiteGround FTPS credentials
+        shell: bash
+        env:
+          HOST: ${{ secrets.SG_FTP_HOST }}
+          USERNAME: ${{ secrets.SG_FTP_USER }}
+          PASSWORD: ${{ secrets.SG_FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$HOST"
+          test -n "$USERNAME"
+          test -n "$PASSWORD"
+
+      - name: Publish to isolated /phase10-test/ path
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.SG_FTP_HOST }}
+          username: ${{ secrets.SG_FTP_USER }}
+          password: ${{ secrets.SG_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          security: strict
+          local-dir: ./dist/phase10-test/
+          server-dir: ./public_html/phase10-test/
+          dangerous-clean-slate: false
+          log-level: standard
+
+      - name: Verify the public URL is reachable
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 --retry-delay 2 \
+            --max-time 20 https://pfc.cliffslunchclub.com/phase10-test/ -o /tmp/phase10-index.html
+          grep -q 'Phase 10 Free Playtest' /tmp/phase10-index.html
+          grep -q 'not yet the full TacticMesh animation engine' /tmp/phase10-index.html
+          for file in app.js styles.css quick-sim.js timeline.js; do
+            curl --fail --location --silent --show-error --max-time 20 \
+              "https://pfc.cliffslunchclub.com/phase10-test/$file" -o "/tmp/phase10-$file"
+            test -s "/tmp/phase10-$file"
+          done
+          echo "PUBLIC PLAYTEST VERIFIED: https://pfc.cliffslunchclub.com/phase10-test/"
+          echo "### Phase 10 free playtest" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verified: https://pfc.cliffslunchclub.com/phase10-test/" >> "$GITHUB_STEP_SUMMARY"
