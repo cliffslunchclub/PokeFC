@@ -51,9 +51,16 @@ if [[ "${PFC_INCLUDE_SOCCERJS:-0}" == "1" ]]; then
     test -s "watch/soccerjs/dist/$file" || { echo "Missing compiled Soccer-JS asset: $file" >&2; exit 1; }
   done
   test -d watch/soccerjs/dist/assets || { echo "Missing native Soccer-JS assets" >&2; exit 1; }
-  mkdir -p dist/watch/soccerjs
-  cp -R watch/soccerjs/dist dist/watch/soccerjs/
+  test -d watch/soccerjs/dist/presets || { echo "Missing native Soccer-JS presets" >&2; exit 1; }
+  mkdir -p dist/watch/soccerjs/dist
+  # Explicit iframe-runtime allowlist: never publish standalone fixture.json,
+  # experimental docs/tests, private result data, or upstream source.
+  cp watch/soccerjs/dist/index.html watch/soccerjs/dist/viewer.css \
+     watch/soccerjs/dist/viewer.bundle.js watch/soccerjs/dist/SOCCER-JS-LICENSE.txt \
+     dist/watch/soccerjs/dist/
+  cp -R watch/soccerjs/dist/assets watch/soccerjs/dist/presets dist/watch/soccerjs/dist/
   cp watch/soccerjs/watch-bridge.js dist/watch/soccerjs/
+  test ! -e dist/watch/soccerjs/dist/fixture.json
   test -s dist/watch/soccerjs/dist/viewer.bundle.js
   echo "Included opt-in Soccer-JS 2.5D assets for a controlled development deploy."
 elif [[ "${PFC_INCLUDE_SOCCERJS:-0}" != "0" ]]; then
