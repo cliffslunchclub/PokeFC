@@ -76,7 +76,9 @@ assert(frame.messages.some(x=>x.message.type==='pfc-phase10-control'&&x.message.
 send('progress',{minute:54,score:[1,0]});
 assert.deepEqual(latestProgress.score,[1,0]);
 assert.equal(second.getState().minute,54);
+assert.equal(second.seek(20),true,'Visual seeking before handoff is allowed');
 assert(second.simToEnd());
+assert.equal(second.seek(40),false,'No Sim → Watch after handoff');
 assert.equal(second.record(),false,'Cannot save before official final frame is confirmed');
 assert(frame.messages.some(x=>x.message.type==='pfc-phase10-control'&&x.message.action==='seek'&&x.message.minute===90));
 send('progress',{minute:60,score:[1,0]});

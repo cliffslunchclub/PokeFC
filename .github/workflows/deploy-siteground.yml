@@ -26,6 +26,7 @@ on:
       - "hybrid-sim.js"
       - "tm-engine-bridge.js"
       - "tactical-viewer.js"
+      - "soccerjs-franchise-viewer.js"
       - "tm-worker.js"
       - "tacticmesh/vendor/**"
       - "scripts/build-siteground.sh"
@@ -59,6 +60,8 @@ on:
       - "tests/test-challenge-player-shots.cjs"
       - "tests/test-challenge-modals.cjs"
       - "tests/test-v08-league.cjs"
+      - "tests/test-franchise-soccerjs-watch.cjs"
+      - "tests/test-challenge-soccerjs-watch.cjs"
       - "tests/test-hybrid.cjs"
       - ".github/workflows/deploy-siteground.yml"
 
@@ -80,6 +83,8 @@ jobs:
       - name: Test National Builder, Play, Challenges and Franchise
         run: |
           node --check builder.js
+          node --check soccerjs-franchise-viewer.js
+          node --check career.js
           node --check play/play.js
           node --check play/opponents.js
           node --check national-species.js
@@ -123,6 +128,8 @@ jobs:
           node tests/test-challenge-player-shots.cjs
           node tests/test-challenge-modals.cjs
           node tests/test-v08-league.cjs
+          node tests/test-franchise-soccerjs-watch.cjs
+          node tests/test-challenge-soccerjs-watch.cjs
           node tests/test-hybrid.cjs
 
       - name: Check out pinned Soccer-JS native renderer
@@ -157,7 +164,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
+          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/soccerjs-franchise-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
             test -s "dist/$file"
           done
           test -s dist/.htaccess

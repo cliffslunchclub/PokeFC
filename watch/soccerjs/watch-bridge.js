@@ -219,6 +219,8 @@
    setProjection:(projection)=>['isometric','orthographic','topdown'].includes(projection)&&send('projection',{projection}),
    setCamera:(camera)=>['wide','follow'].includes(camera)&&send('camera',{camera}),
    setNumbers:(visible)=>send('numbers',{visible:!!visible}),
+   // Rewind/scrub is visual only. After Watch → Sim, replay cannot resume.
+   seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=90&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
    simToEnd:()=>{
     if(!booted||finished||closed||error)return false;
     handedOff=true;announce('simulating-to-end',{fromMinute:minute});

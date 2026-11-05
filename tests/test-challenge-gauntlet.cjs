@@ -73,7 +73,7 @@ for(let i=0;i<6;i++){
  assert.equal(state().round,i);
  assertOpponentPitch(opponentSource[i],'locked');
  assert.match(app.innerHTML,/aria-label="Gauntlet match controls"/,'Match controls are in Indigo Gauntlet strip');
- assert.match(app.innerHTML,/href="\.\.\/play\/\?challenge=1"/,'Watch Match keeps Challenge Play destination');
+ assert.match(app.innerHTML,/href="\.\.\/play\/\?challenge=1&amp;watch=soccerjs"/,'Challenge Watch uses 2.5D without changing the locked boss fixture');
  assert(app.innerHTML.indexOf('id="play"')<app.innerHTML.indexOf('challenge-run-layout'),'Quick Sim is above both pitches');
  assert.equal((app.innerHTML.match(/id="play"/g)||[]).length,1,'Only one Quick Sim');
  assert.equal((app.innerHTML.match(/class="challenge-watch-link"/g)||[]).length,1,'Only one Watch Match');
