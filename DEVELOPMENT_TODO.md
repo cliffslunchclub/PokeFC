@@ -15,12 +15,14 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 - [x] Goals-first expandable match timelines in Play/Challenges (other recorded events collapsed initially); save event provenance unchanged, with no invented set pieces.
 - [x] Pokémon picker and Item Shop single-scroll desktop panels, reduced scroll redraw, visible scrollbar gutters and preserved item shop scroll position; mobile uses simplified full-screen dropdown draft.
 - [x] Local and GitHub test/deployment workflow for the three primary game modes.
+- [x] **Soccer-JS 2.5D Quick Play opt-in merged and deployed** in PR #21: native isometric field, 22 Pokémon sprites, red/white markers, official Quick Sim-authoritative Watch→Sim, cancel and record-once. Native public fixture browser tests passed; default Watch remains legacy until complete mode testing.
 
-## In development — draft PR, **not released**
+## Current priorities — not yet fully implemented
 
-- [ ] **P0 — Soccer-JS 2.5D renderer**: [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) has isolated renderer/Match Director/Watch bridge and opt-in Quick Play inline 2.5D path. **Not done:** refresh against latest `main`, compile native Soccer-JS assets, visually validate real 2.5D with Pokémon, browser-test playback, phone performance, license/sprite coverage, and pass all Quick Play regressions.
+- [ ] **P0 — Complete Soccer-JS rollout**: [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) is merged, the 2.5D build/deploy pipeline succeeded and 22/22 sprites rendered in the [public Chromium fixture test](https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/42082614996). **Still pending:** independent hosted-site browser smoke, true mobile/touch/performance, full 90-minute realism, Challenge/Franchise mode parity and default-switch approval.
 - [ ] **P0 — Watch→Sim state integrity:** test 0–90' playback, seeking, pause/resume, skip, cancel-without-save, idempotent record, unchanged official score/box/events, reduced motion and errors in real browsers.
-- [ ] **P1 — Production packaging and rollout:** artifact/license bundle, deploy allowlist, staged SiteGround verification, rollout/rollback flags, Quick Play first. Do **not** silently deploy experiments or run expensive private CI.
+- [x] **Opt-in SiteGround packaging**: CI builds pinned Soccer-JS MIT assets, allowlists the embedded iframe runtime, validates source-level Quick Play lifecycle and preserves existing default Watch.
+- [ ] **P1 — Default Watch rollout:** complete hosted-site browser/mobile and mode parity, include tested fallback/rollback until final TacticMesh removal; keep heavy browser and engine tests in the public lab.
 - [ ] **P1 — Challenges Watch integration:** preserve latest v2 UI, boss locked XI/items, victory and terminal run popups, timeline, four local leaderboard categories, save history, and one-only progression.
 - [ ] **P1 — Franchise Watch integration:** preserve 32-club calendar, week results, tactical preview, save compatibility, full 90' results, playoffs, extra time and penalties.
 - [ ] **P1 — Remove TacticMesh:** after Soccer-JS parity and rollback checks pass across all modes, delete old worker/vendor/fallback/deployment dependencies in a separate reviewed change. **Not yet removed.**
@@ -40,7 +42,7 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 
 ## Repository hygiene
 
-- [x] Consolidated the Soccer-JS feature branch into one reviewed commit while keeping `main` history; it must be refreshed again if new `main` game commits land before final merge.
+- [x] Soccer-JS PR #21 merged to `main` as one squashed feature commit, preserving existing `main` history and all newer Challenges UI changes.
 - [x] Pruned the old public `gh-pages` standalone Soccer-JS demo (published assets removed; branch contains only `.nojekyll`). **Disable Pages in repository Settings** separately. The embedded game viewer is still required.
 - [ ] Remove old merged feature branches and obsolete experimental branches only after verifying unmerged code/references are retained; branch deletion is separate from closing PRs.
 - [x] Refreshed the private product README/TODO and public research README/TODO as separate canonical status documents. See [docs/REPOSITORY_CLEANUP.md](docs/REPOSITORY_CLEANUP.md).
