@@ -14,7 +14,7 @@ for(const p of ['national-species.js','calibration-profile.js','quick-sim.js','c
 }
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert(html.includes('class="challenge-hero"'));
-assert(html.includes('href="./challenge.css?v=21"'));
+assert(html.includes('href="./challenge.css?v=22"'));
 assert(html.includes('src="./picker-window.js?v=1"'),'Desktop picker helper is loaded on Challenges');
 assert(css.includes('.challenge-pitch')&&css.includes('.challenge-pick-grid'));
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),ctx,{filename:'challenge-inline',timeout:15000});
