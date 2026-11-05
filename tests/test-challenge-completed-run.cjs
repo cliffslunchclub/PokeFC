@@ -53,7 +53,11 @@ function launch(champion,withShotData=false){
 (async()=>{
  const lost=launch(false);
  assert.match(lost.app.innerHTML,/RUN COMPLETE/);
- assert.match(lost.app.innerHTML,/RUN ENDED AT BLUE/);
+ assert.match(lost.app.innerHTML,/LOSS · VS BLUE/,'Failed run label identifies whose loss');
+ assert.match(lost.app.innerHTML,/FINAL MATCH · VS BLUE/,'Final match names the opponent without outcome ambiguity');
+ assert.match(lost.app.innerHTML,/id="finalMatchHeading"[^>]*>DEFEAT<\/h2>/,'Player-perspective loss heading');
+ assert.match(lost.app.innerHTML,/VS BLUE<\/span><strong>2–3<\/strong><small>LOSS/,'Tournament result history says VS Blue / Loss');
+ assert.doesNotMatch(lost.app.innerHTML,/Blue · Defeat|BLUE DEFEATED/,'No ambiguous opponent-defeated label');
  assert.match(lost.app.innerHTML,/72\.9/,'Team score shown');
  assert.match(lost.app.innerHTML,/4W · 1L/,'Record shown');
  assert.match(lost.app.innerHTML,/5 \/ 6/,'Five matches played shown');
@@ -126,6 +130,10 @@ function launch(champion,withShotData=false){
  assert.match(withShots.app.innerHTML,/Individual passes are not yet tracked by Quick Sim/,'Per-player passing limitations disclosed');
  const won=launch(true);
  assert.match(won.app.innerHTML,/CHALLENGE CHAMPION/);
+ assert.match(won.app.innerHTML,/SIX WINS · CHAMPION/,'Champion summary celebrates six wins, not defeated player');
+ assert.match(won.app.innerHTML,/FINAL MATCH · VS RED/);
+ assert.match(won.app.innerHTML,/id="finalMatchHeading"[^>]*>VICTORY<\/h2>/);
+ assert.match(won.app.innerHTML,/VS LANCE<\/span><strong>2–1<\/strong><small>WIN/,'Tournament match history uses Win from the player's perspective');
  assert.equal(won.elements.runCompleteModal.open,true,'Champion completion opens results modal');
  assert.match(won.app.innerHTML,/6W · 0L/);
  assert.match(won.app.innerHTML,/6 \/ 6/);
