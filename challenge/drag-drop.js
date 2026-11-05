@@ -49,8 +49,10 @@
   // Use the actual sprite on the card; the native desktop drag image should
   // never be a screenshot of the entire card, stats, or equipment panel.
   const sourceSprite=(el,source)=>{
-   if(source?.type!=='candidate'&&source?.type!=='pokemon')return null;
-   const host=el?.closest?.(source.type==='candidate'?'[data-species-id]':'[data-slot-card]')||el;
+   const selectors={candidate:'[data-species-id]',pokemon:'[data-slot-card]',item:'[data-shop-pick]','held-item':'[data-held-item-source]'};
+   const selector=selectors[source?.type];
+   if(!selector)return null;
+   const host=el?.closest?.(selector)||el;
    return host?.querySelector?.('img')||null;
   };
   const spriteOffset=image=>{
@@ -68,7 +70,11 @@
   function pointerMove(e){
    if(!active)return;
    if(e.cancelable)e.preventDefault();
-   if(ghost?.style){const size=ghost.className?.includes?.('challenge-drag-sprite')?32:-13;ghost.style.transform='translate('+(e.clientX-size)+'px,'+(e.clientY-size)+'px)'}
+   if(ghost?.style){
+    const item=ghost.className?.includes?.('challenge-drag-item');
+    const size=ghost.className?.includes?.('challenge-drag-sprite')?(item?20:32):-13;
+    ghost.style.transform='translate('+(e.clientX-size)+'px,'+(e.clientY-size)+'px)';
+   }
    showTarget(pointerAt(e));
    // A short scroll step lets a touch drag reach a pitch outside the viewport.
    if(e.clientY<45)win?.scrollBy?.(0,-15);
@@ -79,6 +85,25 @@
    const el=pointerAt(e);
    if(el)commit(el);else release();
   }
+  const startPointer=(el,source,e)=>{
+   if(e.pointerType==='mouse'&&e.button!==0)return;
+   if(!begin(source,e))return;
+   if(e.cancelable)e.preventDefault();
+   const sprite=sourceSprite(el,source);
+   if(doc?.createElement&&doc?.body){
+    ghost=doc.createElement(sprite?'img':'div');
+    ghost.className='challenge-drag-ghost'+(sprite?' challenge-drag-sprite':'')+
+     (source.type==='item'||source.type==='held-item'?' challenge-drag-item':'');
+    if(sprite){ghost.src=sprite.currentSrc||sprite.src;ghost.alt='';ghost.draggable=false}
+    else ghost.textContent=sourceName(source);
+    doc.body.appendChild(ghost);
+    const offset=sprite?(source.type==='item'||source.type==='held-item'?20:32):-13;
+    ghost.style.transform='translate('+(e.clientX-offset)+'px,'+(e.clientY-offset)+'px)';
+   }
+   win?.addEventListener?.('pointermove',pointerMove,{passive:false});
+   win?.addEventListener?.('pointerup',pointerUp);
+   win?.addEventListener?.('pointercancel',release);
+  };
   const native=(el,source)=>{
    if(!el||!source||!options.canDrag?.(source))return;
    el.draggable=true;
@@ -97,7 +122,16 @@
    };
    el.ondragend=release;
   };
-  Array.from(app.querySelectorAll?.('[data-shop-pick]')||[]).forEach(el=>native(el,sourceOf('item',el.dataset?.shopPick)));
+  Array.from(app.querySelectorAll?.('[data-shop-pick]')||[]).forEach(el=>{
+   const source=sourceOf('item',el.dataset?.shopPick);
+   native(el,source);
+   // Button-based shop cards have unreliable HTML5 dragging in some browsers.
+   // A pointer-based path also supports dragging by the icon or card surface.
+   if(options.canDrag?.(source))el.onpointerdown=e=>{
+    if(e.pointerType!=='mouse')return; // Touch scrolling uses the explicit grip.
+    startPointer(el,source,e);
+   };
+  });
   Array.from(app.querySelectorAll?.('[data-species-id]')||[]).forEach(el=>native(el,sourceOf('candidate',el.dataset?.speciesId)));
   spots.forEach(el=>{
    native(el,sourceOf('pokemon',el.dataset?.slotCard));
@@ -111,25 +145,8 @@
    const source=sourceOf(grip.dataset?.dragGrip,grip.dataset?.dragValue);
    if(!source||!options.canDrag?.(source))return;
    grip.onpointerdown=e=>{
-    if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
-    if(!begin(source,e))return;
-    if(e.cancelable)e.preventDefault();
-    if(doc?.createElement&&doc?.body){
-     const sprite=sourceSprite(grip,source);
-     ghost=doc.createElement(sprite?'img':'div');
-     ghost.className='challenge-drag-ghost'+(sprite?' challenge-drag-sprite':'');
-     if(sprite){
-      ghost.src=sprite.currentSrc||sprite.src;
-      ghost.alt='';
-      ghost.draggable=false;
-     }else ghost.textContent=sourceName(source);
-     doc.body.appendChild(ghost);
-     const offset=sprite?32:-13;
-     ghost.style.transform='translate('+(e.clientX-offset)+'px,'+(e.clientY-offset)+'px)';
-    }
-    win?.addEventListener?.('pointermove',pointerMove,{passive:false});
-    win?.addEventListener?.('pointerup',pointerUp);
-    win?.addEventListener?.('pointercancel',release);
+    e.stopPropagation?.();
+    startPointer(grip,source,e);
    };
   });
   dispose=release;
