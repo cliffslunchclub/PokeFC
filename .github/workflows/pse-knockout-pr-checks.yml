@@ -31,4 +31,4 @@ jobs:
           node tests/test-v08-league.cjs
           node tests/test-franchise-soccerjs-watch.cjs
           node tests/test-challenge-soccerjs-watch.cjs
-          bash scripts/build-siteground.sh
+          node tests/test-play.cjs
