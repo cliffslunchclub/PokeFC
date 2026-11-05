@@ -206,7 +206,15 @@ function saveChallengeResult(result){
  if(!CHALLENGE_MODE||!preview||preview.challengeRound==null)return null;
  const challenge=getChallenge();
  if(!challenge||challenge.round!==preview.challengeRound||challenge.locked.roster.some((id,i)=>Number(id)!==Number(preview.home.lineup[i].speciesId)))return null;
- const ko=result.origin==='quick-sim'&&window.PFC_KNOCKOUT?
+ const alreadyResolved=result.knockoutDecision?.version==='pse-knockout-v1';
+ const ko=alreadyResolved?{
+  match:result,regulationScore:(result.regulationScore||result.score).slice(),
+  shootout:result.shootout||null,
+  extraTime:result.durationMinutes===120?{
+   score:result.extraTimeScore,
+   events:result.events.filter(e=>e.phase==='extra-time')
+  }:null
+ }:result.origin==='quick-sim'&&window.PFC_KNOCKOUT?
   window.PFC_KNOCKOUT.resolve(preview,result,{seed:preview.seed}):null;
  const official=ko?.match||result;
  let outcome=official.score[0]>official.score[1]?'Victory':official.score[0]<official.score[1]?'Defeat':'Draw';
@@ -315,13 +323,21 @@ function watchSoccerPreview(){
   stopWatch();
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
   preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
-  // A single immutable official Quick Sim result is locked before the first 2.5D frame.
-  const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  // Lock the entire authoritative knockout before kickoff. No second draw at Record.
+  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  const decision=CHALLENGE_MODE&&window.PFC_KNOCKOUT?
+   window.PFC_KNOCKOUT.resolve(preview,regulation,{seed:preview.seed}):null;
+  const official=decision?{...decision.match,
+   knockoutDecision:{version:'pse-knockout-v1',winner:decision.winner,
+    decidedBy:decision.decidedBy},
+   ...(decision.shootout?{shootout:decision.shootout}:{})}:regulation;
+  const duration=official.durationMinutes===120?120:90;
   let lastShownMinute=-1;
   $('soccerProjection').value='orthographic';$('soccerCamera').value='follow';
   $('soccerWatchActions').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
   $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D';
-  $('matchClock').textContent="0' / 90'";$('matchState').textContent='Preparing Broadcast match viewer';
+  $('matchClock').textContent="0' / "+duration+"'";$('matchState').textContent=
+   duration===120?'Preparing 120-minute knockout replay':'Preparing Broadcast match viewer';
   $('engineStatus').textContent='Loading 2.5D Soccer-JS graphics; official Quick Sim outcome already locked.';
   stateBusy(true);
   const viewport=document.querySelector('.field-shell');
@@ -335,11 +351,14 @@ function watchSoccerPreview(){
     $('matchState').textContent='WATCHING · BROADCAST';
     $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
    },
-   onProgress:({minute,score,finished})=>{
+   onProgress:({minute,score,finished,kickIndex=0,shootout})=>{
     $('score').textContent=score.join(' : ');
-    $('matchClock').textContent=finished?'FULL TIME':Math.floor(minute)+"' / 90'";
+    const totalKicks=shootout?.attempts.length||0;
+    $('matchClock').textContent=finished?'FULL TIME':
+     totalKicks&&minute>=duration?'PENALTIES '+kickIndex+'/'+totalKicks:
+     Math.floor(minute)+"' / "+duration+"'";
     const displayMinute=Math.floor(minute);
-    if(displayMinute!==lastShownMinute&&!finished){
+    if((displayMinute!==lastShownMinute||totalKicks&&minute>=duration)&&!finished){
      lastShownMinute=displayMinute;
      const recorded=(official.events||[]).filter(e=>Number(e.minute)<=minute);
      const onTarget=[0,0];
@@ -362,7 +381,9 @@ function watchSoccerPreview(){
      $('matchState').textContent='FULL TIME · READY TO RECORD';
      $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
      $('soccerRecord').disabled=false;
-     $('engineStatus').textContent='Full time: '+official.score.join('–')+' · Record this official Quick Sim result to finish the fixture.';
+     $('engineStatus').textContent='Full time '+duration+"'"+': '+official.score.join('–')+
+      (official.shootout?' · Penalties '+official.shootout.home+'–'+official.shootout.away:'')+
+      ' · Record the locked PSE result to finish the fixture.';
     }
    },
    onRecord:({result,handoff})=>{
