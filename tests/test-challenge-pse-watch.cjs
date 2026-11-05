@@ -39,10 +39,19 @@ const bridge={
   assert.equal(o.preview.opponent.leader,'Red');
   assert(o.preview.home.lineup.every((p,i)=>p.speciesId===ids[i]));
   const source=JSON.stringify(o.result);
+  assert.equal(o.result.knockoutDecision.version,'pse-knockout-v1',
+   'Knockout outcome must be locked before Watch, not recomputed at Record');
+  if(o.result.durationMinutes===120){
+   assert.equal(o.result.knockoutRules,'pse-knockout-v1');
+   assert(Array.isArray(o.result.extraTimeScore),'Extra time must be locked before kickoff');
+  }
   active=true;let closed=false,recorded=false,ended=false;
   const session={
    play(){},pause(){},setSpeed(){},setProjection(){},setCamera(){},
-   simToEnd(){ended=true;o.onProgress({minute:90,score:o.result.score,finished:true,handedOff:true});return true},
+   simToEnd(){ended=true;
+    const duration=o.result.durationMinutes===120?120:90,total=o.result.shootout?.attempts.length||0;
+    o.onProgress({minute:duration,score:o.result.score,finished:true,handedOff:true,
+     durationMinutes:duration,kickIndex:total,shootout:o.result.shootout||null});return true},
    record(){
     if(recorded||closed||!ended)return false;
     recorded=true;o.onRecord({result:o.result,handoff:'watch-to-quick-sim'});
@@ -104,4 +113,4 @@ assert.equal(store.get('pokefc-challenge-alpha-1'),count,'Record again must not 
 assert.equal(context.window.PFC_PLAY.getXI(),null,'Finished run cannot be replayed as locked XI');
 assert.equal(context.window.PFC_CHALLENGE_LEADERBOARD.rankings('national-legends',{
  getItem:key=>store.get(key)||null}).length,1,'Leaderboard archives exactly one completed run');
-console.log('PASS Challenges 2.5D + PSE knockout: cancel, 90-minute Watch, official extra-time resolution, one saved run');
+console.log('PASS Challenges Watch + PSE knockout: full result locked before kickoff, cancel, 90/120-minute handoff, one saved run');
