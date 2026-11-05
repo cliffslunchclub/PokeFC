@@ -1142,4 +1142,6 @@
 }
 @media(max-width:760px){
  .challenge-draft-titlebar,.challenge-shop-drawer-bar{cursor:default!important;touch-action:auto;user-select:auto;-webkit-user-select:auto}
+ .challenge-draft-titlebar .challenge-draft-drag-handle,
+ .challenge-shop-drawer-bar .challenge-shop-drag-handle{display:none!important}
 }
