@@ -57,7 +57,7 @@
   }
   return s;
  }
- function open({preview,result,onRecord,onClose,source='PokéFC'}){
+ function open({preview,result,onRecord,onClose,source='PokéFC',viewerUrl='../experiments/phase10-soccerjs/dist/index.html?embedded=1'}){
   if(active)throw Error('Another Phase 10 Watch session is already open');
   requireValid(typeof onRecord==='function','Result callback required');
   const fixture=snapshot(preview,result);
@@ -79,7 +79,7 @@
   };
   const frame=document.createElement('iframe');
   frame.title='Soccer-JS watched replay of an official Quick Sim match';
-  frame.src='../experiments/phase10-soccerjs/dist/index.html?embedded=1';
+  frame.src=viewerUrl;
   Object.assign(frame.style,{border:'0',width:'100%',flex:'1',background:'#0b172a',minHeight:'200px'});
   const foot=document.createElement('div');
   Object.assign(foot.style,{fontSize:'11px',padding:'5px 12px',background:'#17283c',color:'#c0d6e1'});
