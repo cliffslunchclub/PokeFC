@@ -66,7 +66,7 @@ const document={
  getElementById:el,
  querySelector(selector){assert.equal(selector,'.field-shell');return el('field-shell')},
  createElement(tag){assert.equal(tag,'script');return {src:'',onload:null,onerror:null}},
- head:{append(script){assert.match(script.src,/watch-bridge\.js$/);script.onload()}}
+ head:{append(script){assert.match(script.src,/watch-bridge\.js(?:\?v=\d+)?$/);script.onload()}}
 };
 const context=vm.createContext({
  window:{location:{search:''},addEventListener(){},FXI_PHASE10_WATCH:bridge},
