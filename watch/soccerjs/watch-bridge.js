@@ -156,7 +156,7 @@
   let closed=false,ready=false,booted=false,finished=false,handedOff=false,recorded=false,error=null,minute=0,watchdog=null;
   const frame=document.createElement('iframe');
   frame.className='soccerjs-inline-frame';
-  frame.title='Isometric Soccer-JS Pokémon match (Quick Sim-authoritative)';
+  frame.title='Broadcast Soccer-JS Pokémon match (Quick Sim-authoritative)';
   frame.setAttribute('aria-label','Soccer-JS 2.5D watched match');
   frame.src=url.href;
   function announce(state,extra={}){
@@ -185,15 +185,15 @@
    if(e.data.type===TYPE+'-ready'){
     if(ready)return;ready=true;
     frame.contentWindow.postMessage({type:TYPE+'-fixture',fixture},origin);
-    announce('loading',{message:'Official Quick Sim fixture accepted; preparing isometric Soccer-JS'});
+    announce('loading',{message:'Official Quick Sim fixture accepted; preparing Broadcast Soccer-JS'});
    }else if(e.data.type===TYPE+'-booted'){
     if(booted||!ready||error)return;
-    if(e.data.projection!=='isometric'){
-     fail('Expected an isometric 2.5D Soccer-JS camera at startup');return;
+    if(e.data.projection!=='orthographic'){
+     fail('Expected a Broadcast 2.5D Soccer-JS camera at startup');return;
     }
     booted=true;
     if(watchdog!==null){root.clearTimeout(watchdog);watchdog=null;}
-    announce('ready',{projection:'isometric'});
+    announce('ready',{projection:'orthographic'});
     if(typeof onReady==='function')onReady(session);
    }else if(e.data.type===TYPE+'-progress'){
     const next=Number(e.data.minute);
