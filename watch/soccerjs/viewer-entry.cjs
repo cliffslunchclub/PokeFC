@@ -12,6 +12,8 @@ const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
+const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
+if(inlineView)document.documentElement.classList.add('pfc-inline');
 const send=(msg)=>{if(embedded&&window.parent!==window)window.parent.postMessage({...msg,type:'pfc-phase10-'+msg.type},location.origin)};
 function receiveFixture(){
  return new Promise((resolve,reject)=>{
@@ -180,11 +182,41 @@ async function boot(){
   $('showNumbers').onchange=()=>render(minute);
   for(const id of ['play','playFive','pause','restart','skip','nextGoal','scrub'])$(id).disabled=false;
   window.addEventListener('message',e=>{
-   if(!embedded||e.source!==window.parent||e.origin!==location.origin||e.data?.type!=='pfc-phase10-seek')return;
-   const requested=Number(e.data.minute);
-   if(Number.isFinite(requested))seek(requested);
+   if(!embedded||e.source!==window.parent||e.origin!==location.origin)return;
+   const msg=e.data;
+   if(!msg||typeof msg!=='object')return;
+   if(msg.type==='pfc-phase10-seek'){
+    const requested=Number(msg.minute);
+    if(Number.isFinite(requested))seek(requested);
+    return;
+   }
+   if(msg.type!=='pfc-phase10-control')return;
+   if(msg.action==='play'){
+    if(minute>=90)return;
+    speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
+    $('speed').value=String([1,2,4].includes(speed)?speed:4);
+    playing=true;last=null;
+    render(minute);
+   }else if(msg.action==='pause'){
+    playing=false;last=null;render(minute);
+   }else if(msg.action==='speed'){
+    const v=Number(msg.speed);
+    if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;render(minute);}
+   }else if(msg.action==='seek'){
+    const m=Number(msg.minute);
+    if(Number.isFinite(m)&&m>=0&&m<=90)seek(m);
+   }else if(msg.action==='projection'&&validViews.has(msg.projection)){
+    $('projection').value=msg.projection;Settings.projectionMode=msg.projection;
+    sim.pitch?.invalidateRenderCache?.();render(minute);
+   }else if(msg.action==='camera'&&['wide','follow'].includes(msg.camera)){
+    $('camera').value=msg.camera;sim.pitch?.invalidateRenderCache?.();render(minute);
+   }else if(msg.action==='numbers'){
+    $('showNumbers').checked=!!msg.visible;render(minute);
+   }
   });
-  seek(0);window.__PFC_VIEWER_READY__=true;requestAnimationFrame(step);
+  seek(0);window.__PFC_VIEWER_READY__=true;
+  send({type:'booted',projection:Settings.projectionMode,pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length});
+  requestAnimationFrame(step);
  }catch(e){
   console.error(e);window.__PFC_VIEWER_ERROR__=String(e.stack||e);
   $('status').textContent='VIEWER ERROR';$('notice').textContent=e.message||String(e);
