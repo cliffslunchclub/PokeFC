@@ -32,7 +32,7 @@ const $=id=>document.getElementById(id);
 // Highest combined Gen I positional fit under the existing builder rating weights.
 // Unique species, 4-3-3: GK, LB, CB, CB, RB, CM, CM, CM, LW, ST, RW.
 // Only a first-visit showcase; saved lineups and deliberate clears are preserved.
-const GEN1_SHOWCASE_XI=[144,91,76,151,112,135,65,145,150,149,142];
+const GEN1_SHOWCASE_XI=[144,91,76,151,112,135,65,145,149,150,142];
 const empty=()=>({version:1,name:'Indigo Athletic',formation:'4-3-3',lineup:GEN1_SHOWCASE_XI.map(id=>BY.has(id)?id:null),selected:0,spriteStyle:'pixel'});
 function normalize(value){
  const s=empty();
@@ -143,6 +143,18 @@ function wire(){
  });
  dialog.addEventListener('cancel',()=>{pendingAction=null});
  dialog.addEventListener('close',()=>{pendingAction=null});
+ $('loadGen1').addEventListener('click',()=>{
+  const load=()=>{
+   state.formation='4-3-3';
+   state.lineup=GEN1_SHOWCASE_XI.slice();
+   state.selected=0;
+   save();render();
+  };
+  if(!state.lineup.some(Boolean)){load();return}
+  askConfirmation('LOAD BEST GEN I XI?',
+   'Use the highest combined Gen I positional fits in a 4-3-3? Your current team will be replaced.',
+   'LOAD GEN I XI',load);
+ });
  $('randomize').addEventListener('click',()=>{
   if(!state.lineup.some(Boolean)){randomize();return}
   askConfirmation('RANDOMIZE YOUR XI?',
