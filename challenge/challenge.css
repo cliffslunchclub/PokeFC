@@ -1145,3 +1145,10 @@
  .challenge-draft-titlebar .challenge-draft-drag-handle,
  .challenge-shop-drawer-bar .challenge-shop-drag-handle{display:none!important}
 }
+
+
+/* Do not reveal eligible Pokémon while the region/type/pool slot reels spin.
+   display:contents preserves the existing desktop/mobile scroll layout. */
+.challenge-draft-candidates{display:contents}
+.challenge-draft-candidates[hidden],.challenge-draft-rolling-note[hidden]{display:none!important}
+.challenge-draft-rolling-note{display:block;margin:12px 16px 18px!important;padding:16px 12px;border:1px dashed #8dbb97;border-radius:9px;background:#193e3d;color:#d9f6dc!important;font-size:11px!important;font-weight:900!important;letter-spacing:.045em;text-align:center}
