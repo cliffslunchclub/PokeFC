@@ -79,7 +79,7 @@ for(const filename of ['national-species.js','calibration-profile.js','quick-sim
 }
 assert(context.window.PFC_PLAY);
 assert.equal(el('watch').disabled,false,'Default 2.5D Watch button should be ready after bridge script');
-assert.equal(el('watchEngineSwitch').href,'?watch=tacticmesh','Explicit legacy rollback link is available');
+assert.equal(el('watch').disabled,false,'Soccer-JS remains the only available Watch route');
 assert.equal(el('soccerWatchActions').hidden,true,'Pre-match controls hidden');
 el('watch').events.click();
 assert.equal(sessions.length,1,'First Watch should start');
