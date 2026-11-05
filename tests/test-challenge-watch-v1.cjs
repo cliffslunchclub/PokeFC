@@ -11,7 +11,7 @@ const state={version:1,phase:'locked',pool:9,legends:true,formation:'4-3-3',tact
  locked:{roster,items:Array(11).fill(null),formation:'4-3-3',tactic:'press',score:85.7},round:5,history,result:null};
 const store=new Map([['pokefc-challenge-alpha-1',JSON.stringify(state)]]);
 const elements=new Map(),callbacks={};
-let opened=0,closed=0,hybridCalls=0;
+let opened=0,closed=0,hybridCalls=0,liveFixture=null;
 const paint={clearRect(){},fillRect(){},strokeRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},fillText(){},
  set fillStyle(v){},set strokeStyle(v){},set lineWidth(v){},set font(v){},set textAlign(v){}};
 function el(id){
@@ -33,6 +33,7 @@ ctx.window.FXI_TM={
   assert.equal(fixture.challengeRound,5);assert.equal(fixture.opponent.leader,'Red');
   assert.equal(fixture.home.lineup.length,11);
   assert.equal(fixture.home.tactic,'press');
+  liveFixture=fixture;
   Object.assign(callbacks,h);
   return {
    play(){opened++},pause(){},speed(){},close(){closed++},
@@ -62,6 +63,20 @@ vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{file
  assert(callbacks.ready,'TacticMesh engine callbacks registered');
  callbacks.ready({score:[0,0],players:[],ball:{x:52,y:34},elapsedSeconds:0});
  assert.equal(opened,1,'Watched match started');
+ const liveSnapshot={score:[1,0],players:[],ball:{x:50,y:34},elapsedSeconds:31*60};
+ const streamed=[
+  {type:'goal',minute:12.4,team:liveFixture.home.id,player:liveFixture.home.lineup[9].id,origin:'tacticmesh'},
+  {type:'foul',minute:18.2,team:liveFixture.away.id,player:liveFixture.away.lineup[5].id,origin:'tacticmesh'},
+  {type:'card',minute:23.2,team:liveFixture.away.id,player:liveFixture.away.lineup[5].id,card:'yellow',origin:'tacticmesh'},
+  {type:'substitution',minute:30.2,team:liveFixture.home.id,playerOff:liveFixture.home.lineup[8].id,
+   playerOn:liveFixture.home.lineup[7].id,origin:'tacticmesh'}
+ ];
+ callbacks.snapshot(liveSnapshot,streamed);
+ assert.equal(el('liveEventCount').textContent,'4 RECORDED','Match Center shows four verified streamed events');
+ for(const label of ['GOAL','FOUL','YELLOW CARD','SUBSTITUTION','WATCHED'])
+  assert.match(el('liveEventFeed').innerHTML,new RegExp(label),'Live commentary includes '+label);
+ callbacks.snapshot(liveSnapshot,streamed);
+ assert.equal(el('liveEventCount').textContent,'4 RECORDED','Repeat engine snapshots do not duplicate feed entries');
  assert.equal(el('simRemaining').disabled,false,'Sim to End enabled');
  el('simRemaining').events.click();
  assert.equal(hybridCalls,1,'One hybrid continuation');
@@ -72,6 +87,11 @@ vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{file
  assert.equal(final.result.origin,'hybrid');
  assert.equal(final.result.report.status,'complete','Watched + simulated goal events preserved');
  assert.equal(final.result.report.goals.length,4);
+ assert.equal(final.result.report.timeline.length,4,'Handoff saves exact source-labeled timeline to Challenge');
+ assert.deepEqual(Array.from(final.result.report.timeline.map(e=>e.origin)),['tacticmesh','tacticmesh','quick-continuation','quick-continuation']);
+ assert.match(el('matchResult').innerHTML,/RECORDED MATCH TIMELINE/,'Full-time Play recap shows same timeline');
+ assert.match(el('matchResult').innerHTML,/SIM TO END/,'Continuation provenance visible after handoff');
+ assert.match(el('matchResult').innerHTML,/WATCHED/,'Watched provenance remains visible after handoff');
  assert.equal(final.result.report.goals[0].minuteLabel,'13');
  assert.equal(final.result.report.goals[0].origin,'tacticmesh');
  assert.equal(final.result.report.goals[2].origin,'quick-continuation');
