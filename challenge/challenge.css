@@ -948,9 +948,11 @@
 
 /* Challenges v2.3: desktop drag-and-position draft window; the scouting reels
    now belong to the Pokémon picker, instead of consuming a separate pitch row. */
-.challenge-draft-drag-handle{display:inline-flex!important;align-items:center;gap:8px;padding:7px 10px!important;min-height:34px!important;font-size:10px!important;font-weight:1000!important;letter-spacing:.09em;color:#e9f6e7!important;background:#265345!important;border:1px solid #6b9c86!important;border-radius:6px!important;cursor:grab!important;touch-action:none;user-select:none;-webkit-user-select:none}
-.challenge-draft-drag-handle:active{cursor:grabbing!important}
-.challenge-draft-drag-handle:focus-visible{outline:3px solid #ffd992!important;outline-offset:2px}
+.challenge-draft-titlebar{cursor:grab!important;touch-action:none;user-select:none;-webkit-user-select:none}
+.challenge-draft-titlebar:active{cursor:grabbing!important}
+.challenge-draft-titlebar:focus-visible{outline:3px solid #ffd992!important;outline-offset:-3px}
+.challenge-draft-titlebar .challenge-draft-drag-handle{display:inline-flex!important;align-items:center;gap:8px;flex:1 1 auto;font-size:10px!important;font-weight:1000!important;letter-spacing:.09em;color:#e9f6e7!important;pointer-events:none}
+.challenge-draft-titlebar #closeDraftPicker{flex:0 0 auto;cursor:pointer!important;touch-action:auto;user-select:auto}
 .challenge-mobile-picker-label{display:none}
 .challenge-draft-panel .challenge-draft-position{display:flex;flex-direction:column;gap:5px;margin:5px 16px 8px!important;min-width:0}
 .challenge-draft-position span{font-size:10px;color:#cde4cf;font-weight:950;letter-spacing:.07em}
@@ -1026,17 +1028,11 @@
 /* Challenges v2.5: desktop Item Shop moves like the Pokémon picker. The
    movable window floats independently instead of reserving a second column. */
 .challenge-shop-mobile-label{display:none}
-.challenge-shop-drag-handle{
- display:inline-flex!important;align-items:center;gap:7px;flex:1 1 auto;
- min-height:34px!important;padding:7px 10px!important;text-align:left;
- background:#285747!important;border:1px solid #79a58c!important;
- border-radius:6px!important;color:#ebf8e8!important;
- font-size:10px!important;font-weight:1000!important;letter-spacing:.065em;
- cursor:grab!important;touch-action:none;user-select:none;-webkit-user-select:none
-}
-.challenge-shop-drag-handle:active{cursor:grabbing!important}
-.challenge-shop-drag-handle:focus-visible{outline:3px solid #ffdfa6!important;outline-offset:2px}
-.challenge-shop-drawer-bar #closeShopDrawer{flex:0 0 auto}
+.challenge-shop-drawer-bar{cursor:grab!important;touch-action:none;user-select:none;-webkit-user-select:none}
+.challenge-shop-drawer-bar:active{cursor:grabbing!important}
+.challenge-shop-drawer-bar:focus-visible{outline:3px solid #ffdfa6!important;outline-offset:-3px}
+.challenge-shop-drag-handle{display:inline-flex!important;align-items:center;gap:7px;flex:1 1 auto;min-height:34px!important;color:#ebf8e8!important;font-size:10px!important;font-weight:1000!important;letter-spacing:.065em;pointer-events:none}
+.challenge-shop-drawer-bar #closeShopDrawer{flex:0 0 auto;cursor:pointer!important;touch-action:auto;user-select:auto}
 @media(max-width:760px){
  .challenge-shop-drag-handle{display:none!important}
  .challenge-shop-mobile-label{display:block;font-size:11px;font-weight:1000;letter-spacing:.06em;color:#eaf8dc}
@@ -1123,3 +1119,27 @@
 .challenge-dialog::backdrop{backdrop-filter:none!important}
 .challenge-draft-panel:has(.slot-machine-spinning) .challenge-pick-grid,
 .challenge-frame #app:has(.slot-machine-spinning) .challenge-draft-panel .challenge-pick-grid{filter:none!important}
+
+
+/* Every native disclosure uses a large + / − affordance. The entire summary
+   remains the toggle target, including the visual control (no nested buttons). */
+.challenge-frame details>summary{position:relative;display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer}
+.challenge-frame details>summary::-webkit-details-marker{display:none}
+.challenge-frame details>summary::after{
+ content:"+";display:grid;place-items:center;flex:0 0 25px;
+ width:25px;height:25px;min-width:25px;margin-left:auto;
+ border:1px solid #739a8e;border-radius:6px;background:#2b4c55;
+ color:#f1efcb;font-size:18px;font-weight:900;line-height:1;user-select:none
+}
+.challenge-frame details[open]>summary::after{content:"−";background:#345d50;border-color:#9fbd9e}
+.challenge-frame details>summary:hover::after{border-color:#d4eab0;color:#fffbdc}
+.challenge-frame details>summary:focus-visible{outline:2px solid #f3d589;outline-offset:-2px}
+.challenge-frame .pfc-timeline-group>summary::before{content:none;display:none}
+.challenge-frame .gauntlet-history-game>summary{display:grid;grid-template-columns:minmax(0,1fr) 48px 65px 25px}
+.challenge-frame .run-match>summary{display:grid;grid-template-columns:minmax(0,1fr) auto auto 25px}
+@media(max-width:570px){
+ .challenge-frame .gauntlet-history-game>summary{grid-template-columns:minmax(0,1fr) 38px 55px 25px}
+}
+@media(max-width:760px){
+ .challenge-draft-titlebar,.challenge-shop-drawer-bar{cursor:default!important;touch-action:auto;user-select:auto;-webkit-user-select:auto}
+}
