@@ -103,6 +103,8 @@ function playoffMatch(a,b,key){
  if(window.PFC_KNOCKOUT){
   const ko=window.PFC_KNOCKOUT.resolve(preview,result,{seed});
   const r=ko.match;
+  r.knockoutRules='pse-knockout-v1';
+  r.durationMinutes=ko.extraTime?120:90;
   r.winner=ko.winner==='home'?a:b;
   r.penalties=!!ko.shootout;r.shootout=ko.shootout;
   r.decidedBy=ko.decidedBy;r.regulationScore=ko.regulationScore;
