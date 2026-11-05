@@ -36,7 +36,7 @@ function verify(m){
   if(!side.lineup.some(p=>p.id===e.player))throw Error('Invalid goal scorer');
 }
 function scoreAt(t){
- const s=[0,0];for(const g of match.events)if(g.minute<=t)s[g.team===match.home.id?0:1]++;
+ const s=[0,0];for(const g of match.events)if(g.type==='goal'&&g.minute<=t)s[g.team===match.home.id?0:1]++;
  return s;
 }
 function cameraFit(canvas,field,ball){
@@ -155,7 +155,7 @@ async function boot(){
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
    throw Error('Original Soccer-JS sprite generation failed');
   const list=$('goals');list.replaceChildren();
-  for(const e of match.events){
+  for(const e of match.events.filter(e=>e.type==='goal')){
    const side=e.team===match.home.id?match.home:match.away;
    const row=document.createElement('div'),scorer=side.lineup.find(p=>p.id===e.player);
    const helper=side.lineup.find(p=>p.id===e.assist);
