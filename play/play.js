@@ -172,9 +172,13 @@ function renderLiveTimeline(events=liveEvents,origin='tacticmesh',complete=false
  // Show newest events first in both modes; full-time shows the complete
  // authoritative event history, while active play limits DOM work.
  const shown=complete?timeline:timeline.slice(-30);
- el.innerHTML=report?.renderTimeline?.(shown.slice().reverse(),{
-  empty:complete?'No individual events were recorded for this match.':'No supported events recorded yet. Watching the genuine match event stream.'
- })||'<p class="match-event-empty">The match event feed is unavailable.</p>';
+ const groups=el.querySelectorAll?.('[data-timeline-group]')||[];
+ const previous=Array.from(groups).reduce((states,node)=>(states[node.dataset.timelineGroup]=node.open,states),{});
+ el.innerHTML=report?.renderGroupedTimeline?.(shown.slice().reverse(),{
+  goalsOpen:previous.goals!==false,otherOpen:previous.other===true,
+  goalsEmpty:complete?'No goals were recorded for this match.':'No goals recorded yet.',
+  otherEmpty:complete?'No other recorded events for this match.':'No saves or other events recorded yet.'
+ })||'<p class="match-event-empty">The match timeline is unavailable.</p>';
 }
 function showSnapshot(s,ev){
  if(!s)return;latestSnapshot=s;
