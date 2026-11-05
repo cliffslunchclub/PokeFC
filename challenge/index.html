@@ -71,7 +71,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -192,6 +192,9 @@ function shopMarkup(used){
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
   '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Opponent XI remains hidden until your Pokémon and items are locked. Item compatibility, refunds, and budget rules still apply.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
+  '<div class="shop-auto-equip"><div><strong>AI ITEM PICK</strong><small>Finds the best legal item combination for your current positions. Replaces your existing items.</small></div>'+
+   '<button type="button" id="autoEquip" class="primary">AUTO-EQUIP · MAX SCORE →</button>'+
+   (autoEquipSummary?'<p role="status" class="shop-auto-result">'+esc(autoEquipSummary)+'</p>':'')+'</div>'+
   '<div class="shop-stat-filter" role="group" aria-label="Filter items by boosted stats">'+
    '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS</span></div>'+
    '<div class="shop-stat-buttons">'+SHOP_STAT_FILTERS.map(([key,label])=>'<button type="button" data-shop-stat="'+key+'" class="shop-stat-button'+(shopStatFilters.has(key)?' active':'')+'" aria-pressed="'+shopStatFilters.has(key)+'">+'+label+'</button>').join('')+'</div>'+
@@ -232,11 +235,12 @@ function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rer
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
-let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set();
+let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
 const MATCH_REPORT=window.PFC_MATCH_REPORT;
+const ITEM_OPTIMIZER=window.PFC_CHALLENGE_ITEM_OPTIMIZER;
 const PERFORMANCE=window.PFC_CHALLENGE_PERFORMANCE;
 let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false;
 function openDialog(d){
@@ -878,6 +882,34 @@ app.querySelectorAll('[data-slot]').forEach(b=>{
 });
 draftPickButtons.forEach(b=>b.onclick=()=>draftPokemon(Number(b.dataset.pick),st.selected));
 if(st.phase==='shop'){
+ const autoButton=document.getElementById('autoEquip');
+ if(autoButton)autoButton.onclick=()=>{
+  if(!ITEM_OPTIMIZER){showChallengeMessage('AUTO-EQUIP UNAVAILABLE','The item optimizer could not be loaded.');return}
+  const before=teamScore();
+  try{
+   const result=ITEM_OPTIMIZER.optimize({
+    roster:st.roster.map((id,i)=>({pokemon:BY.get(id),position:FORMS[st.formation][i]})),
+    items:shopCatalog(),budget:1000,
+    rate:rating,
+    canEquip:(pokemon,item)=>Boolean(itemFor(pokemon,item)),
+    isTransformation:(pokemon,item)=>Boolean(megaForm(pokemon,item))
+   });
+   const proposed=result.items;
+   const cost=proposed.reduce((sum,item,i)=>sum+(itemFor(BY.get(st.roster[i]),item)?.[1]||0),0);
+   if(cost>1000||new Set(proposed.filter(Boolean)).size!==proposed.filter(Boolean).length||
+    proposed.filter((item,i)=>Boolean(megaForm(BY.get(st.roster[i]),item))).length>1)
+    throw new Error('Optimizer returned an invalid equipment assignment.');
+   if(result.score+1e-6<before)throw new Error('Auto-equipment would lower your current team score.');
+   st.items=proposed;
+   save();
+   const after=teamScore();
+   autoEquipSummary='Optimized team score '+before.toFixed(2)+' → '+after.toFixed(2)+
+    ' (+'+Math.max(0,after-before).toFixed(2)+') · ₽'+cost+' / ₽1,000 · '+
+    proposed.filter(Boolean).length+' items.';
+   shopMessage='AI Auto-Equip completed. Review your XI and item assignments before locking.';
+   selectedShopItem=null;shopScrollTop=0;render();
+  }catch(error){showChallengeMessage('AUTO-EQUIP FAILED',error?.message||'Could not find a legal item combination.')}
+ };
  app.querySelectorAll('[data-shop-stat]').forEach(button=>button.onclick=()=>{
   const stat=button.dataset.shopStat;
   if(!SHOP_STAT_FILTERS.some(([key])=>key===stat))return;
@@ -927,7 +959,7 @@ if((st.phase==='draft'||st.phase==='shop')&&st.moves>0&&filled>0){
 if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{
  if(st.roster.some(x=>!x)||used>1000)return;
  showChallengeMessage('LOCK FINAL XI?','Your XI, formation, tactics and held items will be locked for all six Gauntlet matches.',{confirmLabel:'LOCK MY XI',onConfirm:()=>{
-  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;shopStatFilters.clear();
+  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;shopStatFilters.clear();autoEquipSummary='';
   st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));
   save();render();
  }});
@@ -987,7 +1019,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;shopStatFilters.clear();Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;shopStatFilters.clear();autoEquipSummary='';Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
