@@ -690,6 +690,17 @@ if(gauntletStarted){
   '<div class="challenge-dialog-bar"><span id="challengeHistoryTitle">PREVIOUS MATCH REPORTS</span><button type="button" id="closeHistoryModal" aria-label="Close match history">✕ CLOSE</button></div>'+
   '<div class="challenge-history-content">'+matchHistoryHtml(st.history)+'</div></dialog>';
 }
+if(isDraft)body+='<section class="panel challenge-draft-reels" aria-label="Scouting roll">'+
+ '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
+ '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
+ '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
+ '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+eligible().length+' ELIGIBLE</span></div></div></div>'+ 
+ '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
+ '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+eligible().length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
+ '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
+ '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
+ '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
+ '</section>';
 body+='<div class="challenge-run-layout stage-'+esc(st.phase)+(isShop&&shopDrawerOpen?' shop-open':'')+'">'+
  '<div class="challenge-stage-toolbar" aria-label="Challenge gameplay tools">'+
  (isDraft?'<div><strong>DRAFT ROOM · '+(filled+1)+' / 11</strong><small>Select an open position, then draft a Pokémon in the floating picker.</small></div>'+
@@ -743,16 +754,12 @@ body+='</div>'+
 if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
- body+='<section class="panel challenge-draft-panel"><div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2>MAKE YOUR PICK</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
- '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
- '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+opts.length+' ELIGIBLE</span></div></div></div>'+ 
- '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
- '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+opts.length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendaryCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
- '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
- '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
- '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
+ body+='<dialog id="challengeDraftModal" class="challenge-dialog challenge-draft-panel" aria-modal="false" aria-labelledby="challengeDraftTitle">'+
+  '<div class="challenge-dialog-bar"><span>POKÉFC · SCOUTING</span><button type="button" id="closeDraftPicker" aria-label="Close Pokémon picker">✕ CLOSE</button></div>'+
+  '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2 id="challengeDraftTitle">CHOOSE YOUR POKÉMON</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
+  '<p class="challenge-draft-modal-help">Pick a Pokémon for your selected position, or drag it onto an empty pitch slot. One Pokémon per species.</p>'+
+  '<label class="challenge-draft-search" for="draftSearch"><span>SEARCH ELIGIBLE POKÉMON</span><input id="draftSearch" type="search" placeholder="Name, number or type" autocomplete="off" aria-controls="challengePickGrid"></label>'+
+  '<p class="draft-search-count" id="draftSearchCount">'+opts.length+' MATCHING POKÉMON</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
  '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
  const tier=cachedDraftTier(s,slots[st.selected]);
@@ -760,7 +767,7 @@ if(st.phase==='draft'){
  const stats=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
  const statText=stats.map(([short,key])=>'<span><b>'+short+'</b> '+s.baseStats[key]+'</span>').join('');
  return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><span class="challenge-drag-grip pick-grip" data-drag-grip="candidate" data-drag-value="'+s.id+'" title="Drag onto an empty position">⠿</span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
-}).join('')+'</div></section>';
+}).join('')+'</div></dialog>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
  body+='<section class="panel"><h2>ONE-TIME DRAFT ADJUSTMENTS</h2><p>These resources expire when the Final XI is locked.</p>';
