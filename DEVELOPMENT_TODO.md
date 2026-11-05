@@ -12,6 +12,8 @@ This backlog tracks deferred gameplay/UI work in the main PokéFC repository. Ke
 
 - [x] **Challenges v2 result and Pokémon popups**: after a boss victory, show a dismissible match-results modal with score, authentic event report, and an Advance button. Allow reopening from the Gauntlet strip. Occupied pitch cards show a Pokémon profile with tier, six effective stats, and equipped item, including through a dedicated details button during shopping. Terminal matches continue to use the existing comprehensive run-results modal.
 
+- [x] **Challenges v2 responsive draft picker**: scouting reels and both reroll controls moved into the picker; movable desktop popup with drag handle, viewport bounds and keyboard arrow movement. Mobile uses one full-screen picker with an unfilled-position dropdown, scrollable candidates and one-tap draft. Existing type/generation and tier sorting rules are unchanged.
+
 ## Up next
 
 - [ ] Check the floating shop and non-modal candidate popup in actual desktop Chrome and mobile touch browsers (overlap, focus, pointer drag and scrolling), and apply any device-specific fixes.
