@@ -123,7 +123,7 @@ function selectOpponent(){
  const o=opponent();if(!o)return;
  $('awayName').textContent=o.leader.toUpperCase();
  $('opponentCard').innerHTML='<strong>'+esc(o.leader)+'</strong><p>'+esc(o.city)+' · '+esc(o.region)+' · '+(o.tier==='gym'?'GYM LEADER':o.tier==='elite'?'ELITE FOUR':'CHAMPION')+'</p><span class="type-chip">'+esc(o.type.toUpperCase())+' SPECIALIST</span> <span class="type-chip">'+(o.roster?'FIXED ELITE XI':'GENERATED XI')+'</span>';
- if(!busy){preview=null;latestSnapshot=null;currentResult=null;$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch()}
+ if(!busy){preview=null;latestSnapshot=null;currentResult=null;$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
 }
 function drawPitch(snapshot){
  const el=$('matchPitch'),ctx=el.getContext('2d');if(!ctx)return;
@@ -163,12 +163,30 @@ function scoreFromSnapshot(snapshot){
  if(typeof s==='object')return [Number(s.home??s.homeGoals)||0,Number(s.away??s.awayGoals)||0];
  return null;
 }
+function renderLiveTimeline(events=liveEvents,origin='tacticmesh'){
+ const el=$('liveEventFeed'),count=$('liveEventCount');
+ if(!el||!count)return;
+ const report=window.PFC_MATCH_REPORT;
+ const timeline=preview&&report?.timelineFromEvents?report.timelineFromEvents(events,preview,origin):[];
+ count.textContent=timeline.length+' RECORDED';
+ el.innerHTML=report?.renderTimeline?.(timeline.slice(-30).reverse(),{
+  empty:'No supported events recorded yet. Watching the genuine match event stream.'
+ })||'<p class="match-event-empty">The match event feed is unavailable.</p>';
+}
 function showSnapshot(s,ev){
  if(!s)return;latestSnapshot=s;
  const score=scoreFromSnapshot(s);if(score)$('score').textContent=score.join(' : ');
  const mins=Math.max(0,Math.min(90,Number(s.elapsedSeconds||0)/60));
  $('matchClock').textContent=Math.floor(mins)+"' / 90'";
- if(ev?.length){for(const e of ev){if(!liveEvents.some(x=>x.type===e.type&&x.minute===e.minute&&x.player===e.player))liveEvents.push(e)}}
+ if(ev?.length){
+  let changed=false;
+  for(const e of ev){
+   if(!['goal','foul','card','substitution','half-time','second-half','full-time'].includes(e?.type))continue;
+   const key=x=>[x.type,x.minute,x.team,x.player,x.assist,x.card,x.playerOff,x.playerOn].join('|');
+   if(!liveEvents.some(x=>key(x)===key(e))){liveEvents.push({...e,origin:'tacticmesh'});changed=true}
+  }
+  if(changed)renderLiveTimeline();
+ }
  drawPitch(s);
 }
 function saveChallengeResult(result){
@@ -212,8 +230,14 @@ function showResult(result){
  $('modeTag').textContent=result.origin==='tacticmesh'?'WATCHED':result.origin==='hybrid'?'WATCH → SIM':'QUICK SIM';
  const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
  const statRows=rows.map(([label,key])=>'<div class="stat-row"><span>'+ (result.stats?.[0]?.[key]??'—') +(key==='possession'?'%':'')+'</span><small>'+label+'</small><span>'+(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+'</span></div>').join('');
- const events=(result.events||[]).filter(e=>e.type==='goal').map(e=>'<p><strong>'+Math.ceil(Number(e.minute)||0)+"' GOAL</strong> · "+esc(String(e.team)===String(preview.home.id)?preview.home.city:preview.away.city)+' · '+esc(preview.home.lineup.concat(preview.away.lineup).find(p=>p.id===e.player)?.name||'Pokémon')+'</p>').join('');
- $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?'<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+'<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div><div class="stat-table">'+statRows+'</div><div class="event-feed">'+(events||'<p>No goals in this match.</p>')+'</div>';
+ const report=window.PFC_MATCH_REPORT;
+ const timeline=report?.timelineFromEvents?.(result.events||[],preview,result.origin)||[];
+ const eventsMarkup=report?.renderTimeline?.(timeline,{empty:'No individual events were recorded for this match.'})||
+  '<p class="match-event-empty">No match timeline available.</p>';
+ $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?'<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+
+  '<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div>'+
+  '<div class="stat-table">'+statRows+'</div><div class="event-feed"><h3>RECORDED MATCH TIMELINE</h3>'+eventsMarkup+'</div>';
+ renderLiveTimeline(result.events||[],result.origin);
 }
 function stateBusy(isBusy){
  busy=isBusy;
@@ -228,7 +252,7 @@ function stopWatch(){
 }
 function quickSim(){
  try{
-  stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();
+  stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
   const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
@@ -237,7 +261,7 @@ async function watchMatch(){
  try{
   stopWatch();
   preview=makePreview();latestSnapshot=null;liveEvents=[];
-  stateBusy(true);drawPitch();
+  stateBusy(true);drawPitch();renderLiveTimeline();
   $('modeTag').textContent='TACTICMESH';$('score').textContent='0 : 0';
   $('matchClock').textContent="0' / 90'";$('matchState').textContent='Initializing watched match';
   $('matchResult').innerHTML='<div class="empty-state"><span>◉</span><strong>LIVE TACTICAL CAMERA</strong><p>Real player and ball positions will appear when TacticMesh starts.</p></div>';
