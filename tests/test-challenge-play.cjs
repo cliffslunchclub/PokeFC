@@ -37,5 +37,5 @@ assert.equal(saved.locked.items[0],'Eviolite');
 assert.equal(el('returnChallenge').hidden,false);
 assert.equal(el('matchClock').textContent,'FULL TIME');
 const challengeHTML=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
-assert(challengeHTML.includes('href="../play/?challenge=1"'));
+assert(challengeHTML.includes('href="../play/?challenge=1&amp;watch=soccerjs"'),'Challenge Watch uses the locked 2.5D path');
 console.log('PASS locked Challenge XI to Play, carried items, fixed boss, verified Quick Sim result and autosave');
