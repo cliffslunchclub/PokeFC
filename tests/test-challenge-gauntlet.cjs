@@ -115,7 +115,7 @@ for(let i=0;i<6;i++){
  assert.equal(state().result.report.goals[0].player,'Jolteon');
  assert.equal(state().result.report.goals[0].assist,'Machamp');
  assert.equal(state().result.report.stats.shotsOnTarget[0],5);
- assert.match(app.innerHTML,/GOALS &amp; MATCH MINUTES/);
+ assert.match(app.innerHTML,/MATCH EVENT TIMELINE/);
  assert.match(app.innerHTML,/Jolteon/);
  assert.deepEqual(Array.from(state().locked.roster),ids,'Final XI remains unchanged');
  assert.equal(state().locked.items[0],'Eviolite','Items cannot be changed after lock');
