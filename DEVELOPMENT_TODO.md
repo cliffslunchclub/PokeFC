@@ -1,32 +1,43 @@
-# PokéFC — Development TODO
+# PokéFC — Development TODO / source-of-truth status
 
-This backlog tracks deferred gameplay/UI work in the main PokéFC repository. Keep the Challenge game's existing simulation rules and saved-run integrity intact while implementing new interaction features.
+Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. **Done** means merged into `main`; **staged** means code exists only in a draft branch; **planned** is not implemented. Do not infer live deployment from a draft PR.
 
-## Completed
+## Implemented on `main`
 
-- [x] **Unified Match Timeline**: one Play event panel updates from watched events, converts to the full recorded log at full time (Quick Sim, watched, hybrid), and does not repeat the same events in the result statistics section. Suppress individual WATCHED/SIM TO END/QUICK SIM tags in Play and Challenges while preserving genuine event origins and handoff metadata in stored reports.
+- [x] National Gen I–IX (1,025 base species) Home XI Builder with formations, ratings, sprites, browser-local persistence.
+- [x] Quick Play against Gym/Elite Four/Champion opponents with Quick Sim and legacy TacticMesh Watch → Sim to End.
+- [x] Franchise Gen I–IV (493 species), 32 Gyms, 22-week season, 16-team playoffs, 25 senior + up to 10 Practice Squad, draft/scouting and save export/import.
+- [x] Challenges Classic/National six-boss Gauntlet with local four-division leaderboards, downloadable results card, seeded match reports and saved run history.
+- [x] Challenges S/A/B/C/D position tiers; rapid tier re-sort, hover-to-preview, animated three-stage scouting reels, one-time rerolls and locked team.
+- [x] Challenges v2 full-pitch layout, movable desktop scouting picker, simplified mobile picker, collapsible/draggable Item Shop, player-details and boss-result dialogs, AI Auto-Equip and stat-filtered budget-aware items.
+- [x] Match timeline unified between live and recorded events, authentic scorer/assist/minute display, individual shots on goal when recorded, hidden redundant engine provenance badges while retaining underlying source metadata.
+- [x] Local and GitHub test/deployment workflow for the three primary game modes.
 
-- [x] Challenge draft: **reorder eligible Pokémon by S → A → B → C → D tier when a new empty position is clicked**; alphabetize within tiers rather than expose the hidden OVR ranking.
-- [x] Challenge draft: hovering previews positional fit without reordering or committing the selected slot.
-- [x] Challenge draft: **fast tier re-sort with cached per-position-family grades, a single batched DOM move, and a 235 ms top-card shuffle animation**. Hover updates tier badges without list movement; reduced-motion settings disable animation.
-- [x] Challenge match reports: display authentic goal scorers, assists, minutes, game statistics, and previous matches when event logs exist.
-- [x] **Challenges v2 layout — first milestone**: replace the two-column run dashboard with a full-width XI pitch and persistent scouting reels; open the Pokémon draft list in a searchable non-modal popup, keep the Item Shop in a collapsible floating drawer with direct click-to-equip on the pitch, and put opponent scouting in a modal and one-time lineup adjustments under Team Options. Preserve existing game rules and local saves.
+## In development — draft PR, **not released**
 
-- [x] **Challenges v2 result and Pokémon popups**: after a boss victory, show a dismissible match-results modal with score, authentic event report, and an Advance button. Allow reopening from the Gauntlet strip. Occupied pitch cards show a Pokémon profile with tier, six effective stats, and equipped item, including through a dedicated details button during shopping. Terminal matches continue to use the existing comprehensive run-results modal.
+- [ ] **P0 — Soccer-JS 2.5D renderer**: [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) has isolated renderer/Match Director/Watch bridge and opt-in Quick Play inline 2.5D path. **Not done:** refresh against latest `main`, compile native Soccer-JS assets, visually validate real 2.5D with Pokémon, browser-test playback, phone performance, license/sprite coverage, and pass all Quick Play regressions.
+- [ ] **P0 — Watch→Sim state integrity:** test 0–90' playback, seeking, pause/resume, skip, cancel-without-save, idempotent record, unchanged official score/box/events, reduced motion and errors in real browsers.
+- [ ] **P1 — Production packaging and rollout:** artifact/license bundle, deploy allowlist, staged SiteGround verification, rollout/rollback flags, Quick Play first. Do **not** silently deploy experiments or run expensive private CI.
+- [ ] **P1 — Challenges Watch integration:** preserve latest v2 UI, boss locked XI/items, victory and terminal run popups, timeline, four local leaderboard categories, save history, and one-only progression.
+- [ ] **P1 — Franchise Watch integration:** preserve 32-club calendar, week results, tactical preview, save compatibility, full 90' results, playoffs, extra time and penalties.
+- [ ] **P1 — Remove TacticMesh:** after Soccer-JS parity and rollback checks pass across all modes, delete old worker/vendor/fallback/deployment dependencies in a separate reviewed change. **Not yet removed.**
+- [ ] **P1 — Natural Match Director:** coherent passing, possession, shooting and goalkeeper animation, with derived movements labeled illustrative and goals/statistics fixed by Quick Sim.
 
-- [x] **Challenges v2 responsive draft picker**: scouting reels and both reroll controls moved into the picker; movable desktop popup with drag handle, viewport bounds and keyboard arrow movement. Mobile uses one full-screen picker with an unfilled-position dropdown, scrollable candidates and one-tap draft. Existing type/generation and tier sorting rules are unchanged.
+## Additional open work
 
-## Up next
+- [ ] **Real match resumption/tactical changes:** design seeded continuation state (clock, score, events, stats, tactics, lineups, RNG), prototype halftime changes, then arbitrary-minute adjustments without re-simulating elapsed match.
+- [ ] Full knockout extra-time and penalty-shootout rules, replacing provisional seeded tie resolution.
+- [ ] Gen I–IX shared master dataset adoption across modes **without breaking Gen I–IV Franchise saves**; support/select alternate forms where appropriate.
+- [ ] Independent multi-browser and touch/mobile accessibility review of Challenges picker, floating Item Shop and item drag/drop; preserve keyboard/touch and Pokémon-dropdown alternatives.
+- [ ] More event types only if genuinely reported by the official match model; don't fabricate cards, keeper saves or major chances from aggregate totals.
+- [ ] Better calibrated soccer attributes, deterministic balance tests, positional and item balance.
+- [ ] Server-verified online leaderboard, accounts, authenticated sharing and anti-cheat (current leaderboard is local only).
+- [ ] Evaluate a separate full-control Arcade concept; **not** a fourth product mode until prototyped and approved.
+- [ ] Preserve compatibility with existing local Challenge/Franchise saves; add migration tests before changing serialized schemas.
 
-- [ ] Check the floating shop and non-modal candidate popup in actual desktop Chrome and mobile touch browsers (overlap, focus, pointer drag and scrolling), and apply any device-specific fixes.
+## Repository hygiene
 
-- [ ] **Item-shop drag-and-drop equipment**: allow dragging an item from the catalog onto an eligible Pokémon's XI tile, including clear drop-target highlighting and an obvious remove/return action. Keep the current item-first picker plus Pokémon dropdown as a **keyboard, touch/mobile, and accessibility fallback**, not a separate set of gameplay rules. Reuse the same equipment validation (₽1,000 budget, item compatibility, unique items, one Mega, refunds). Provide success/failure messages and undo; test mouse, touch, keyboard, and locked-lineup restrictions.
-- [x] **Live match commentary/event feed (v1)**: Watch Match streams the actual TacticMesh goal, foul, card, substitution, and period ledger to the Match Center, with deduplication. Quick Sim records its actual generated goalkeeper saves without changing seeded outcomes. Watch → Quick Sim preserves chronological provenance in saved Challenge match reports, and old match summaries do not invent missing events. A **major chance** is deliberately not displayed because no corresponding engine event has been validated. Regression tests cover this behavior.
-- [ ] **Additional live-event support**: add major chances and watched-match keeper saves only if the underlying TacticMesh source offers authoritative per-event records; don't derive them from the final report counters.
-- [ ] Validate updated draft tier sorting and item-shop usability in actual desktop Chrome and mobile touch browsers.
-
-## Longer-term
-
-- [ ] Server-verified online leaderboards and shareable run links/player accounts.
-- [ ] Full extra time and penalty kick engine, replacing the provisional seeded tiebreaker.
-- [ ] Continue TacticMesh/Quick Sim calibration and consistent positional ratings.
+- [ ] Squash the active Soccer-JS development branch **without rewriting `main`**; verify it includes latest `main` timeline changes.
+- [ ] Retire the public `gh-pages` standalone Soccer-JS demo (embedded `watch/soccerjs/index.html` inside the game is required and must **not** be removed).
+- [ ] Remove old merged feature branches and obsolete experimental branches only after verifying unmerged code/references are retained; branch deletion is separate from closing PRs.
+- [ ] Keep one canonical README/TODO per repository; research workflows/artifacts belong in the public simulation repo. See [docs/REPOSITORY_CLEANUP.md](docs/REPOSITORY_CLEANUP.md).
