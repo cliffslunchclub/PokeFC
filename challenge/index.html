@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=15">
+<link rel="stylesheet" href="./challenge.css?v=16">
 </head>
 <body>
 <header class="pfc-header">
@@ -176,7 +176,11 @@ function equipShopItem(name,index){
 }
 function shopMarkup(used){
  const fullCatalog=shopCatalog();
- const catalog=shopStatFilters.size?fullCatalog.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):fullCatalog;
+ const remaining=Math.max(0,1000-used);
+ // Keep existing equipment visible for reassignment/removal, but hide new
+ // purchases that cannot fit in the remaining budget.
+ const withinBudget=fullCatalog.filter(it=>it[1]<=remaining||st.items.includes(it[0]));
+ const catalog=shopStatFilters.size?withinBudget.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):withinBudget;
  const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
  if(!current)selectedShopItem=catalog[0]?.[0]||null;
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
@@ -190,13 +194,13 @@ function shopMarkup(used){
  }).filter(Boolean).join('');
  return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
-  '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Opponent XI remains hidden until your Pokémon and items are locked. Item compatibility, refunds, and budget rules still apply.</p>'+
+  '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Items above your remaining budget disappear; equipped items stay listed so you can move or remove them. Opponents stay hidden until lock.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
   '<div class="shop-auto-equip"><div><strong>AI ITEM PICK</strong><small>Finds the best legal item combination for your current positions. Replaces your existing items.</small></div>'+
    '<button type="button" id="autoEquip" class="primary">AUTO-EQUIP · MAX SCORE →</button>'+
    (autoEquipSummary?'<p role="status" class="shop-auto-result">'+esc(autoEquipSummary)+'</p>':'')+'</div>'+
   '<div class="shop-stat-filter" role="group" aria-label="Filter items by boosted stats">'+
-   '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS</span></div>'+
+   '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS · ₽'+remaining+' LEFT</span></div>'+
    '<div class="shop-stat-buttons">'+SHOP_STAT_FILTERS.map(([key,label])=>'<button type="button" data-shop-stat="'+key+'" class="shop-stat-button'+(shopStatFilters.has(key)?' active':'')+'" aria-pressed="'+shopStatFilters.has(key)+'">+'+label+'</button>').join('')+'</div>'+
    '<small>Choose one or more boosts (matches any). Tap a selected filter again to clear it.</small></div>'+
   '<div id="shopCatalog" class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
@@ -204,7 +208,7 @@ function shopMarkup(used){
    return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
     '<span class="shop-item-main">'+itemSprite(n)+'<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span></span><span class="challenge-drag-grip item-grip" data-drag-grip="item" data-drag-value="'+esc(n)+'" title="Drag onto Pokémon">⠿ DRAG</span><small>'+esc(itemEffect(it))+'</small>'+
     '<span class="shop-item-status">'+(holder>=0?'✓ EQUIPPED · '+esc(BY.get(st.roster[holder]).name):targets.length?'CHOOSE ITEM':'NOT ELIGIBLE')+'</span></button>';
-  }).join('')+(catalog.length?'':'<p class="shop-filter-empty">No items boost the selected stats.</p>')+'</div>'+
+  }).join('')+(catalog.length?'':'<p class="shop-filter-empty">No affordable items match your filters. Remove equipment or clear the stat filters to see more items.</p>')+'</div>'+
   '<div class="shop-assign-panel"><div class="shop-selected-item">'+itemSprite(name)+'<h3>'+esc(name)+'</h3></div><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
    '<label for="shopTarget">Assign to Pokémon</label><select id="shopTarget" '+(!eligible.length?'disabled':'')+'>'+options+'</select>'+
    '<button type="button" id="equipShopItem" class="primary" '+(!eligible.length?'disabled':'')+'>'+(held>=0?'MOVE / REASSIGN ITEM':'EQUIP ITEM')+'</button>'+
@@ -215,10 +219,17 @@ function shopMarkup(used){
  '</section>';
 }
 const gen=id=>id<=151?1:id<=251?2:id<=386?3:id<=493?4:id<=649?5:id<=721?6:id<=809?7:id<=905?8:9;
+const rollKey=r=>r?String(r.gen)+':'+String(r.type):'';
+function rememberRoll(result){
+ if(!result)return;
+ if(!Array.isArray(st.rollHistory))st.rollHistory=[];
+ const key=rollKey(result);
+ if(!st.rollHistory.includes(key))st.rollHistory.push(key);
+}
 function seed(){return (crypto.getRandomValues(new Uint32Array(1))[0]||1)>>>0}
 function next(){let x=st.rng>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;st.rng=x>>>0;return st.rng/4294967296}
-const initial=()=>({version:1,phase:'setup',pool:4,legends:false,formation:'4-3-3',tactic:'balanced',roster:Array(11).fill(null),items:Array(11).fill(null),roll:null,selected:0,rng:seed(),rerollType:1,rerollGen:1,moves:1,formationChanges:1,locked:null,result:null,round:0,history:[]});
-let st;try{st=JSON.parse(localStorage.getItem(KEY));if(st?.version!==1)st=initial();else{st.round=Number.isInteger(st.round)?st.round:0;st.history=Array.isArray(st.history)?st.history:[]}}catch{st=initial()}
+const initial=()=>({version:1,phase:'setup',pool:4,legends:false,formation:'4-3-3',tactic:'balanced',roster:Array(11).fill(null),items:Array(11).fill(null),roll:null,rollHistory:[],selected:0,rng:seed(),rerollType:1,rerollGen:1,moves:1,formationChanges:1,locked:null,result:null,round:0,history:[]});
+let st;try{st=JSON.parse(localStorage.getItem(KEY));if(st?.version!==1)st=initial();else{st.round=Number.isInteger(st.round)?st.round:0;st.history=Array.isArray(st.history)?st.history:[];st.rollHistory=Array.isArray(st.rollHistory)?st.rollHistory:(st.roll?[rollKey(st.roll)]:[])}}catch{st=initial()}
 const save=()=>localStorage.setItem(KEY,JSON.stringify(st));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pool=()=>S.filter(s=>(s.gen||gen(s.id))<=st.pool&& (st.legends||!s.legendary)&&(!s.legendary||st.roster.filter(id=>BY.get(id)?.legendary).length<2)&&!st.roster.includes(s.id));
@@ -230,8 +241,45 @@ const opponentTeamScore=boss=>{
  if(!positions||!Array.isArray(ids)||ids.length!==positions.length)return null;
  return ids.reduce((sum,id,i)=>sum+rating(BY.get(id),positions[i],opponentHeldItem(boss,id)),0)/ids.length;
 };
-function roll(){const a=pool();if(!a.length){st.roll=null;return}const types=[...new Set(a.flatMap(s=>s.types))],valid=[];for(const type of types)for(let g=1;g<=st.pool;g++)if(a.some(s=>s.types.includes(type)&&(s.gen||gen(s.id))===g))valid.push({type,gen:g});st.roll=valid[Math.floor(next()*valid.length)];pendingRollAnimation=true}
-function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rerollGen)return;const a=pool(),old=st.roll;if(!old)return;const opts=which==='type'?[...new Set(a.filter(s=>(s.gen||gen(s.id))===old.gen).flatMap(s=>s.types))].filter(x=>x!==old.type).map(type=>({type,gen:old.gen})):Array.from({length:st.pool},(_,i)=>i+1).filter(g=>g!==old.gen&&a.some(s=>gen(s.id)===g&&s.types.includes(old.type))).map(gen=>({type:old.type,gen}));if(!opts.length)return;st.roll=opts[Math.floor(next()*opts.length)];if(which==='type')st.rerollType--;else st.rerollGen--;pendingRollAnimation=true}
+function availableRolls(){
+ const available=pool(),byPair=new Map();
+ for(const species of available){
+  for(const type of species.types){
+   const candidate={type,gen:species.gen||gen(species.id)};
+   byPair.set(rollKey(candidate),candidate);
+  }
+ }
+ return [...byPair.values()];
+}
+function roll(){
+ const valid=availableRolls();
+ if(!valid.length){st.roll=null;return}
+ const seen=new Set(st.rollHistory||[]);
+ const fresh=valid.filter(result=>!seen.has(rollKey(result)));
+ // A normal new round can reuse a pair only if every remaining pair has
+ // already appeared; a paid reroll, by contrast, never repeats one.
+ const options=fresh.length?fresh:valid;
+ st.roll=options[Math.floor(next()*options.length)];
+ rememberRoll(st.roll);pendingRollAnimation=true;
+}
+function rerollOptions(which){
+ if(!st.roll||!['type','gen'].includes(which))return [];
+ const old=st.roll,seen=new Set([...(st.rollHistory||[]),rollKey(old)]);
+ return availableRolls().filter(result=>
+  which==='type'?
+   result.gen===old.gen&&result.type!==old.type&&!seen.has(rollKey(result)):
+   result.type===old.type&&result.gen!==old.gen&&!seen.has(rollKey(result))
+ );
+}
+function reroll(which){
+ if((which==='type'&&!st.rerollType)||(which==='gen'&&!st.rerollGen))return false;
+ const options=rerollOptions(which);
+ if(!options.length)return false; // No repeat and no spent reroll credit.
+ st.roll=options[Math.floor(next()*options.length)];
+ rememberRoll(st.roll);
+ if(which==='type')st.rerollType--;else st.rerollGen--;
+ pendingRollAnimation=true;return true;
+}
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
@@ -571,7 +619,7 @@ function render(){const app=document.getElementById('app');
  document.getElementById('classicMode').onclick=()=>{poolSelect.value='4';sync()};
  document.getElementById('nationalMode').onclick=()=>{poolSelect.value='9';sync()};
  poolSelect.onchange=sync;
- document.getElementById('start').onclick=()=>{st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
+ document.getElementById('start').onclick=()=>{st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 const draftTierCache=new Map();
 const rankTier={S:0,A:1,B:2,C:3,D:4};
@@ -686,7 +734,8 @@ if(st.phase==='draft'){
  '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
  '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+opts.length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendaryCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
  '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
- '<div class="controls-inline"><button id="typeR" '+(!st.rerollType?'disabled':'')+'>↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen?'disabled':'')+'>↻ GENERATION · '+st.rerollGen+'</button></div>'+
+ '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
+ '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
  '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
  const tier=cachedDraftTier(s,slots[st.selected]);

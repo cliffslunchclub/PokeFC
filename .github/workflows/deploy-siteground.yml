@@ -41,6 +41,7 @@ on:
       - "tests/test-challenge-striker-first.cjs"
       - "tests/test-challenge-watch-v1.cjs"
       - "tests/test-challenge-slot-reels.cjs"
+      - "tests/test-challenge-unique-rerolls.cjs"
       - "tests/test-challenge-tier-positions.cjs"
       - "tests/test-challenge-special-items.cjs"
       - "tests/test-challenge-primal-items.cjs"
@@ -97,6 +98,7 @@ jobs:
           node tests/test-challenge-striker-first.cjs
           node tests/test-challenge-watch-v1.cjs
           node tests/test-challenge-slot-reels.cjs
+          node tests/test-challenge-unique-rerolls.cjs
           node tests/test-challenge-tier-positions.cjs
           node tests/test-free-builder.cjs
           node tests/test-branding.cjs

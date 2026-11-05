@@ -746,3 +746,5 @@
 .tournament-pokemon-stats .pokemon-shot-stat b{color:#ccf7ca}
 .run-tournament-panel .run-sog-coverage{margin-top:10px!important;padding:8px 9px;color:#b9d1db!important;font-size:10px!important;line-height:1.45}
 @media(max-width:620px){.shop-auto-equip{grid-template-columns:1fr;padding:10px}.shop-auto-equip button{width:100%}.individual-shot-row{grid-template-columns:52px minmax(0,1fr) 54px;gap:5px;padding:7px}.individual-shot-row span{font-size:8px}}
+/* Scouting rerolls use never-before-seen type/region combinations. */
+.reroll-unique-note{margin:5px 0 12px!important;font-size:10px!important;line-height:1.5!important;color:#bdd9cc!important;letter-spacing:.01em}
