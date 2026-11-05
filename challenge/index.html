@@ -481,7 +481,7 @@ function matchReportHtml(match){
   passAccuracy:[0,1].map(side=>rate(rawStats.completedPasses?.[side],rawStats.passes?.[side])),
   tackleSuccess:[0,1].map(side=>rate(rawStats.tackles?.[side],rawStats.tackleAttempts?.[side]))};
  const rows=[
-  ['SHOTS','shots',''],['POSSESSION','possession','%'],
+  ['SHOTS','shots',''],['SHOTS ON TARGET','shotsOnTarget',''],['POSSESSION','possession','%'],
   ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['PASS ACCURACY','passAccuracy','%'],
   ['TACKLES ATTEMPTED','tackleAttempts',''],['TACKLES WON','tackles',''],['TACKLE WIN RATE','tackleSuccess','%'],['SAVES','saves','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
