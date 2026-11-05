@@ -220,6 +220,7 @@ function stateBusy(isBusy){
  updateXI();
  $('region').disabled=isBusy||CHALLENGE_MODE;$('opponent').disabled=isBusy||CHALLENGE_MODE;$('tactic').disabled=isBusy||CHALLENGE_MODE;
  $('fillXI').disabled=isBusy||CHALLENGE_MODE;
+ if($('watchSoccerPhase10'))$('watchSoccerPhase10').disabled=isBusy||!getXI()?.lineup?.every(Boolean);
 }
 function stopWatch(){
  if(controller){controller.close();controller=null}
@@ -232,6 +233,35 @@ function quickSim(){
   const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
+}
+function watchSoccerPhase10(){
+ try{
+  if(!window.FXI_PHASE10_WATCH)throw Error('Phase 10 bridge unavailable');
+  stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();
+  // Official Quick Sim outcome is decided BEFORE any watched frame.
+  const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  stateBusy(true);
+  $('modeTag').textContent='SOCCER-JS ALPHA';
+  $('matchClock').textContent="0' / 90'";
+  $('matchState').textContent='Soccer-JS visual replay';
+  $('engineStatus').textContent='Quick Sim result locked. Soccer-JS only animates; Sim to End preserves every goal.';
+  window.FXI_PHASE10_WATCH.open({
+   preview,result:official,
+   source:CHALLENGE_MODE?'Challenge · '+(preview.opponent?.leader||'boss'):'Exhibition',
+   onRecord:({result})=>{
+    showResult(result);
+    stopWatch();
+    $('modeTag').textContent='SOCCER-JS → QUICK SIM';
+    $('engineStatus').textContent='Recorded official Quick Sim result after watching. Soccer-JS generated no separate goals.';
+   },
+   onClose:({recorded})=>{
+    if(!recorded){
+     stopWatch();
+     $('engineStatus').textContent='Phase 10 Watch closed without recording. Match and Challenge results are unchanged.';
+    }
+   }
+  });
+ }catch(err){stopWatch();$('engineStatus').textContent='Phase 10 test unavailable: '+(err?.message||err);}
 }
 async function watchMatch(){
  try{
@@ -275,6 +305,12 @@ function start(){
  $('fillXI').addEventListener('click',autoFill);
  $('quick').addEventListener('click',quickSim);
  $('watch').addEventListener('click',watchMatch);
+ // Existing Challenge WATCH link opens this page with ?challenge=1.
+ if((CHALLENGE_MODE||new URLSearchParams(location.search).get('phase10')==='soccerjs')&&window.FXI_PHASE10_WATCH){
+  const button=document.createElement('button');button.id='watchSoccerPhase10';button.type='button';
+  button.className='play-btn watch';button.textContent='▶ SOCCER-JS · PHASE 10 TEST';
+  $('watch').after(button);button.addEventListener('click',watchSoccerPhase10);
+ }
  $('pause').addEventListener('click',()=>{controller?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
  $('resume').addEventListener('click',()=>{controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='LIVE'});
  $('simRemaining').addEventListener('click',()=>{if(!controller)return;$('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;$('engineStatus').textContent='Validating live TacticMesh handoff…';controller.handoff()});
