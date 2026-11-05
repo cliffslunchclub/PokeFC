@@ -28,7 +28,7 @@ assert.match(css,/\.challenge-draft-panel \.challenge-pick-grid\{max-height:min\
 assert.match(css,/width:100vw!important;height:100dvh!important;max-width:none!important;max-height:100dvh!important/,
  'Mobile picker remains full-screen for touch-friendly selection');
 const roster=[233,6,9,94,25,1,2,3,4,5,7];
-function launch(phase){
+function launch(phase,slotApi=null){
  const state={version:1,phase,pool:4,legends:false,formation:'4-3-3',tactic:'balanced',
   roster:phase==='draft'?Array(11).fill(null):roster,items:Array(11).fill(null),
   roll:phase==='draft'?{gen:1,type:'fire'}:null,rollHistory:['1:fire'],
@@ -88,7 +88,7 @@ function launch(phase){
   });
   return nodes.get(id);
  }};
- const win={},ctx=vm.createContext({window:win,document,console,
+ const win=slotApi?{PFC_CHALLENGE_SLOT_REELS:slotApi}:{},ctx=vm.createContext({window:win,document,console,
   crypto:{getRandomValues(x){x[0]=78249;return x}},
   localStorage:{getItem(){return stored},setItem(_k,value){stored=value}},
   confirm:()=>true,alert:s=>{throw Error('Unexpected alert: '+s)}
@@ -120,6 +120,12 @@ assert.match(css,/height:100dvh!important/,'Mobile picker fills the viewport');
 assert.match(css,/\.challenge-draft-panel \.pick-grip\{display:none!important\}/,'Mobile hides precision drag handles');
 assert.equal(draft.nodes.get('challengeDraftModal').open,true,'Pokémon picker automatically opens on a new draft');
 assert.equal((draft.app.innerHTML.match(/id="challengePickGrid"/g)||[]).length,1,'Exactly one candidate grid');
+assert.match(draft.app.innerHTML,/id="challengeDraftCandidates" class="challenge-draft-candidates"/,
+ 'Candidate list has its own reveal container');
+assert.match(css,/\.challenge-draft-candidates\[hidden\],\.challenge-draft-rolling-note\[hidden\]\{display:none!important\}/,
+ 'Hidden candidate list and spinner status are not visually rendered');
+assert.match(css,/\.challenge-draft-candidates\{display:contents\}/,
+ 'Revealed candidate list keeps original mobile flex and desktop scrolling layout');
 draft.nodes.get('closeDraftPicker').onclick();
 assert.equal(draft.nodes.get('challengeDraftModal').open,false,'Picker can close to show the pitch');
 draft.nodes.get('openDraftPicker').onclick();
@@ -141,6 +147,27 @@ assert(keeperPick?.onclick,'Eligible goalkeeper draft option available');
 keeperPick.onclick();
 assert.equal(draft.state().roster[0]>0,true,'Single DRAFT tap fills the selected dropdown position');
 assert.equal(draft.state().selected,8,'Next draft automatically returns to remaining priority position');
+
+// Use a controllable reel callback to test the whole hide / reveal lifecycle.
+const pendingFinishes=[];
+const rolling=launch('draft',{mount(_el,_outcome,opts){
+ if(opts.animate)pendingFinishes.push(opts.onDone);
+ else opts.onDone();
+},cancel(){}});
+const rollingPick=rolling.app.querySelectorAll('[data-pick]').find(button=>!button.disabled);
+assert(rollingPick?.onclick,'Scouting list has an eligible initial pick');
+rollingPick.onclick();
+assert.equal(pendingFinishes.length,1,'Next draw waits for all reels to finish');
+assert.match(rolling.app.innerHTML,/id="challengeDraftCandidates" class="challenge-draft-candidates" hidden/,
+ 'Pokémon cards, search and tier sorting start hidden before the spinner can paint');
+assert.doesNotMatch(rolling.app.innerHTML,/id="challengeDraftRollingNote"[^>]* hidden/,
+ 'Scouting progress note is visible while the spinner runs');
+const pendingCandidates=rolling.nodes.get('challengeDraftCandidates');
+const pendingNote=rolling.nodes.get('challengeDraftRollingNote');
+pendingCandidates.hidden=true;pendingNote.hidden=false; // Reflect HTML hidden attributes in the test DOM stub.
+pendingFinishes.shift()(); // The same completion path handles natural finish, Skip and reduced-motion.
+assert.equal(pendingCandidates.hidden,false,'Spinner finish reveals all Pokémon choices');
+assert.equal(pendingNote.hidden,true,'Spinner finish removes scouting progress note');
 
 const shop=launch('shop');
 assert.match(shop.app.innerHTML,/class="challenge-run-layout stage-shop shop-open"/);
