@@ -882,6 +882,36 @@ body+='</div></div>'+
  '<button type="button" id="closePokemonDetailModal" aria-label="Close Pokémon profile">✕ CLOSE</button></div>'+
  '<div id="pokemonDetailContent" class="pokemon-detail-content"></div></dialog>'+
  '<section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
+const detailDialog=document.getElementById('challengePokemonDetailModal');
+const closePokemonDetail=()=>closeDialog(detailDialog);
+const openPokemonDetail=index=>{
+ const markup=pokemonDetailMarkup(index),content=document.getElementById('pokemonDetailContent');
+ if(!markup||!content)return;
+ content.innerHTML=markup;
+ openDialog(detailDialog);
+};
+const detailClose=document.getElementById('closePokemonDetailModal');
+if(detailClose)detailClose.onclick=closePokemonDetail;
+if(detailDialog)detailDialog.onclick=e=>{if(e?.target===detailDialog)closePokemonDetail()};
+app.querySelectorAll('[data-pokemon-info]').forEach(button=>button.onclick=e=>{
+ e?.stopPropagation?.();
+ openPokemonDetail(Number(button.dataset.pokemonInfo));
+});
+if(st.phase==='result'){
+ const modal=document.getElementById('challengeMatchResultModal');
+ const reopen=document.getElementById('openMatchResultModal');
+ const dismiss=()=>{matchResultDismissed=true;closeDialog(modal)};
+ if(reopen)reopen.onclick=()=>{matchResultDismissed=false;openDialog(modal)};
+ const close=document.getElementById('closeMatchResultModal'),footer=document.getElementById('closeMatchResultFooter');
+ if(close)close.onclick=dismiss;
+ if(footer)footer.onclick=dismiss;
+ if(modal){
+  modal.oncancel=()=>{matchResultDismissed=true};
+  modal.onclose=()=>{matchResultDismissed=true};
+  modal.onclick=e=>{if(e?.target===modal)dismiss()};
+  if(!matchResultDismissed)openDialog(modal);
+ }
+}
 if(isDraft){
  const picker=document.getElementById('challengeDraftModal');
  const openPicker=()=>{draftPickerOpen=true;openFloatingDialog(picker)};
@@ -1040,13 +1070,13 @@ app.querySelectorAll('[data-slot-card]').forEach(card=>{
 app.querySelectorAll('[data-slot]').forEach(b=>{
  const index=Number(b.dataset.slot);
  b.onclick=()=>{
-  if(isShop){
-   if(!selectedShopItem){shopMessage='Select an item in the shop first.';shopDrawerOpen=true;render();return}
+  if(isShop&&selectedShopItem){
    const result=equipShopItem(selectedShopItem,index);
    shopMessage=result.ok?'Equipped '+selectedShopItem+' to '+(BY.get(st.roster[index])?.name||'Pokémon')+'.':result.error;
    if(result.ok)render();
    else{shopDrawerOpen=true;const status=document.getElementById('shopFeedback');if(status)status.textContent=shopMessage}
-  }else displayDraftPosition(index,true);
+  }else if(st.roster[index])openPokemonDetail(index);
+  else displayDraftPosition(index,true);
  };
  b.onfocus=()=>displayDraftPosition(index,false);
  b.onblur=()=>displayDraftPosition(st.selected,false);
@@ -1136,12 +1166,13 @@ if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e
  }});
 }}
 if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
+ matchResultDismissed=false;
  st.result=playBoss();st.result.award=calculateMatchAward(st.result);st.history.push({...st.result});
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
  if(st.phase==='finished'){runRecapDismissed=false;savePersonalRecord();BOARD?.archive(st,localStorage)}
  save();render()
 }catch(e){showChallengeMessage('QUICK SIM ERROR',e?.message||'Unable to finish this match. Please try again.')}};
-if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;st.round++;st.phase='locked';st.result=null;save();render()};
+if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;matchResultDismissed=false;st.round++;st.phase='locked';st.result=null;save();render()};
 if(st.phase==='finished'){
  const runModal=document.getElementById('runCompleteModal');
  const closeRecap=()=>{runRecapDismissed=true;closeDialog(runModal)};
@@ -1190,7 +1221,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
@@ -1240,7 +1271,7 @@ if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  window.PFC_CHALLENGE_DND.mount(app,{canDrag,canDrop,onDrop});
 }
 
-document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;save();render()}})}
+document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
  const key='pokefc-challenge-personal-records-v1';
