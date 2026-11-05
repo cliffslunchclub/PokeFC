@@ -68,8 +68,16 @@ const draft=launch('draft');
 assert.match(draft.app.innerHTML,/class="challenge-run-layout stage-draft"/);
 assert.match(draft.app.innerHTML,/id="challengeDraftModal"/);
 assert.match(draft.app.innerHTML,/id="draftSearch"/);
-assert(draft.app.innerHTML.indexOf('id="challengeSlotMachine"')<draft.app.innerHTML.indexOf('class="challenge-run-layout stage-draft"'),
- 'Animated scouting machine is above the full-width pitch');
+const pickerAt=draft.app.innerHTML.indexOf('id="challengeDraftModal"');
+const machineAt=draft.app.innerHTML.indexOf('id="challengeSlotMachine"');
+const candidateAt=draft.app.innerHTML.indexOf('id="challengePickGrid"');
+assert(pickerAt>=0&&machineAt>pickerAt&&candidateAt>machineAt,
+ 'Animated scouting reel is inside the Pokémon picker, before the candidate cards');
+assert.equal((draft.app.innerHTML.match(/id="challengeSlotMachine"/g)||[]).length,1,'No duplicate scouting machine');
+assert.match(draft.app.innerHTML,/id="draftPositionSelect"/,'Position selector available for mobile and keyboard');
+assert.match(draft.app.innerHTML,/id="challengeDraftDragHandle"/,'Desktop picker includes an accessible move handle');
+assert.match(css,/height:100dvh!important/,'Mobile picker fills the viewport');
+assert.match(css,/\.challenge-draft-panel \.pick-grip\{display:none!important\}/,'Mobile hides precision drag handles');
 assert.equal(draft.nodes.get('challengeDraftModal').open,true,'Pokémon picker automatically opens on a new draft');
 assert.equal((draft.app.innerHTML.match(/id="challengePickGrid"/g)||[]).length,1,'Exactly one candidate grid');
 draft.nodes.get('closeDraftPicker').onclick();
@@ -82,6 +90,17 @@ firstPick.onclick();
 assert.equal(draft.state().roster[9]>0,true,'Default striker position receives the chosen Pokémon');
 assert.equal(draft.state().selected,8,'Next draft target advances to winger');
 assert.equal(draft.nodes.get('challengeDraftModal').open,true,'Picker reopens for next roll');
+const positionDropdown=draft.nodes.get('draftPositionSelect');
+positionDropdown.value='0';
+assert(positionDropdown.onchange,'Position picker handles changes without a pitch tap');
+positionDropdown.onchange();
+assert.equal(draft.state().selected,0,'Changing dropdown commits an open GK position');
+assert.match(draft.app.innerHTML,/id="draftPositionSelect"[^>]*>/,'Dropdown remains visible');
+const keeperPick=draft.app.querySelectorAll('[data-pick]').find(b=>!b.disabled);
+assert(keeperPick?.onclick,'Eligible goalkeeper draft option available');
+keeperPick.onclick();
+assert.equal(draft.state().roster[0]>0,true,'Single DRAFT tap fills the selected dropdown position');
+assert.equal(draft.state().selected,8,'Next draft automatically returns to remaining priority position');
 
 const shop=launch('shop');
 assert.match(shop.app.innerHTML,/class="challenge-run-layout stage-shop shop-open"/);
