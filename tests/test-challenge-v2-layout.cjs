@@ -8,7 +8,8 @@ const inline=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</scrip
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-frame \.challenge-run-layout\{display:flex!important/,'Active stage is not two-column');
 assert.match(css,/\.challenge-shop-drawer\{position:fixed/,'Item Shop is floating, not another column');
-assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag handle');
+assert.match(css,/\.challenge-shop-drag-handle\{/,'Item Shop has a desktop drag label');
+assert.match(css,/\.challenge-shop-drawer-bar\{cursor:grab/,'Entire Item Shop title bar can be dragged');
 assert.match(css,/\.challenge-shop-mobile-label\{display:block/,'Mobile keeps simple title instead of drag handle');
 assert.match(css,/\.challenge-run-layout\.stage-shop\.shop-open>\.challenge-roster-panel\{padding-right:20px!important\}/,
  'Desktop pitch no longer reserves a shop sidebar');
@@ -101,7 +102,13 @@ assert(pickerAt>=0&&machineAt>pickerAt&&candidateAt>machineAt,
  'Animated scouting reel is inside the Pokémon picker, before the candidate cards');
 assert.equal((draft.app.innerHTML.match(/id="challengeSlotMachine"/g)||[]).length,1,'No duplicate scouting machine');
 assert.match(draft.app.innerHTML,/id="draftPositionSelect"/,'Position selector available for mobile and keyboard');
-assert.match(draft.app.innerHTML,/id="challengeDraftDragHandle"/,'Desktop picker includes an accessible move handle');
+assert.match(draft.app.innerHTML,/id="challengeDraftDragHandle" class="challenge-dialog-bar challenge-draft-titlebar"/,
+ 'Entire draft title bar is the drag handle');
+assert.match(draft.app.innerHTML,/⠿ MOVE WINDOW/,'Draft title is Move Window, not Move Picker');
+assert.doesNotMatch(draft.app.innerHTML,/MOVE PICKER/,'Old Move Picker label removed');
+assert.match(css,/\.challenge-draft-titlebar\{cursor:grab/,'Desktop title bar has grab cursor');
+assert.match(css,/details>summary::after\{\s*content:"\+"/,'Collapsed sections show a plus control');
+assert.match(css,/details\[open\]>summary::after\{content:"−"/,'Expanded sections show a minus control');
 assert.match(css,/height:100dvh!important/,'Mobile picker fills the viewport');
 assert.match(css,/\.challenge-draft-panel \.pick-grip\{display:none!important\}/,'Mobile hides precision drag handles');
 assert.equal(draft.nodes.get('challengeDraftModal').open,true,'Pokémon picker automatically opens on a new draft');
