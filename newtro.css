@@ -34,6 +34,7 @@
   --gold:#f1eee9;
 }
 html { color-scheme:dark; }
+*,*::before,*::after { box-sizing:border-box; }
 body {
   color:var(--pfc-white)!important;
   background-color:var(--pfc-black)!important;
