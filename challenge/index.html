@@ -752,7 +752,7 @@ if(gauntletStarted){
    const result=st.history[i],current=i===st.round;
    const status=result?(result.outcome==='Victory'?'✓':'×'):current?'●':'–';
    return '<div class="challenge-road-step'+(result?' done '+(result.outcome==='Victory'?'won':'lost'):'')+(current?' current':'')+'" aria-label="'+esc(versusLabel(boss.leader)+' · '+(result?resultLabel(result.outcome,true):'UPCOMING'))+'">'+
-    '<span class="road-step-number">MATCH '+(i+1)+'</span><strong>'+esc(boss.leader.toUpperCase())+'</strong>'+
+    '<span class="road-step-number">MATCH '+(i+1)+'</span><strong>'+esc(versusLabel(boss.leader))+'</strong>'+
     '<span class="road-step-status">'+(result?esc(resultLabel(result.outcome,true)+' · '+(result.score?.join(' – ')||status)+penaltyScore(result)):status)+'</span></div>';
   }).join('')+'</div>'+
   '<div class="challenge-versus-rating" aria-label="Team rating comparison">'+
@@ -761,7 +761,7 @@ if(gauntletStarted){
    '<div class="team-rating away"><span>'+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+' · '+esc(currentBoss?.formation||'—')+'</span><strong>'+(bossScore==null?'—':bossScore.toFixed(1))+'</strong></div></div>'+
   '<p class="challenge-rating-note">Team scores are average positional-fit ratings (0–100), including held-item effects—not predicted match odds.</p>'+
   (st.phase==='locked'?'<div class="challenge-gauntlet-actions" aria-label="Gauntlet match controls">'+
-   '<div class="challenge-gauntlet-action-copy"><strong>MATCH '+(st.round+1)+' / 6 · '+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+'</strong>'+
+   '<div class="challenge-gauntlet-action-copy"><strong>MATCH '+(st.round+1)+' / 6 · '+esc(versusLabel(currentBoss?.leader))+'</strong>'+
    '<span>'+esc(currentBoss?.formation||'4-3-3')+' · '+esc(currentBoss?.tactic||'balanced')+' tactics · Final XI and items locked</span></div>'+
    '<div class="challenge-gauntlet-action-buttons"><button id="play" class="primary" type="button">QUICK SIM →</button>'+
    '<a class="challenge-watch-link" href="../play/?challenge=1&amp;watch=soccerjs">WATCH MATCH ↗</a></div>'+
