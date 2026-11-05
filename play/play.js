@@ -6,6 +6,10 @@ const S=window.FXI_SPECIES||[], BY=new Map(S.map(p=>[p.id,p]));
 const OPP=window.PFC_PLAY_OPPONENTS||[],SAVE='pokefc-free-builder-v1';
 const CHALLENGE_KEY='pokefc-challenge-alpha-1';
 const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('challenge')==='1');
+// Development-only opt-in; default Quick Play and production build stay unchanged.
+const SOCCERJS_PREVIEW=new URLSearchParams(window.location.search).get('watch')==='soccerjs';
+let SOCCERJS_READY=false;
+let soccerSession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
 const EVOLVABLE=new Set(SPECIAL.evolvable);
 function getChallenge(){
@@ -95,7 +99,7 @@ function updateXI(){
  box.className='xi-status '+(ready?'ready':'warning');
  box.textContent=ready?'✓ '+team.name+' · '+team.formation+' · 11/11 Pokémon ready':CHALLENGE_MODE?'This Challenge match is finished or no locked XI was found. Return to Challenges.':'⚠ '+complete+'/11 Pokémon selected. Finish your XI in Free Builder or auto-fill the remaining slots.';
  $('quick').disabled=!ready||busy;
- $('watch').disabled=!ready||busy;
+ $('watch').disabled=!ready||busy||(SOCCERJS_PREVIEW&&!SOCCERJS_READY);
  $('homeName').textContent=team?.name||'YOUR XI';
  $('homePreview').innerHTML=(team?.lineup||Array(11).fill(null)).map((id,i)=>{
   const role=FORMS[team?.formation||'4-3-3'][i],s=BY.get(id);
@@ -251,6 +255,11 @@ function stateBusy(isBusy){
  $('fillXI').disabled=isBusy||CHALLENGE_MODE;
 }
 function stopWatch(){
+ if(soccerSession){soccerSession.destroy();soccerSession=null}
+ if(SOCCERJS_PREVIEW){
+  document.querySelector('.field-shell')?.classList.remove('soccerjs-active');
+  $('soccerWatchActions').hidden=true;$('soccerRecord').disabled=true;
+ }
  if(controller){controller.close();controller=null}
  stateBusy(false);
  $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
@@ -261,6 +270,78 @@ function quickSim(){
   const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
+}
+function watchSoccerPreview(){
+ try{
+  if(!window.FXI_PHASE10_WATCH?.mountInline)throw Error('Inline Soccer-JS bridge unavailable');
+  if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
+  stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
+  // A single immutable official Quick Sim result is locked before the first 2.5D frame.
+  const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  $('soccerProjection').value='isometric';$('soccerCamera').value='wide';
+  $('soccerWatchActions').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
+  $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D TEST';
+  $('matchClock').textContent="0' / 90'";$('matchState').textContent='Preparing isometric match viewer';
+  $('engineStatus').textContent='Loading 2.5D Soccer-JS graphics; official Quick Sim outcome already locked.';
+  stateBusy(true);
+  const viewport=document.querySelector('.field-shell');
+  viewport.classList.add('soccerjs-active');
+  soccerSession=window.FXI_PHASE10_WATCH.mountInline({
+   preview,result:official,container:viewport,
+   onReady:(session)=>{
+    session.setProjection('isometric');session.setCamera('wide');
+    session.play(Number($('watchSpeed').value)||4);
+    $('pause').disabled=false;$('resume').disabled=true;$('simRemaining').disabled=false;
+    $('matchState').textContent='WATCHING · ISOMETRIC';
+    $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
+   },
+   onProgress:({minute,score,finished})=>{
+    $('score').textContent=score.join(' : ');
+    $('matchClock').textContent=finished?'FULL TIME':Math.floor(minute)+"' / 90'";
+    if(finished){
+     $('matchState').textContent='FULL TIME · READY TO RECORD';
+     $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
+     $('soccerRecord').disabled=false;
+     $('engineStatus').textContent='Full time: '+official.score.join('–')+' · Record this official Quick Sim result to finish the fixture.';
+    }
+   },
+   onRecord:({result,handoff})=>{
+    showResult(result);stateBusy(false);
+    $('soccerRecord').disabled=true;$('soccerCancel').disabled=true;
+    $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
+    $('modeTag').textContent=handoff==='watch-to-quick-sim'?'2.5D WATCH → SIM':'SOCCER-JS 2.5D';
+    $('engineStatus').textContent='Official Quick Sim result recorded once. The 2.5D final frame remains visible.';
+   },
+   onCancel:()=>{
+    stopWatch();
+    $('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Watch canceled';
+    $('modeTag').textContent='READY';drawPitch();renderLiveTimeline();
+    $('engineStatus').textContent='Watch canceled without recording; game and Challenge saves unchanged.';
+   },
+   onStatus:({state,message})=>{
+    if(state==='error'){
+     $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;$('soccerRecord').disabled=true;
+     $('matchState').textContent='SOCCER-JS VIEWER ERROR';
+     $('engineStatus').textContent=message||'Soccer-JS renderer could not initialize; cancel Watch to retry.';
+    }else if(state==='simulating-to-end')$('engineStatus').textContent='Showing the already locked official Quick Sim result…';
+   }
+  });
+ }catch(error){
+  stopWatch();$('engineStatus').textContent='Soccer-JS 2.5D test unavailable: '+(error?.message||error);
+ }
+}
+function loadSoccerBridge(){
+ $('watch').textContent='▶ WATCH MATCH · 2.5D';
+ $('engineStatus').textContent='2.5D preview enabled; the local Soccer-JS bundle must be built to watch.';
+ const script=document.createElement('script');
+ script.src='../watch/soccerjs/watch-bridge.js';
+ script.onload=()=>{
+  SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
+  updateXI();
+  if(!SOCCERJS_READY)$('engineStatus').textContent='Soccer-JS bridge script loaded without an API.';
+ };
+ script.onerror=()=>{$('watch').disabled=true;$('engineStatus').textContent='Soccer-JS bridge missing; serve development sources locally.';};
+ document.head.append(script);
 }
 async function watchMatch(){
  try{
@@ -303,11 +384,26 @@ function start(){
  $('opponent').addEventListener('change',selectOpponent);
  $('fillXI').addEventListener('click',autoFill);
  $('quick').addEventListener('click',quickSim);
- $('watch').addEventListener('click',watchMatch);
- $('pause').addEventListener('click',()=>{controller?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
- $('resume').addEventListener('click',()=>{controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='LIVE'});
- $('simRemaining').addEventListener('click',()=>{if(!controller)return;$('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;$('engineStatus').textContent='Validating live TacticMesh handoff…';controller.handoff()});
- $('watchSpeed').addEventListener('change',e=>{controller?.speed(Number(e.target.value)||4)});
+ $('watch').addEventListener('click',SOCCERJS_PREVIEW?watchSoccerPreview:watchMatch);
+ if(SOCCERJS_PREVIEW){
+  $('soccerRecord').addEventListener('click',()=>{try{soccerSession?.record()}catch(e){$('engineStatus').textContent='Recording failed: '+e.message}});
+  $('soccerCancel').addEventListener('click',()=>soccerSession?.cancel());
+  $('soccerProjection').addEventListener('change',e=>soccerSession?.setProjection(e.target.value));
+  $('soccerCamera').addEventListener('change',e=>soccerSession?.setCamera(e.target.value));
+  loadSoccerBridge();
+ }
+ $('pause').addEventListener('click',()=>{if(soccerSession)soccerSession.pause();else controller?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
+ $('resume').addEventListener('click',()=>{if(soccerSession)soccerSession.play(Number($('watchSpeed').value)||4);else controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='WATCHING'});
+ $('simRemaining').addEventListener('click',()=>{
+  if(soccerSession){
+   if(soccerSession.simToEnd()){$('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;}
+   return;
+  }
+  if(!controller)return;
+  $('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;
+  $('engineStatus').textContent='Validating live TacticMesh handoff…';controller.handoff();
+ });
+ $('watchSpeed').addEventListener('change',e=>{if(soccerSession)soccerSession.setSpeed(Number(e.target.value)||4);else controller?.speed(Number(e.target.value)||4)});
  window.addEventListener('pageshow',updateXI);
  fillOpponents();updateXI();drawPitch();
 }
