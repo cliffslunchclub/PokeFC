@@ -19,7 +19,7 @@ function el(id){
 }
 const ctx=vm.createContext({
  window:{addEventListener(){}},
- document:{getElementById:el},
+ document:{getElementById:el,createElement:()=>({}),head:{append(){}}},
  localStorage:{getItem:key=>values.get(key)||null,setItem:(k,v)=>values.set(k,v)},
  Date,Math,console
 });
@@ -52,7 +52,7 @@ assert.match(el('score').textContent,/\d+ : \d+/);
 assert.match(el('matchResult').innerHTML,/Shots/);
 const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
 assert(html.includes('WATCH MATCH')&&html.includes('QUICK SIM')&&html.includes('SIM TO END'));
-assert(html.includes('tm-engine-bridge.js')&&html.includes('hybrid-sim.js'));
+assert(!html.includes('tm-engine-bridge.js')&&!html.includes('hybrid-sim.js'),'Quick Play has no legacy physics dependency');
 const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert(home.includes('href="./play/"'),'Home links to Play');
 console.log('PASS Play: 32 gym squads, six bosses, Free Builder carryover, match adapter, 90-minute Quick Sim');
