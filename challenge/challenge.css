@@ -877,3 +877,70 @@
  .challenge-draft-panel .challenge-pick-grid .pick button{padding:7px!important}
  .challenge-road-controls{width:100%;justify-content:flex-start}
 }
+
+
+/* Challenges v2 — boss-result popup, with Advance available inside the
+   result instead of a second permanent page section. */
+.challenge-match-result-dialog{width:min(94vw,840px)!important;max-width:840px!important}
+.challenge-match-result-content{padding:22px 24px 12px}
+.challenge-match-result-content>h2{font-size:clamp(19px,3vw,29px);margin:7px 0 0;color:#eaf7ee;font-weight:1000;letter-spacing:-.045em}
+.challenge-match-result-content>.challenge-final-score{background:linear-gradient(110deg,#1c4640,#163445);border:1px solid #537c74;border-radius:10px;margin:15px 0 17px}
+.challenge-match-result-content>.challenge-final-score h1{font-variant-numeric:tabular-nums;font-size:clamp(44px,7vw,67px);margin:2px 0}
+.challenge-match-result-content .gauntlet-match-report{border-top:0;margin-top:0}
+.challenge-match-result-actions{position:sticky;bottom:0;z-index:10;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#183444;border-top:1px solid #4b6877;padding:14px 23px}
+.challenge-match-result-actions button{min-height:42px!important;font-size:11px!important;font-weight:950!important}
+.challenge-match-result-actions .primary{flex:1 1 205px}
+.challenge-run-layout .challenge-match-result-dialog{display:none}
+.challenge-run-layout .challenge-match-result-dialog[open]{display:block}
+.challenge-gauntlet-next #openMatchResultModal{border-color:#d1ebae!important}
+@media(max-width:560px){
+ .challenge-match-result-content{padding:15px 12px 10px}
+ .challenge-match-result-actions{padding:10px 12px}
+ .challenge-match-result-actions button{flex:1 1 100%;width:100%}
+}
+
+/* Occupied pitch Pokémon cards support details in all stages. A dedicated
+   information button remains available when item selection takes over the
+   tile's main click action. */
+.challenge-pitch .slot .slot-info{position:absolute!important;top:-9px;left:-8px;z-index:14!important;width:25px!important;height:25px!important;min-height:25px!important;padding:0!important;display:grid!important;place-items:center;color:#142c32!important;border:1px solid #e8d69b!important;border-radius:50%!important;background:#f3d992!important;box-shadow:0 3px 8px #0009;font-size:17px!important;font-weight:1000!important;line-height:1!important;cursor:pointer!important;pointer-events:auto!important;opacity:1!important}
+.challenge-pitch .slot .slot-info:hover{background:#fff0b9!important;border-color:#fff6d9!important}
+.challenge-pitch .slot .slot-info:focus-visible{outline:3px solid white!important;outline-offset:2px!important}
+.challenge-pitch .slot button[data-slot]:not(:disabled){cursor:pointer!important}
+.challenge-pitch .slot.filled:has(.slot-info):hover{border-color:#d6e7ab!important}
+.challenge-pokemon-detail-dialog{width:min(92vw,600px)!important;max-width:600px!important}
+.pokemon-detail-content{padding:22px}
+.pokemon-detail-lead{display:grid;grid-template-columns:110px minmax(0,1fr);gap:18px;align-items:center}
+.pokemon-detail-sprite{width:110px;height:110px;object-fit:contain;image-rendering:pixelated;background:#123345;border:1px solid #527473;border-radius:11px;padding:8px}
+.pokemon-detail-lead h2{color:#f4fcf7;font-size:clamp(21px,4vw,30px);letter-spacing:-.035em;margin:5px 0 3px;overflow-wrap:anywhere}
+.pokemon-detail-lead p{font-size:11px!important;color:#b7d5d7!important;letter-spacing:.08em;margin:0 0 9px}
+.pokemon-detail-tags{display:flex;flex-wrap:wrap;gap:6px}
+.pokemon-detail-tags span{font-size:10px;font-weight:950;letter-spacing:.07em;background:#244a4d;color:#e3f2e3;border:1px solid #547f79;border-radius:5px;padding:4px 7px}
+.pokemon-detail-tags .pokemon-detail-tier.tier-s{background:#775b35;color:#ffe3a1}
+.pokemon-detail-tags .pokemon-detail-tier.tier-a{background:#245945;color:#b4ffcb}
+.pokemon-detail-tags .pokemon-detail-tier.tier-b{background:#2c4d54;color:#c5eaf3}
+.pokemon-detail-tags .pokemon-detail-tier.tier-c{background:#52503d;color:#eee3ab}
+.pokemon-detail-tags .pokemon-detail-tier.tier-d{background:#5b383c;color:#ffc4c0}
+.pokemon-detail-equipment{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;margin:18px 0;padding:12px 14px;border:1px solid #4a6870;border-radius:8px;background:#203745}
+.pokemon-detail-equipment>strong{font-size:10px;color:#b6d0d3;letter-spacing:.075em}
+.pokemon-detail-equipment>span{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:950;color:#f6e0a5}
+.pokemon-detail-equipment .item-sprite{width:26px;height:26px;flex-basis:26px}
+.pokemon-detail-equipment small{font-size:10px;color:#a7cad6}
+.pokemon-detail-profile>h3{font-size:11px;color:#badcc4;letter-spacing:.085em;margin:16px 0 10px}
+.pokemon-detail-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pokemon-detail-stat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 5px;background:#192f41;border:1px solid #385568;border-radius:8px;text-align:center}
+.pokemon-detail-stat span{font-size:10px;font-weight:950;color:#b3cedc}
+.pokemon-detail-stat strong{font-size:24px;line-height:1;font-weight:1000;color:#ebf8ee;font-variant-numeric:tabular-nums}
+.pokemon-detail-stat small{font-size:9px;font-weight:850;color:#9dbaca}
+.pokemon-detail-stat.is-boosted{background:#1d483e;border-color:#74ae86}
+.pokemon-detail-stat.is-boosted strong,.pokemon-detail-stat.is-boosted small{color:#b7f5bc}
+.pokemon-detail-stat.is-reduced{background:#4a3338;border-color:#aa7375}
+.pokemon-detail-note{font-size:10px!important;line-height:1.55!important;color:#abc6d1!important;margin:15px 0 0!important}
+@media(max-width:570px){
+ .pokemon-detail-content{padding:14px}
+ .pokemon-detail-lead{grid-template-columns:77px minmax(0,1fr);gap:12px}
+ .pokemon-detail-sprite{width:77px;height:77px;padding:4px}
+ .pokemon-detail-tags span{font-size:9px;padding:3px 5px}
+ .pokemon-detail-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .pokemon-detail-stat{padding:9px 4px}
+ .pokemon-detail-stat strong{font-size:21px}
+}
