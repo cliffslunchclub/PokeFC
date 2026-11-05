@@ -53,7 +53,7 @@ for(const [sequence,winner] of [[[.01,.99],'home'],[[.99,.01],'away']]){
  if(winner==='away'){
   assert.equal(played.state.phase,'finished','Penalty shootout loss ends Gauntlet');
   assert.match(played.app.innerHTML,/class="panel challenge-last-match"/,'Loss retains full final match report in page');
-  assert.match(played.app.innerHTML,/GOALS &amp; MATCH MINUTES/,'Lost match shows detailed goals');
+  assert.match(played.app.innerHTML,/MATCH EVENT TIMELINE/,'Lost match shows detailed goals');
   assert.match(played.app.innerHTML,/MATCH STATISTICS/,'Lost match shows statistics');
   assert.match(played.app.innerHTML,/<dialog id="runCompleteModal"/,'Run recap is modal');
   assert.equal(played.elements.runCompleteModal.open,true,'Recap opens automatically');
