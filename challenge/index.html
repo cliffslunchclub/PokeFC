@@ -77,7 +77,7 @@ const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
 const FORMS={'4-3-3':['GK','LB','CB','CB','RB','CM','CM','CM','LW','ST','RW'],'4-2-3-1':['GK','LB','CB','CB','RB','CDM','CDM','LW','CAM','RW','ST'],'4-4-2':['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'],'3-5-2':['GK','CB','CB','CB','LWB','RWB','CM','CM','CAM','ST','ST'],'5-3-2':['GK','LWB','CB','CB','CB','RWB','CM','CM','CM','ST','ST']};
 const draftOrder=formation=>FORMS[formation].map((pos,index)=>({
- index,priority:pos==='GK'?3:['ST','LW','RW'].includes(pos)?0:['CB','LB','RB','LWB','RWB'].includes(pos)?2:1
+ index,priority:pos==='ST'?0:['LW','RW'].includes(pos)?1:pos==='GK'?4:['CB','LB','RB','LWB','RWB'].includes(pos)?3:2
 })).sort((a,b)=>a.priority-b.priority||a.index-b.index).map(x=>x.index);
 const nextDraftSlot=()=>draftOrder(st.formation).find(i=>!st.roster[i])??-1;
 const ITEMS=[
@@ -623,6 +623,15 @@ if(gauntletStarted){
    '<span class="team-versus">VS</span>'+
    '<div class="team-rating away"><span>'+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+' · '+esc(currentBoss?.formation||'—')+'</span><strong>'+(bossScore==null?'—':bossScore.toFixed(1))+'</strong></div></div>'+
   '<p class="challenge-rating-note">Team scores are average positional-fit ratings (0–100), including held-item effects—not predicted match odds.</p>'+
+  (st.phase==='locked'?'<div class="challenge-gauntlet-actions" aria-label="Gauntlet match controls">'+
+   '<div class="challenge-gauntlet-action-copy"><strong>MATCH '+(st.round+1)+' / 6 · '+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+'</strong>'+
+   '<span>'+esc(currentBoss?.formation||'4-3-3')+' · '+esc(currentBoss?.tactic||'balanced')+' tactics · Final XI and items locked</span></div>'+
+   '<div class="challenge-gauntlet-action-buttons"><button id="play" class="primary" type="button">QUICK SIM →</button>'+
+   '<a class="challenge-watch-link" href="../play/?challenge=1">WATCH MATCH ↗</a></div>'+
+   '<p class="challenge-gauntlet-action-note">Watch the same locked XI and boss, or Quick Sim instantly. Watched matches can hand off to Quick Sim.</p></div>':
+   st.phase==='result'&&st.result?.outcome==='Victory'?'<div class="challenge-gauntlet-actions challenge-gauntlet-next" aria-label="Advance in Gauntlet">'+
+   '<div class="challenge-gauntlet-action-copy"><strong>'+esc(st.result.boss||'OPPONENT')+' DEFEATED</strong><span>Continue with your locked XI and equipped items.</span></div>'+
+   '<div class="challenge-gauntlet-action-buttons"><button id="next" class="primary" type="button">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button></div></div>':'')+
  '</section>';
  if(hasReports)body+='<dialog id="challengeHistoryModal" class="challenge-dialog challenge-history-dialog" aria-labelledby="challengeHistoryTitle">'+
   '<div class="challenge-dialog-bar"><span id="challengeHistoryTitle">PREVIOUS MATCH REPORTS</span><button type="button" id="closeHistoryModal" aria-label="Close match history">✕ CLOSE</button></div>'+
@@ -737,17 +746,12 @@ if(gauntletStarted){
  }
 
 }
-if(st.phase==='locked'){
- const boss=BOSSES[st.round]||BOSSES[0];
- body+='<section class="panel"><span class="pfc-eyebrow">GAUNTLET MATCH '+(st.round+1)+' / 6</span><h2>NEXT: '+esc(boss?.leader||'LORELEI')+'</h2><p>'+esc((boss?.formation||'5-3-2')+' · '+(boss?.tactic||'Defensive')+' · fixed opponent XI · no substitutions or equipment changes')+'</p><p class="statline">Completed: '+st.history.length+' / 6 · '+(st.pool===4?'Classic':'National')+' · Legends '+(st.legends?'On':'Off')+'</p><button id="play" class="primary">QUICK SIM VS '+esc((boss?.leader||'Lorelei').toUpperCase())+' →</button> <a class="challenge-watch-link" href="../play/?challenge=1">WATCH MATCH ↗</a><p class="statline">Watch the same locked XI and boss with genuine TacticMesh physics. Pause or hand off to Quick Sim at any moment. The verified result is recorded against this Challenge attempt.</p></section>';
-}
 if(st.phase==='result'){
  const win=st.result?.outcome==='Victory';
  body+='<section class="panel"><span class="pfc-eyebrow">MATCH '+(st.round+1)+' / 6</span>'+
  '<h2>'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'Result')+'</h2>'+
  '<div class="challenge-final-score"><h1>'+(st.result?.score||[0,0]).join(' – ')+'</h1></div>'+
  matchReportHtml(st.result)+
- (win?'<button id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button>':'')+
  '</section>';
 }
 if(st.phase==='finished'&&st.result)body+='<section class="panel challenge-last-match" aria-label="Final match details">'+
