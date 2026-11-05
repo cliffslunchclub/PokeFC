@@ -19,7 +19,7 @@ function el(id){
  if(!els.has(id)){
   const classes=new Set();
   const e={value:id==='region'?'all':id==='opponent'?'gym-1':
-    id==='watchSpeed'?'4':id==='tactic'?'balanced':'',
+    id==='watchSpeed'?'1':id==='tactic'?'balanced':'',
    innerHTML:'',textContent:'',disabled:false,hidden:id==='soccerWatchActions',events:{},
    classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
    addEventListener(type,fn){this.events[type]=fn},
@@ -39,8 +39,8 @@ const bridge={
   const session={
    fixture:options.preview,
    getState:()=>({recorded,closed,ready:true,finished:recorded}),
-   play(){return true},pause(){return true},
-   setSpeed(){return true},setProjection(){return true},setCamera(){return true},
+   play(speed){this.lastSpeed=speed;return true},pause(){return true},
+   setSpeed(){return true},setProjection(view){this.lastProjection=view;return true},setCamera(camera){this.lastCamera=camera;return true},
    simToEnd(){
     options.onProgress({minute:90,score:options.result.score,finished:true,handedOff:true});
     return true;
@@ -83,11 +83,15 @@ assert.equal(el('watchEngineSwitch').href,'?watch=tacticmesh','Explicit legacy r
 assert.equal(el('soccerWatchActions').hidden,true,'Pre-match controls hidden');
 el('watch').events.click();
 assert.equal(sessions.length,1,'First Watch should start');
+assert.equal(sessions[0].lastSpeed,1,'Watch defaults to 1×');
+assert.equal(sessions[0].lastProjection,'orthographic','Broadcast is primary');
+assert.equal(sessions[0].lastCamera,'follow','Follow Ball is primary');
 assert.equal(active,true);
 assert.equal(el('field-shell').classList.contains('soccerjs-active'),true);
 assert.equal(el('watch').disabled,true,'Cannot overlap a running watch');
 sessions[0].simToEnd();
 assert.equal(el('soccerRecord').disabled,false,'Official result should be recordable at full time');
+assert.match(el('matchResult').innerHTML,/SHOTS ON TARGET/,'Live Watch→Sim shows official shot stats without recording');
 el('soccerRecord').events.click();
 assert.equal(el('watch').disabled,false,'New match available after recording');
 assert.equal(active,true,'Final frame remains mounted until starting another match');

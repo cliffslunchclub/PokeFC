@@ -115,6 +115,7 @@ for(let i=0;i<6;i++){
  assert.equal(state().result.report.goals[0].player,'Jolteon');
  assert.equal(state().result.report.goals[0].assist,'Machamp');
  assert.equal(state().result.report.stats.shotsOnTarget[0],5);
+ assert.match(app.innerHTML,/SHOTS ON TARGET/,'Challenge match details visibly display official SOT totals');
  assert.match(app.innerHTML,/MATCH TIMELINE/);
  assert.match(app.innerHTML,/Jolteon/);
  assert.deepEqual(Array.from(state().locked.roster),ids,'Final XI remains unchanged');

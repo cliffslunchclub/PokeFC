@@ -15,9 +15,9 @@
 <div class="pitchwrap"><canvas id="pitch" width="1120" height="650" aria-label="Soccer-JS pitch animated with Quick Sim match events"></canvas><span id="toast" hidden></span></div>
 <div class="controls"><button id="play" disabled class="primary">▶ Play</button><button id="playFive" disabled>▶ Next 5′</button><button id="pause" disabled>Ⅱ Pause</button><button id="restart" disabled>↺ Replay</button><button id="nextGoal" disabled>⚽ Next goal</button><button id="skip" disabled>⏭ Full time</button>
 <label>Speed <select id="speed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
-<label>View <select id="projection" aria-label="Soccer-JS projection"><option value="isometric" selected>2.5D Isometric</option><option value="orthographic">Broadcast</option><option value="topdown">Top-down</option></select></label>
+<label>View <select id="projection" aria-label="Soccer-JS projection"><option value="orthographic" selected>Broadcast</option><option value="isometric">2.5D Isometric</option><option value="topdown">Top-down</option></select></label>
 <label class="sprite-toggle"><input id="showNumbers" type="checkbox" checked> Jersey numbers</label>
-<label>Camera <select id="camera" aria-label="Camera framing"><option value="wide" selected>Wide pitch</option><option value="follow">Follow ball</option></select></label></div>
+<label>Camera <select id="camera" aria-label="Camera framing"><option value="follow" selected>Follow ball</option><option value="wide">Wide pitch</option></select></label></div>
 <div id="motionStatus" class="motion-status" role="status">Loading illustrated match sequence…</div>
 <div class="seek"><span>0'</span><input id="scrub" type="range" min="0" max="90" step=".05" value="0" disabled aria-label="Scrub match minute"><span>90'</span><b id="played">0/90'</b></div>
 </section>
