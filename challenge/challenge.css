@@ -1174,3 +1174,66 @@
 .challenge-draft-reels .slot-machine-bottom{justify-content:flex-end}
 .challenge-draft-reels .slot-machine-bottom:has(button[data-reel-skip][hidden]){display:none!important}
 @media(max-width:760px){.challenge-draft-panel .challenge-draft-reels .slot-window [data-reel-value]{font-size:clamp(11px,2.7vw,13px)!important}}
+
+
+/* Challenges manual save/load: one snapshot per Classic/National × Standard/Legends division.
+   Floating data belongs in localStorage and is not an online leaderboard entry. */
+.challenge-frame .challenge-save-toolbar{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+ margin:10px 0 15px;padding:10px 14px;
+ background:#1c1f25;border:1px solid #4a4c54;border-radius:10px;
+}
+.challenge-save-buttons{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.challenge-frame .challenge-save-buttons button{
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ min-height:42px;padding:9px 17px;
+ color:#f7f7f5!important;background:#303238!important;
+ border:1px solid #666870!important;border-radius:7px;font-size:11px;font-weight:950;letter-spacing:.055em;
+}
+.challenge-frame .challenge-save-buttons #saveChallengeSlot:not(:disabled){
+ background:#e53935!important;border-color:#fa6965!important;color:#fff!important;
+}
+.challenge-frame .challenge-save-buttons button:hover:not(:disabled){border-color:#ff7974!important;background:#46484f!important}
+.challenge-frame .challenge-save-buttons #saveChallengeSlot:hover:not(:disabled){background:#ff514d!important}
+.challenge-frame .challenge-save-buttons button:disabled{opacity:.42;cursor:not-allowed}
+.challenge-frame .challenge-save-buttons span{font-size:16px;line-height:1}
+#challengeSaveStatus{
+ color:#c6c9d0;font:900 10px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;
+ letter-spacing:.045em;
+}
+.challenge-frame .challenge-save-load-modal{
+ width:min(92vw,650px)!important;max-width:650px!important;
+ background:#17191e!important;border:1px solid #656871!important;
+ border-radius:12px!important;max-height:90dvh!important;overflow:auto!important;
+}
+.challenge-save-load-modal .challenge-dialog-bar{min-height:52px}
+.challenge-save-load-modal .challenge-save-load-body{padding:20px 21px 24px}
+.challenge-save-load-modal h2{font-size:23px;font-weight:950;line-height:1.15;letter-spacing:-.035em;color:#fff;margin:0 0 8px}
+.challenge-save-load-modal p{font-size:12px;color:#c5c9cf;line-height:1.65;margin:0 0 16px}
+.challenge-save-slot-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.challenge-frame .challenge-save-slot-grid button{
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;
+ min-width:0;min-height:86px;text-align:left;
+ background:#25272d!important;border:1px solid #555862!important;border-radius:9px!important;
+ padding:15px 13px!important;color:#fff!important;
+}
+.challenge-frame .challenge-save-slot-grid button:not(:disabled):hover{
+ background:#392629!important;border-color:#ff6d67!important;
+}
+.challenge-frame .challenge-save-slot-grid button:disabled{opacity:.55;cursor:default}
+.challenge-save-slot-grid button strong{font-size:12px;font-weight:1000;letter-spacing:.05em}
+.challenge-save-slot-grid button small{
+ font:700 10px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+ color:#bbc0c9;overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+ .challenge-frame .challenge-save-toolbar{padding:10px 12px}
+ .challenge-save-buttons{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .challenge-frame .challenge-save-buttons button{width:100%;padding:9px 6px}
+ #challengeSaveStatus{font-size:9px}
+}
+@media(max-width:540px){
+ .challenge-save-slot-grid{grid-template-columns:1fr}
+ .challenge-frame .challenge-save-slot-grid button{min-height:70px}
+ .challenge-save-load-modal .challenge-save-load-body{padding:16px 12px 18px}
+}

@@ -61,6 +61,7 @@ on:
       - "tests/test-challenge-auto-equip.cjs"
       - "tests/test-challenge-player-shots.cjs"
       - "tests/test-challenge-modals.cjs"
+      - "tests/test-challenge-save-slots.cjs"
       - "tests/test-v08-league.cjs"
       - "tests/test-franchise-soccerjs-watch.cjs"
       - "tests/test-soccerjs-shot-ledger.cjs"
@@ -133,6 +134,7 @@ jobs:
           node tests/test-challenge-auto-equip.cjs
           node tests/test-challenge-player-shots.cjs
           node tests/test-challenge-modals.cjs
+          node tests/test-challenge-save-slots.cjs
           node tests/test-v08-league.cjs
           node tests/test-franchise-soccerjs-watch.cjs
           node tests/test-challenge-soccerjs-watch.cjs
