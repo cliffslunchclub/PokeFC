@@ -5,6 +5,10 @@
  * have their own authoritative integration tests. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
+const playHtml=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+assert.match(playHtml,/<h3>MATCH TIMELINE<\/h3>/,'Play labels the shared event feed as one Match Timeline');
+assert.equal((playHtml.match(/id="liveEventFeed"/g)||[]).length,1,'Exactly one persistent match event timeline');
+assert.doesNotMatch(playHtml,/RECORDED MATCH TIMELINE|LIVE MATCH EVENTS/,'No duplicate event section headings');
 const roster=[25,6,3,9,149,94,131,143,68,135,196];
 const history=['Lorelei','Bruno','Agatha','Lance','Blue'].map((boss,i)=>({boss,round:i+1,score:[2,1],shots:[12,7],passes:[360,275],outcome:'Victory'}));
 const state={version:1,phase:'locked',pool:9,legends:true,formation:'4-3-3',tactic:'press',roster,items:Array(11).fill(null),selected:0,rng:191121,
