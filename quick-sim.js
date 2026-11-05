@@ -1,4 +1,6 @@
-/* PokeFC v0.7b statistical match engine.
+/* PokéFC Sim Engine (PSE) — statistical match engine (legacy v0.7b contract).
+ * Quick Sim is the user-facing action; preserve FXI-prefixed globals, seeded IDs,
+ * result schemas, and this filename for backward compatibility.
  * Shared provisional parameters also drive the watched->Quick Sim continuation.
  * Calibrated profiles are only accepted when fitted to verified complete
  * TacticMesh fixtures; no synthetic data is shipped as measured evidence. */
