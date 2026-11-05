@@ -32,7 +32,8 @@
    '<h4>Pokémon shots on target</h4>'+
    (perPlayer.length?perPlayer.map(p=>'<div class="viewer-stat"><span>'+escape(p.side?'AWAY':'HOME')+
     '</span><small>'+escape(p.name)+'</small><span>'+p.count+' SOT</span></div>').join(''):
-    '<p class="tiny muted">No individual shots on target were recorded.</p>');
+    '<p class="tiny muted">No individual shots on target were recorded.</p>')+
+   '<p class="tiny muted">Quick Sim does not yet track corners, free kicks or in-match penalty-kick incidents.</p>';
  }
  function update(m,score){
   if(current!==m)return;
