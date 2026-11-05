@@ -52,7 +52,7 @@
    defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
    gk:strength(t.lineup.find(p=>p.pos==='GK')||t.lineup[0])}));
   const possHome=possession(teams[0],teams[1],P),poss=[possHome,100-possHome];
-  const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{goals:0,assists:0,saves:0,shots:0,tackleAttempts:0,tackles:0,minutes:90}])));
+  const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{goals:0,assists:0,saves:0,shots:0,shotsOnTarget:0,tackleAttempts:0,tackles:0,minutes:90}])));
   const stats=teams.map(()=>({shots:0,shotsOnTarget:0,goals:0,saves:0,passes:0,completedPasses:0,tackleAttempts:0,tackles:0,possession:0})),events=[];
   const score=[0,0];
   for(let minute=0;minute<90;minute++){
@@ -67,7 +67,7 @@
      const shooter=choice(next,attackers,p=>p.pos==='FWD'?n(p.main.finishing)*2:p.pos==='MID'?n(p.main.finishing):Math.max(2,n(p.main.finishing)*.14));if(!shooter)continue;
      t.shots++;box[shooter.id].shots++;
      if(next()>=clamp(P.onTargetBase+P.onTargetFinishingSlope*n(shooter.main.finishing),.1,.85))continue;
-     t.shotsOnTarget++;
+     t.shotsOnTarget++;box[shooter.id].shotsOnTarget++;
      const baseQuality=clamp(.09+.0019*(atkStrength-opp.defense)+next()*.07,.025,.31);
      const goalChance=clamp((baseQuality/.60+.001*(n(shooter.main.finishing)-opp.gk))*P.goalConversionScale,.025,.85);
      if(next()<goalChance){t.goals++;score[side]++;box[shooter.id].goals++;
