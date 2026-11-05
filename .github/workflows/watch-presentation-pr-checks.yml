@@ -24,8 +24,12 @@ jobs:
           node --check play/play.js
       - name: Verify deterministic Watch motion and full-time statistics
         run: node watch/soccerjs/test-isometric-motion.cjs
-      - name: Verify Quick Sim seeded compatibility
-        run: node tests/test-quick-seed-compat.cjs
+      - name: Verify PSE source is unchanged
+        run: |
+          git fetch origin main --depth=1
+          git diff --exit-code origin/main HEAD -- quick-sim.js
+      - name: Verify current official match ledger
+        run: node tests/test-phase10-director.cjs
       - name: Verify Quick Play match and Watch handoff
         run: |
           node tests/test-play.cjs
