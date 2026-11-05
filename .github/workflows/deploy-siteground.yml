@@ -64,6 +64,7 @@ on:
       - "tests/test-v08-league.cjs"
       - "tests/test-franchise-soccerjs-watch.cjs"
       - "tests/test-soccerjs-shot-ledger.cjs"
+      - "tests/test-watch-fullscreen.cjs"
       - "tests/test-challenge-soccerjs-watch.cjs"
       - "tests/test-hybrid.cjs"
       - ".github/workflows/deploy-siteground.yml"
@@ -103,6 +104,7 @@ jobs:
           node tests/test-play.cjs
           node tests/test-phase10-quickplay-lifecycle.cjs
           node watch/soccerjs/test-isometric-motion.cjs
+          node tests/test-watch-fullscreen.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node tests/test-soccerjs-shot-ledger.cjs
           node tests/test-soccerjs-sprite-loading.cjs
