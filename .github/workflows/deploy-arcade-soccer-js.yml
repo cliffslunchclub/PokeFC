@@ -108,3 +108,18 @@ jobs:
           dangerous-clean-slate: false
           state-name: .ftp-deploy-sync-state-arcade-test.json
           log-level: standard
+
+      - name: Smoke test the published Arcade game
+        if: steps.ftp.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in index.html html/index.html build/app.bundle.js build/app.css; do
+            url="https://pfc.cliffslunchclub.com/arcade-test/$path"
+            status="$(curl -L -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30 "$url" || true)"
+            if [[ "$status" != "200" ]]; then
+              echo "::error::Smoke test failed: $url returned HTTP $status"
+              exit 1
+            fi
+          done
+          echo "Arcade test is available at https://pfc.cliffslunchclub.com/arcade-test/"
