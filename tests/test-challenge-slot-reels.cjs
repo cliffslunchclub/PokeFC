@@ -73,4 +73,7 @@ assert.equal(d.values.region.textContent,'SINNOH');
 assert.equal(d.skip.hidden,true);
 assert.equal(reduced,1,'reduced motion resolves without animation');
 assert.equal(tasks.size,0);
+let noReelsDone=0;
+api.mount({querySelector(){return null}},final,{animate:true,onDone:()=>noReelsDone++});
+assert.equal(noReelsDone,1,'Incomplete reel UI still triggers reveal callback');
 console.log('PASS Challenge slot reels: staggered settle, player skip, cancel, reduced motion, exact pre-rolled outcome');
