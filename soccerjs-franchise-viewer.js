@@ -60,7 +60,7 @@
   current=m;canvas.hidden=true;pitch.classList.add('soccerjs-franchise-active');
   $('viewerSoccerRecord').hidden=false;$('viewerSoccerRecord').disabled=true;
   $('viewerSoccerCancel').hidden=false;$('viewerSoccerCancel').disabled=false;
-  $('viewerTMFull').hidden=true;
+  // No alternate physics engine; the optional Quick Sim schematic remains available.
   $('viewerProjection').value='isometric';$('viewerCamera').value='wide';
   $('viewerComplete').textContent='⚡ SIM TO END';
   $('viewerComplete').disabled=true;$('viewerPlay').disabled=true;$('viewerReset').disabled=true;
