@@ -76,11 +76,14 @@ function newCareer(mode,club,seed,legendary){tacticalPreview=null;idCounter=0;co
 function simRng(extra){return randomizer(st.seed+':s'+st.season+':w'+st.week+':'+extra)}
 function poisson(rng,mu){let l=Math.exp(-Math.min(25,mu)),v=1,k=0;do{k++;v*=rng.next()}while(v>l&&k<200);return k-1}
 function chooseWeighted(rng,arr,weight){let total=arr.reduce((s,x)=>s+Math.max(.01,weight(x)),0),c=rng.next()*total;for(const x of arr){c-=Math.max(.01,weight(x));if(c<=0)return x}return arr[arr.length-1]}
-function calcMatch(h,a,fixtureSeed){
- if(!window.FXI_QUICK)throw Error('The v0.7b Quick Sim engine failed to load');
+function matchPreview(h,a,fixtureSeed){
  const packed=t=>({id:t.id,name:t.name,city:t.city,tactic:t.tactic,
   lineup:pickLineup(t).map(({p,pos},i)=>({id:p.id,species:nameOf(p),speciesId:p.species,jerseyNumber:i+1,pos,main:p.main,detail:p.detail}))});
- return window.FXI_QUICK.simulate({seed:fixtureSeed,home:packed(h),away:packed(a)});
+ return {seed:fixtureSeed,home:packed(h),away:packed(a)};
+}
+function calcMatch(h,a,fixtureSeed){
+ if(!window.FXI_QUICK)throw Error('The PSE match engine failed to load');
+ return window.FXI_QUICK.simulate(matchPreview(h,a,fixtureSeed));
 }
 function applyResult(f,res){const h=st.teams[f.home],a=st.teams[f.away],x=res.score[0],y=res.score[1];h.gf+=x;h.ga+=y;a.gf+=y;a.ga+=x;if(x>y){h.w++;a.l++;h.pts+=3}else if(y>x){a.w++;h.l++;a.pts+=3}else{h.d++;a.d++;h.pts++;a.pts++}
  for(const [tid,side] of [[h.id,0],[a.id,1]]){const team=st.teams[tid];for(const [pid,b] of Object.entries(res.box)){const p=st.players[pid];if(!team.roster.includes(pid))continue;p.goals+=b.goals;p.assists+=b.assists;p.saves+=b.saves;p.appearances++;p.xp+=round(10+b.minutes*.8+b.goals*18+b.assists*12+b.saves*4+b.tackles*2);while(p.xp>=(100+p.level*10)&&p.level<100){p.xp-=100+p.level*10;p.level++;for(const k of HEAD)p.main[k]=clamp(p.main[k]+((hash(pid+':'+p.level+':'+k)%12)===0?1:0))}}
@@ -93,7 +96,25 @@ function getTacticalPreview(){if(!st||st.phase!=='season')return null;const week
 function htmlTactical(){const pr=getTacticalPreview();if(!pr)return `<div class="welcome"><h1>Tactical <em>Match Centre</em></h1><p>Start a regular-season franchise to preview a fixture.</p></div><div class="card"><button data-view="dashboard">Return to franchise</button></div>`;return `<div class="welcome"><p class="eyebrow">Tactical Match Centre · 2.5D Soccer-JS</p><h1>Watch your <em>matchweek fixture</em></h1><p>Watch the 2.5D Soccer-JS replay of your locked Quick Sim match, or choose a legacy viewer. The recorded match, table and XP advance only after you confirm the result.</p></div><section class="card viewer-card"><div class="viewer-scoreline"><div><span class="viewer-team home">${esc(pr.home.name)}</span><small>${esc(pr.home.tactic)} · Home</small></div><div class="viewer-center"><strong id="liveScore">0 – 0</strong><span id="liveClock">00:00</span></div><div><span class="viewer-team away">${esc(pr.away.name)}</span><small>${esc(pr.away.tactic)} · Away</small></div></div><div class="pitch-frame"><canvas id="tacticalPitch" width="1050" height="680" role="img" aria-label="Tactical pitch with 22 player markers and the ball"></canvas></div><div class="viewer-controls"><label>Starting match mode <select id="viewerMode" aria-label="Choose match engine"><option value="soccerjs" selected>Soccer-JS · 2.5D Pokémon</option><option value="tm">Legacy TacticMesh</option><option value="quick">Quick Sim · Schematic</option></select></label><button class="primary" id="viewerPlay">▶ Play</button><label>Camera <select id="viewerProjection"><option value="orthographic">Broadcast</option><option value="isometric">2.5D Isometric</option><option value="topdown">Top-down</option></select></label><label>Framing <select id="viewerCamera"><option value="follow">Follow ball</option><option value="wide">Wide field</option></select></label><button id="viewerReset">↺ Replay</button><label>Speed <select id="viewerSpeed"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select></label><label class="viewer-range-label">Minute <input aria-label="Seek to match minute" id="viewerSeek" type="range" min="0" max="90" value="0" step="0.1"></label></div><p class="tiny muted" id="engineInstallStatus" role="status">Checking local engine installation…</p><div class="viewer-bottom"><div><h3>Match events</h3><div id="viewerEvents" class="match-events" aria-live="polite"><p>Kick-off · 0′</p></div></div><div><h3>Match statistics</h3><div id="viewerStats" class="viewer-stats"></div></div></div><div class="buttonbar"><button class="primary" id="viewerComplete">⚡ Finish with Quick Sim</button><button id="viewerSoccerRecord" class="primary" hidden disabled>✓ Record official result &amp; finish week</button><button id="viewerSoccerCancel" class="subtle" hidden>✕ Cancel Watch</button><button id="viewerTMFull" class="subtle">Complete with full TacticMesh (slower)</button><button data-view="dashboard" class="subtle">Back without recording</button></div><p class="tiny muted">Soccer-JS displays an illustrative 2.5D replay of the already computed official Quick Sim score, goals, player statistics and events. Watch → Sim to End preserves the exact result; no Sim → Watch after switching. Leaving the viewer without recording changes no saves, XP or standings. The other 15 fixtures use Quick Sim when you record the week.</p></section><div class="grid"><div class="card"><h2>Home XI</h2><div class="viewer-lineup">${pr.home.lineup.map((p,i)=>`<div><span class="marker-key home">${i+1}</span> ${esc(p.species)} <small>${p.pos} · ${p.rating}</small></div>`).join('')}</div></div><div class="card"><h2>Away XI</h2><div class="viewer-lineup">${pr.away.lineup.map((p,i)=>`<div><span class="marker-key away">${i+1}</span> ${esc(p.species)} <small>${p.pos} · ${p.rating}</small></div>`).join('')}</div></div></div>`}
 
 function sortedTable(conf){return st.teams.filter(t=>t.conference===conf).slice().sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf)}
-function playoffMatch(a,b,key){const r=calcMatch(st.teams[a],st.teams[b],st.seed+':playoff:'+st.season+':'+key);let winner=r.score[0]>r.score[1]?a:r.score[1]>r.score[0]?b:(hash(st.seed+':pens:'+key)%2===0?a:b);r.winner=winner;r.penalties=r.score[0]===r.score[1];return r}
+function playoffMatch(a,b,key){
+ const seed=st.seed+':playoff:'+st.season+':'+key;
+ const preview=matchPreview(st.teams[a],st.teams[b],seed);
+ const result=window.FXI_QUICK.simulate(preview);
+ if(window.PFC_KNOCKOUT){
+  const ko=window.PFC_KNOCKOUT.resolve(preview,result,{seed});
+  const r=ko.match;
+  r.winner=ko.winner==='home'?a:b;
+  r.penalties=!!ko.shootout;r.shootout=ko.shootout;
+  r.decidedBy=ko.decidedBy;r.regulationScore=ko.regulationScore;
+  r.extraTime=ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events,stats:ko.extraTime.stats}:null;
+  return r;
+ }
+ // Safe fallback for older local/test deployments without the PSE knockout module.
+ const r=result;
+ r.winner=r.score[0]>r.score[1]?a:r.score[1]>r.score[0]?b:(hash(st.seed+':pens:'+key)%2===0?a:b);
+ r.penalties=r.score[0]===r.score[1];
+ return r;
+}
 function simPlayoffs(){if(st.phase!=='playoffs')return;const k=sortedTable('Kanto'),j=sortedTable('Johto'),h=sortedTable('Hoenn'),s=sortedTable('Sinnoh');
  const pair=(a,b)=>[[a[0].id,b[3].id],[b[1].id,a[2].id],[b[0].id,a[3].id],[a[1].id,b[2].id]];
  const sixteen=pair(k,j).concat(pair(h,s)).map((ab,i)=>playoffMatch(...ab,'r16-'+i));
