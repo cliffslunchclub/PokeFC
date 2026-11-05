@@ -19,7 +19,7 @@
    lineup:t.lineup.map(p=>{
     const id=String(p.id);
     requireValid(id&&!ids.has(id),'Player IDs must be unique');ids.add(id);
-    return {id,name:String(p.name||p.species||id),pos:String(p.pos||'MID')};
+    return {id,name:String(p.name||p.species||id),pos:String(p.pos||'MID'),speciesId:p.speciesId??p.pokemonId??p.dexId??null,jerseyNumber:p.jerseyNumber??p.shirtNumber??null};
    })
   });
   const safeTeams=teams.map(clean),events=result.events.filter(e=>e.type==='goal').map(e=>{
