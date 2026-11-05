@@ -235,7 +235,7 @@ async function boot(){
    if(msg.action==='play'){
     if(minute>=90)return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
-    $('speed').value=String([1,2,4].includes(speed)?speed:4);
+    $('speed').value=String([1,2,4,8,16].includes(speed)?speed:1);
     playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
