@@ -24,11 +24,11 @@ Updated: 2026-11-05
 - [x] Create clean branch from latest `main`.
 - [x] Import the isolated deterministic shot/outcome Match Director at `match-director/timeline.js`.
 - [x] Import its original regression test at `tests/test-phase10-director.cjs`.
-- [ ] Run local regression against *current* `main` Quick Sim; fix any compatibility gaps before claiming it is verified.
-- [ ] Package Soccer-JS pinned MIT source/assets into a deployment-eligible but **non-production** path and verify copyright/asset licensing. Keep generated bundles out of source commits unless needed for deployment.
-- [ ] Add a guarded Watch bridge with strict fixture validation, same-origin messaging, replay and Watch → Sim to End; test cancel and single-write semantics.
+- [x] Execute the recovered Match Director test against current Quick Sim in isolated V8 (220 seeds); Node CLI rerun remains part of local smoke validation.
+- [x] Recover the isolated renderer source/build script in `watch/soccerjs/` with pinned upstream revision. **Compiled bundle, deploy-eligible packaging, browser tests and rights review pending.**
+- [x] Stage the guarded Watch bridge with strict fixture checks and same-origin message protocol; 220 additional actual Quick Sim fixtures passed snapshot/scoreAt. **Browser cancel/record-once regression still pending.**
 - [ ] Add sprite loader and 2.5D renderer with original species IDs, badges, carrier labels, and mobile/reduced-motion checks.
-- [ ] Integrate Quick Play first; test exhibition 90-minute and knockout outcomes.
+- [x] Add a gated Quick Play entry (`/play/?watch=soccerjs`) preserving the existing default TacticMesh route. **Full browser and knockout tests pending.**
 - [ ] Integrate locked Challenge XI and progression without regressing v2 Gauntlet, scouting, item shop or saved results.
 - [ ] Integrate Franchise Tactical Viewer and week advancement without duplicate saves.
 - [ ] Upgrade Match Director to natural player/ball sequences while preserving official event provenance.
@@ -52,3 +52,11 @@ The isolated module and test were copied without integrating them into productio
 The old experimental PR documented a *temporary manual TacticMesh fallback*. The newer consolidated design decision supersedes that as the **final product direction** (remove TacticMesh); however, temporarily keeping its working code during migration is necessary to prevent regressions.
 
 Keep new changes narrow and mode-specific; do not merge the old 56-commit experimental PR or delete its branch prematurely.
+
+## Implementation checkpoint — November 5, 2026
+
+The clean branch now contains standalone Soccer-JS source, native-renderer loader, Pokémon badges/sprite helpers, motion generator, fixture exporter/test scripts, bridge, and opt-in Quick Play integration. See [watch/soccerjs/README.md](../watch/soccerjs/README.md) for build steps and validation details.
+
+**Isolated V8 checks** ran the recovered Match Director test against the actual current Quick Sim code: 220 seeded matches, 4,704 shots, 1,863 saves, 450 goals reconciled. A separate 220-fixture Watch bridge check reconciled 4,758 shots and 489 goals, with no result mutation or drift. All relevant JS sources parsed successfully. These are logic checks, **not a visual browser test**.
+
+The current SiteGround build intentionally does not copy or compile this experimental source. No production feature switch, Franchise/Challenge wiring, private CI or deploy is authorized by these commits.
