@@ -37,6 +37,17 @@ assert.doesNotMatch(app.innerHTML,/data-slot-card="0" class="slot active /,'GK n
 assert.doesNotMatch(app.innerHTML,/challenge-versus-rating/,'Head-to-head team ratings only appear once locked');
 assert.equal((app.innerHTML.match(/data-opponent-id="\d+"/g)||[]).length,0,'No opponent sprites leaked during equipment shopping');
 assert.match(app.innerHTML,/data-shop-pick="Leftovers"/);
+const sortedShop=()=>[...app.innerHTML.matchAll(/<button type="button" data-shop-pick="([^"]+)"[^>]*>[\s\S]*?<strong>₽(\d+)<\/strong>/g)]
+ .map(m=>({name:m[1],price:Number(m[2])}));
+function expectPriceOrder(message){
+ const shop=sortedShop();
+ assert(shop.length>0,'Shop items visible');
+ const expected=shop.slice().sort((a,b)=>b.price-a.price||a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
+ assert.deepEqual(shop,expected,message);
+}
+expectPriceOrder('Default item shop sorted by descending price, then alphabetically');
+assert.equal(sortedShop()[0].price,700,'Mega Stones / Eviolite appear ahead of cheaper items');
+
 assert.equal((app.innerHTML.match(/data-shop-stat="/g)||[]).length,6,'Exactly six stat filter buttons');
 function filterStat(stat){
  const button=bound['[data-shop-stat]']?.find(x=>x.dataset.shopStat===stat);
@@ -45,6 +56,7 @@ function filterStat(stat){
 filterStat('attack');
 assert.match(app.innerHTML,/data-shop-pick="Muscle Band"/,'Attack filter includes attack boost');
 assert.match(app.innerHTML,/data-shop-pick="Eviolite"/,'Attack filter includes multi-stat Eviolite');
+expectPriceOrder('Filtered items preserve descending price and A-Z within each tier');
 assert.doesNotMatch(app.innerHTML,/data-shop-pick="Leftovers"/,'Attack filter removes HP-only item');
 assert.doesNotMatch(app.innerHTML,/data-shop-pick="Wise Glasses"/,'Attack filter removes SpA-only item');
 assert.match(app.innerHTML,/data-shop-stat="attack"[^>]*aria-pressed="true"/,'Active stat filter marked for screen reader');
@@ -96,11 +108,13 @@ assert.doesNotMatch(app.innerHTML,/data-shop-pick="Charizardite X"/,'Items above
 assert.doesNotMatch(app.innerHTML,/data-shop-pick="Choice Band"/,'₽400 items disappear with ₽300 remaining');
 assert.match(app.innerHTML,/data-shop-pick="Eviolite"/,'Equipped costly item remains visible for removal');
 assert.match(app.innerHTML,/data-shop-pick="Leftovers"/,'Affordable ₽100 items remain available');
+expectPriceOrder('Budget-filtered items retain descending price and name ordering');
 assert.equal(state().items[1],null,'Unaffordable item not equipped');
 choose('Eviolite');controls.removeSelectedItem.onclick();
 assert.equal(state().items[0],null,'remove Eviolite refunds');
 assert.match(app.innerHTML,/data-shop-pick="Charizardite X"/,'Refund restores ₽700 special items');
 assert.match(app.innerHTML,/data-shop-pick="Choice Band"/,'Refund restores ₽400 items');
+expectPriceOrder('Refunded items return to the correct price / alphabetical position');
 assert.deepEqual(statsFor('Porygon2'),expected(basePory),'removing item restores base stats on pitch');
 equip('Charizardite X',1);
 assert.equal(state().items[1],'Charizardite X');
