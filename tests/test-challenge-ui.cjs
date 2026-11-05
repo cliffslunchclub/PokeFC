@@ -28,7 +28,7 @@ controls.get('start').onclick();
 const state=()=>JSON.parse(saves.get('pokefc-challenge-alpha-1'));
 assert.equal(state().phase,'draft');
 assert.equal(state().pool,9);
-assert.equal(state().selected,8,'Fresh 4-3-3 draft starts at LW, not GK');
+assert.equal(state().selected,9,'Fresh 4-3-3 draft now starts at ST, with GK last');
 assert.equal(state().legends,true);
 assert(app.innerHTML.includes('challenge-scorebug'),'Draft scorebug');
 assert(app.innerHTML.includes('challenge-run-layout'),'Pitch and picker columns');
