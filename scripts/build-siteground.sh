@@ -14,7 +14,7 @@ mkdir -p dist/ratings dist/challenge dist/play/tacticmesh/vendor dist/franchise/
 cp .htaccess dist/.htaccess
 
 # National free builder and shared Quick Sim library.
-cp index.html builder.css builder.js site.css favicon.svg national-species.js \
+cp index.html builder.css builder.js site.css newtro.css favicon.svg national-species.js \
    quick-sim.js calibration-profile.js dist/
 
 # Ratings explainer is linked from the Free Builder, not a fourth game mode.
