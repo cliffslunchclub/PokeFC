@@ -9,7 +9,7 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 - [x] Franchise Gen I–IV (493 species), 32 Gyms, 22-week season, 16-team playoffs, 25 senior + up to 10 Practice Squad, draft/scouting and save export/import.
 - [x] Challenges Classic/National six-boss Gauntlet with local four-division leaderboards, downloadable results card, seeded match reports and saved run history.
 - [x] Challenges S/A/B/C/D position tiers; rapid tier re-sort, hover-to-preview, animated three-stage scouting reels, one-time rerolls and locked team.
-- [x] Challenges v2 full-pitch layout, movable desktop scouting picker, simplified mobile picker, collapsible/draggable Item Shop, player-details and boss-result dialogs, AI Auto-Equip and stat-filtered budget-aware items.
+- [x] Challenges v2 full-pitch layout, movable desktop scouting picker, simplified mobile picker, collapsible/draggable Item Shop, player-details and boss-result dialogs, AI Auto-Equip and stat-filtered budget-aware items. Newer grouped goal/incident match timelines and match-first terminal recaps are merged.
 - [x] Match timeline unified between live and recorded events, authentic scorer/assist/minute display, individual shots on goal when recorded, hidden redundant engine provenance badges while retaining underlying source metadata.
 - [x] Challenges final-match-first recap: on elimination or completion show the actual last match result, authentic goals, penalties and match statistics first; continue to the tournament overview inside the same modal.
 - [x] Goals-first expandable match timelines in Play/Challenges (other recorded events collapsed initially); save event provenance unchanged, with no invented set pieces.
@@ -40,7 +40,7 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 
 ## Repository hygiene
 
-- [ ] Squash the active Soccer-JS development branch **without rewriting `main`**; verify it includes latest `main` timeline changes.
-- [ ] Retire the public `gh-pages` standalone Soccer-JS demo (embedded `watch/soccerjs/index.html` inside the game is required and must **not** be removed).
+- [x] Consolidated the Soccer-JS feature branch into one reviewed commit while keeping `main` history; it must be refreshed again if new `main` game commits land before final merge.
+- [x] Pruned the old public `gh-pages` standalone Soccer-JS demo (published assets removed; branch contains only `.nojekyll`). **Disable Pages in repository Settings** separately. The embedded game viewer is still required.
 - [ ] Remove old merged feature branches and obsolete experimental branches only after verifying unmerged code/references are retained; branch deletion is separate from closing PRs.
-- [ ] Keep one canonical README/TODO per repository; research workflows/artifacts belong in the public simulation repo. See [docs/REPOSITORY_CLEANUP.md](docs/REPOSITORY_CLEANUP.md).
+- [x] Refreshed the private product README/TODO and public research README/TODO as separate canonical status documents. See [docs/REPOSITORY_CLEANUP.md](docs/REPOSITORY_CLEANUP.md).
