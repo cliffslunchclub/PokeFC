@@ -663,7 +663,9 @@ if(gauntletStarted){
  const completed=st.history.length,hasReports=completed>0;
  body+='<section class="panel challenge-road-strip" aria-label="Road to Champion progress">'+
   '<div class="challenge-road-head"><div><span class="pfc-eyebrow">INDIGO LEAGUE · GAUNTLET</span><h2>ROAD TO CHAMPION <small>'+completed+' / 6 PLAYED</small></h2></div>'+
-  (hasReports?'<button type="button" id="openHistoryModal" class="challenge-history-button">VIEW MATCH REPORTS</button>':'<span class="challenge-road-hint">SIX OPPONENTS · ONE FINAL XI</span>')+'</div>'+
+  '<div class="challenge-road-controls">'+
+  '<button type="button" id="openOpponentModal" class="challenge-history-button">SCOUT OPPONENT XI</button>'+
+  (hasReports?'<button type="button" id="openHistoryModal" class="challenge-history-button">VIEW MATCH REPORTS</button>':'<span class="challenge-road-hint">SIX OPPONENTS · ONE FINAL XI</span>')+'</div></div>'+
   '<div class="challenge-gauntlet-track">'+BOSSES.map((boss,i)=>{
    const result=st.history[i],current=i===st.round;
    const status=result?(result.outcome==='Victory'?'✓':'×'):current?'●':'–';
@@ -770,12 +772,14 @@ if(st.phase==='draft'){
 }).join('')+'</div></dialog>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
- body+='<section class="panel"><h2>ONE-TIME DRAFT ADJUSTMENTS</h2><p>These resources expire when the Final XI is locked.</p>';
+ body+='<details class="panel challenge-team-options"><summary>TEAM OPTIONS · FORMATION &amp; MOVES</summary><div class="challenge-team-options-content"><p>These resources expire when the Final XI is locked.</p>';
  if(st.formationChanges>0)body+='<div class="controls-inline"><label>Change formation <select id="formationChange">'+Object.keys(FORMS).map(x=>'<option '+(x===st.formation?'selected':'')+'>'+x+'</option>').join('')+'</select></label><button id="applyFormation">CHANGE FORMATION · 1 LEFT</button></div>';
  if(st.moves>0&&filled>0)body+='<div class="controls-inline"><label>Move or swap Pokémon <select id="moveFrom">'+st.roster.map((id,i)=>id?'<option value="'+i+'">'+slots[i]+' · '+esc(BY.get(id).name)+'</option>':'').join('')+'</select></label><label>To position <select id="moveTo">'+slots.map((pos,i)=>'<option value="'+i+'">'+pos+' · '+esc(BY.get(st.roster[i])?.name||'EMPTY')+'</option>').join('')+'</select></label><button id="movePick">MOVE / SWAP · 1 LEFT</button></div>';
- body+='</section>';
+ body+='</div></details>';
 }
-if(st.phase==='shop')body+=shopMarkup(used);
+if(st.phase==='shop')body+='<aside id="challengeShopDrawer" class="challenge-shop-drawer" aria-label="Floating item shop" '+(!shopDrawerOpen?'hidden':'')+'>'+
+ '<div class="challenge-shop-drawer-bar"><strong>ITEM SHOP · EQUIP YOUR XI</strong><button type="button" id="closeShopDrawer" aria-label="Hide item shop">✕ HIDE SHOP</button></div>'+
+ shopMarkup(used)+'</aside>';
 if(gauntletStarted){
  const opponent=BOSSES[st.round];
  if(opponent&&Array.isArray(opponent.roster)&&opponent.roster.length===11){
@@ -804,7 +808,9 @@ if(gauntletStarted){
     (stats?'<span class="opponent-row-stats">'+statNames.map(([label,key])=>'<span><b>'+label+'</b> '+stats[key]+'</span>').join('')+'</span>':'')+
     '</div></div>';
   }).join('');
-  body+='<section class="panel challenge-opponent-panel" aria-label="Opponent XI: '+esc(opponent.leader)+'">'+
+  body+='<dialog id="challengeOpponentModal" class="challenge-dialog challenge-opponent-dialog" aria-label="Opponent XI: '+esc(opponent.leader)+'">'+
+   '<div class="challenge-dialog-bar"><span>GAUNTLET · OPPONENT SCOUTING</span><button type="button" id="closeOpponentModal">✕ CLOSE</button></div>'+
+   '<section class="panel challenge-opponent-panel">'+
    '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">GAUNTLET '+(st.round+1)+' / 6 · '+(st.phase==='locked'?'NEXT OPPONENT':'MATCH OPPONENT')+'</span><h2>'+esc(opponent.leader.toUpperCase())+' · OPPONENT XI</h2>'+
    '<p>'+esc((opponent.region||'Indigo League')+' · '+opponent.roster.length+' fixed Pokémon · '+(opponent.tactic||'balanced')+' tactics')+'</p></div>'+
    '<span class="formation-tag">'+esc(enemyFormation)+' · '+(opponentTeamScore(opponent)?.toFixed(1)||'—')+' TEAM</span></div>'+
@@ -813,7 +819,7 @@ if(gauntletStarted){
    opponentCards+'</div>'+
    '<div class="opponent-pitch-legend"><span><b class="opponent-signature-marker">★</b> Signature Pokémon</span><span>Item markers show Mega Stones / Light Ball</span></div>'+
    '<details class="opponent-roster-details"><summary>VIEW ALL 11 POKÉMON &amp; STATS</summary><div class="opponent-roster-list">'+opponentRows+'</div></details>'+
-   '</section>';
+   '</section></dialog>';
  }
 
 }
