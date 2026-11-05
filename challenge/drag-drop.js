@@ -46,6 +46,20 @@
    if(!['item','held-item','candidate','pokemon'].includes(type))return null;
    return {type,value:String(value)};
   };
+  // Use the actual sprite on the card; the native desktop drag image should
+  // never be a screenshot of the entire card, stats, or equipment panel.
+  const sourceSprite=(el,source)=>{
+   if(source?.type!=='candidate'&&source?.type!=='pokemon')return null;
+   const host=el?.closest?.(source.type==='candidate'?'[data-species-id]':'[data-slot-card]')||el;
+   return host?.querySelector?.('img')||null;
+  };
+  const spriteOffset=image=>{
+   const bounds=image?.getBoundingClientRect?.();
+   return {
+    x:Math.round((bounds?.width||image?.width||48)/2),
+    y:Math.round((bounds?.height||image?.height||48)/2)
+   };
+  };
   const begin=(source,ev)=>{
    if(!source||!options.canDrag?.(source)){ev?.preventDefault?.();return false}
    active=source;return true;
@@ -54,7 +68,7 @@
   function pointerMove(e){
    if(!active)return;
    if(e.cancelable)e.preventDefault();
-   if(ghost?.style)ghost.style.transform='translate('+(e.clientX+13)+'px,'+(e.clientY+13)+'px)';
+   if(ghost?.style){const size=ghost.className?.includes?.('challenge-drag-sprite')?32:-13;ghost.style.transform='translate('+(e.clientX-size)+'px,'+(e.clientY-size)+'px)'}
    showTarget(pointerAt(e));
    // A short scroll step lets a touch drag reach a pitch outside the viewport.
    if(e.clientY<45)win?.scrollBy?.(0,-15);
@@ -70,7 +84,15 @@
    el.draggable=true;
    el.ondragstart=e=>{
     if(!begin(source,e))return;
-    if(e.dataTransfer){e.dataTransfer.effectAllowed=source.type==='item'?'copy':'move';e.dataTransfer.setData('text/plain','pokefc-challenge-drag')}
+    if(e.dataTransfer){
+     e.dataTransfer.effectAllowed=source.type==='item'?'copy':'move';
+     e.dataTransfer.setData('text/plain','pokefc-challenge-drag');
+     const sprite=sourceSprite(el,source);
+     if(sprite&&typeof e.dataTransfer.setDragImage==='function'){
+      const offset=spriteOffset(sprite);
+      e.dataTransfer.setDragImage(sprite,offset.x,offset.y);
+     }
+    }
     e.stopPropagation?.();
    };
    el.ondragend=release;
@@ -93,10 +115,17 @@
     if(!begin(source,e))return;
     if(e.cancelable)e.preventDefault();
     if(doc?.createElement&&doc?.body){
-     ghost=doc.createElement('div');ghost.className='challenge-drag-ghost';
-     ghost.textContent=sourceName(source);
+     const sprite=sourceSprite(grip,source);
+     ghost=doc.createElement(sprite?'img':'div');
+     ghost.className='challenge-drag-ghost'+(sprite?' challenge-drag-sprite':'');
+     if(sprite){
+      ghost.src=sprite.currentSrc||sprite.src;
+      ghost.alt='';
+      ghost.draggable=false;
+     }else ghost.textContent=sourceName(source);
      doc.body.appendChild(ghost);
-     ghost.style.transform='translate('+(e.clientX+13)+'px,'+(e.clientY+13)+'px)';
+     const offset=sprite?32:-13;
+     ghost.style.transform='translate('+(e.clientX-offset)+'px,'+(e.clientY-offset)+'px)';
     }
     win?.addEventListener?.('pointermove',pointerMove,{passive:false});
     win?.addEventListener?.('pointerup',pointerUp);
