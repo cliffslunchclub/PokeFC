@@ -734,9 +734,9 @@ const draftRollMarkup=isDraft?'<section class="panel challenge-draft-reels" aria
  '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
  '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
  '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">POKÉMON POOL</span><div class="slot-window"><span data-reel-value="pool">'+eligible().length+' ELIGIBLE</span></div></div></div>'+ 
+ '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">DRAFT STATUS</span><div class="slot-window"><span data-reel-value="pool">'+(pendingRollAnimation?'SCOUTING':'READY')+'</span></div></div></div>'+ 
  '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
- '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+eligible().length+' eligible Pokémon · '+(st.legends?'Legendary picks '+legendCount+' / 2':'Legendaries excluded')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
+ '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+(pendingRollAnimation?'Drawing Pokémon scouting options…':'Choose a Pokémon for your selected position.')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
  '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
@@ -806,7 +806,7 @@ if(st.phase==='draft'){
   '<p id="challengeDraftRollingNote" class="challenge-draft-rolling-note" role="status"'+(!pendingRollAnimation?' hidden':'')+'>SCOUTING IN PROGRESS · Pokémon choices appear when the reels stop.</p>'+
   '<div id="challengeDraftCandidates" class="challenge-draft-candidates"'+(pendingRollAnimation?' hidden':'')+'>'+
   '<label class="challenge-draft-search" for="draftSearch"><span>SEARCH ELIGIBLE POKÉMON</span><input id="draftSearch" type="search" placeholder="Name, number or type" autocomplete="off" aria-controls="challengePickGrid"></label>'+
-  '<p class="draft-search-count" id="draftSearchCount">'+opts.length+' MATCHING POKÉMON</p>'+
+  '<p class="draft-search-count" id="draftSearchCount">MATCHING POKÉMON</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
  '<div id="challengePickGrid" class="challenge-pick-grid scroll">'+opts.map((s,i)=>{
  const tier=cachedDraftTier(s,slots[st.selected]);
@@ -973,7 +973,7 @@ if(isDraft){
    if(!card.hidden)count++;
   }
   const status=document.getElementById('draftSearchCount');
-  if(status)status.textContent=count+' MATCHING POKÉMON';
+  if(status)status.textContent=count?'MATCHING POKÉMON':'NO MATCHING POKÉMON';
  };
 }
 if(isShop){
