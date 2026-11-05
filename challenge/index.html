@@ -171,7 +171,7 @@ function shopMarkup(used){
  const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
  if(!current)selectedShopItem=catalog[0]?.[0]||null;
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
- const order=draftOrder(st.formation);
+ const order=draftOrder(st.formation).sort((a,b)=>Number(FORMS[st.formation][b]==='ST')-Number(FORMS[st.formation][a]==='ST'));
  const eligible=itemTargets(name).sort((a,b)=>order.indexOf(a.i)-order.indexOf(b.i)),held=st.items.indexOf(name);
  const selected=eligible.find(x=>x.i===held)||eligible[0];
  const options=eligible.map(x=>'<option value="'+x.i+'" '+(x.i===selected?.i?'selected':'')+'>'+esc(FORMS[st.formation][x.i]+' · '+x.pokemon.name)+(st.items[x.i]&&st.items[x.i]!==name?' · replacing '+esc(st.items[x.i]):'')+'</option>').join('');
