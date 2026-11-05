@@ -11,6 +11,9 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 - [x] Challenges S/A/B/C/D position tiers; rapid tier re-sort, hover-to-preview, animated three-stage scouting reels, one-time rerolls and locked team.
 - [x] Challenges v2 full-pitch layout, movable desktop scouting picker, simplified mobile picker, collapsible/draggable Item Shop, player-details and boss-result dialogs, AI Auto-Equip and stat-filtered budget-aware items.
 - [x] Match timeline unified between live and recorded events, authentic scorer/assist/minute display, individual shots on goal when recorded, hidden redundant engine provenance badges while retaining underlying source metadata.
+- [x] Challenges final-match-first recap: on elimination or completion show the actual last match result, authentic goals, penalties and match statistics first; continue to the tournament overview inside the same modal.
+- [x] Goals-first expandable match timelines in Play/Challenges (other recorded events collapsed initially); save event provenance unchanged, with no invented set pieces.
+- [x] Pokémon picker and Item Shop single-scroll desktop panels, reduced scroll redraw, visible scrollbar gutters and preserved item shop scroll position; mobile uses simplified full-screen dropdown draft.
 - [x] Local and GitHub test/deployment workflow for the three primary game modes.
 
 ## In development — draft PR, **not released**

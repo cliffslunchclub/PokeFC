@@ -77,6 +77,10 @@ vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{file
  ];
  callbacks.snapshot(liveSnapshot,streamed);
  assert.equal(el('liveEventCount').textContent,'4 RECORDED','Match Center shows four verified streamed events');
+ assert.match(el('liveEventFeed').innerHTML,/data-timeline-group="goals" open/,'Goal timeline defaults expanded during live play');
+ assert.match(el('liveEventFeed').innerHTML,/data-timeline-group="other"/,'Saves and incidents can be expanded');
+ assert.doesNotMatch(el('liveEventFeed').innerHTML,/data-timeline-group="other" open/,'Secondary timeline defaults minimized');
+
  for(const label of ['GOAL','FOUL','YELLOW CARD','SUBSTITUTION'])
   assert.match(el('liveEventFeed').innerHTML,new RegExp(label),'Live commentary includes '+label);
  callbacks.snapshot(liveSnapshot,streamed);

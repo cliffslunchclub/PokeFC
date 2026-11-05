@@ -54,6 +54,22 @@
      '<small>'+(side==='home'?'YOUR XI':side==='away'?'OPPONENT':'MATCH')+'</small></span></li>';
   }).join('')+'</ol>';
  }
+ function renderGroupedTimeline(entries,opts={}){
+  const list=Array.isArray(entries)?entries.filter(e=>TYPES.has(e?.type)):[];
+  const goals=list.filter(e=>e.type==='goal');
+  const other=list.filter(e=>e.type!=='goal');
+  const goalOpen=opts.goalsOpen!==false,otherOpen=opts.otherOpen===true;
+  const goalEmpty=opts.goalsEmpty||'No goals recorded yet.';
+  const otherEmpty=opts.otherEmpty||'No saves or other match incidents recorded.';
+  return '<div class="pfc-timeline-groups">'+
+   '<details class="pfc-timeline-group pfc-timeline-goals" data-timeline-group="goals"'+(goalOpen?' open':'')+'>'+
+   '<summary><span>⚽ GOALS</span><strong>'+goals.length+' RECORDED</strong></summary>'+
+   '<div class="pfc-timeline-group-body">'+renderTimeline(goals,{empty:goalEmpty})+'</div></details>'+
+   '<details class="pfc-timeline-group pfc-timeline-other" data-timeline-group="other"'+(otherOpen?' open':'')+'>'+
+   '<summary><span>🧤 SAVES &amp; OTHER EVENTS</span><strong>'+other.length+' RECORDED</strong></summary>'+
+   '<div class="pfc-timeline-group-body">'+renderTimeline(other,{empty:otherEmpty})+'</div></details>'+
+   '</div>';
+ }
  function fromResult(result,fixture){
   const teams=[fixture?.home||{},fixture?.away||{}];
   const score=[num(result?.score?.[0])??0,num(result?.score?.[1])??0];
@@ -93,5 +109,5 @@
    handoffMinute:scalar(num(result?.handoff?.minute))
   };
  }
- root.PFC_MATCH_REPORT={fromResult,timelineFromEvents,renderTimeline};
+ root.PFC_MATCH_REPORT={fromResult,timelineFromEvents,renderTimeline,renderGroupedTimeline};
 })(typeof window!=='undefined'?window:globalThis);
