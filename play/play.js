@@ -274,8 +274,11 @@ function quickSim(){
 function watchSoccerPreview(){
  try{
   if(!window.FXI_PHASE10_WATCH?.mountInline)throw Error('Inline Soccer-JS bridge unavailable');
+  // Watch is disabled during a live fixture. On completion, dispose the
+  // prior recorded session before checking the bridge for a new fixture.
+  stopWatch();
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
-  stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
+  preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
   // A single immutable official Quick Sim result is locked before the first 2.5D frame.
   const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   $('soccerProjection').value='isometric';$('soccerCamera').value='wide';
