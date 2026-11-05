@@ -69,7 +69,7 @@ const document={
  head:{append(script){assert.match(script.src,/watch-bridge\.js$/);script.onload()}}
 };
 const context=vm.createContext({
- window:{location:{search:'?watch=soccerjs'},addEventListener(){},FXI_PHASE10_WATCH:bridge},
+ window:{location:{search:''},addEventListener(){},FXI_PHASE10_WATCH:bridge},
  document,URLSearchParams,Date,Math,console,
  localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)}
 });
