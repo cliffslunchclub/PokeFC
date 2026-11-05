@@ -50,6 +50,10 @@
  function simulate(preview,opts={}){
   if(!preview||!preview.home||!preview.away||preview.home.lineup?.length!==11||preview.away.lineup?.length!==11)throw Error('Quick Sim requires two valid starting XIs');
   const current=profile(),P=validParams(opts.parameters||current.parameters),next=randomizer(opts.seed||preview.seed||'FXI'),tackleNext=randomizer(String(opts.seed||preview.seed||'FXI')+':tackle-ledger-v1'),teams=[preview.home,preview.away];
+  // This opt-in ruleset uses a separate deterministic RNG stream.
+  // Default calls retain their original score, stats, event order and save shape.
+  const useSetPieces=opts.setPieces==='v1';
+  const setPieceNext=useSetPieces?randomizer(String(opts.seed||preview.seed||'FXI')+':pse-set-pieces-v1'):null;
   const perSide=teams.map(t=>({attack:(()=>{let a=t.lineup.filter(p=>p.pos==='FWD');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
    defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
    gk:strength(t.lineup.find(p=>p.pos==='GK')||t.lineup[0])}));
@@ -57,6 +61,52 @@
   const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{goals:0,assists:0,saves:0,shots:0,shotsOnTarget:0,tackleAttempts:0,tackles:0,minutes:90}])));
   const stats=teams.map(()=>({shots:0,shotsOnTarget:0,goals:0,saves:0,passes:0,completedPasses:0,tackleAttempts:0,tackles:0,possession:0})),events=[];
   const score=[0,0];
+  if(useSetPieces){
+   for(const t of stats)Object.assign(t,{corners:0,foulsCommitted:0,freeKicks:0,penaltyKicks:0});
+   for(const b of Object.values(box))Object.assign(b,{cornersTaken:0,freeKicksTaken:0,penaltiesTaken:0,penaltiesScored:0});
+  }
+  const timeLabel=t=>String(Math.floor(t)+1);
+  function incident(type,side,player,when,extra={}){
+   events.push({minute:Math.min(89.999,when),minuteLabel:timeLabel(when),type,
+    team:teams[side].id,player:player?.id??null,origin:'quick-sim',
+    ruleset:'set-pieces-v1',...extra});
+  }
+  function corner(side,minute){
+   const lineup=teams[side].lineup.filter(p=>p.pos!=='GK');
+   const taker=choice(setPieceNext,lineup,p=>n(p.main?.shortPassing)+n(p.main?.vision)+10);
+   if(!taker)return;
+   stats[side].corners++;box[taker.id].cornersTaken++;
+   incident('corner',side,taker,minute);
+  }
+  function restart(defender,defSide,minute){
+   const attackerSide=1-defSide,when=minute+.60+setPieceNext()*.25;
+   stats[defSide].foulsCommitted++;
+   incident('foul',defSide,defender,when,{awardedTo:teams[attackerSide].id});
+   const lineup=teams[attackerSide].lineup.filter(p=>p.pos!=='GK');
+   const taker=choice(setPieceNext,lineup,p=>n(p.main?.finishing)+10);
+   if(!taker)return;
+   if(setPieceNext()>=.025){
+    stats[attackerSide].freeKicks++;box[taker.id].freeKicksTaken++;
+    incident('free-kick',attackerSide,taker,when+.002,{concededBy:defender.id});
+    return;
+   }
+   const keeper=teams[defSide].lineup.find(p=>p.pos==='GK')||teams[defSide].lineup[0];
+   const kickTime=when+.005;
+   const onTarget=setPieceNext()<clamp(.79+.001*n(taker.main?.finishing),.68,.94);
+   const goal=onTarget&&setPieceNext()<clamp(.72+.002*(n(taker.main?.finishing)-strength(keeper)),.48,.90);
+   stats[attackerSide].penaltyKicks++;box[taker.id].penaltiesTaken++;
+   stats[attackerSide].shots++;box[taker.id].shots++;
+   if(onTarget){stats[attackerSide].shotsOnTarget++;box[taker.id].shotsOnTarget++;}
+   incident('penalty-kick',attackerSide,taker,kickTime,
+    {outcome:goal?'goal':onTarget?'saved':'off-target',keeper:keeper.id,concededBy:defender.id});
+   if(goal){
+    stats[attackerSide].goals++;score[attackerSide]++;box[taker.id].goals++;box[taker.id].penaltiesScored++;
+    incident('goal',attackerSide,taker,kickTime,{assist:null,setPiece:'penalty'});
+   }else if(onTarget){
+    stats[defSide].saves++;box[keeper.id].saves++;
+    incident('save',defSide,keeper,kickTime,{shooter:taker.id,setPiece:'penalty'});
+   }
+  }
   for(let minute=0;minute<90;minute++){
    for(let side=0;side<2;side++){
     const attackers=teams[side].lineup.filter(p=>p.pos!=='GK'),challengers=teams[side].lineup.filter(p=>p.pos!=='GK');
@@ -68,7 +118,10 @@
     for(let k=0;k<shots;k++){
      const shooter=choice(next,attackers,p=>p.pos==='FWD'?n(p.main.finishing)*2:p.pos==='MID'?n(p.main.finishing):Math.max(2,n(p.main.finishing)*.14));if(!shooter)continue;
      t.shots++;box[shooter.id].shots++;
-     if(next()>=clamp(P.onTargetBase+P.onTargetFinishingSlope*n(shooter.main.finishing),.1,.85))continue;
+     if(next()>=clamp(P.onTargetBase+P.onTargetFinishingSlope*n(shooter.main.finishing),.1,.85)){
+      if(useSetPieces&&setPieceNext()<.25)corner(side,minute+.4);
+      continue;
+     }
      t.shotsOnTarget++;box[shooter.id].shotsOnTarget++;
      const baseQuality=clamp(.09+.0019*(atkStrength-opp.defense)+next()*.07,.025,.31);
      const goalChance=clamp((baseQuality/.60+.001*(n(shooter.main.finishing)-opp.gk))*P.goalConversionScale,.025,.85);
@@ -80,7 +133,9 @@
       // This was a real simulated save, not a chance inferred from final stats.
       // Timestamp it within the simulation minute without extra RNG calls.
       events.push({minute:minute+.5,minuteLabel:String(minute+1),type:'save',team:teams[1-side].id,player:keeper.id,shooter:shooter.id,origin:'quick-sim'});
-     }}
+     }
+     if(useSetPieces&&setPieceNext()<.30)corner(side,minute+.52);
+     }
     }
     const passed=poisson(next,Math.max(.05,(P.passesBase+P.passesPossessionSlope*poss[side])/90));t.passes+=passed;t.completedPasses+=binomial(next,passed,P.passAccuracy);
     for(const player of challengers){
@@ -94,6 +149,8 @@
      const attempts=won+poisson(tackleNext,expectedWins*(1-TACKLE_WIN_RATE)/TACKLE_WIN_RATE);
      t.tackleAttempts+=attempts;t.tackles+=won;
      box[player.id].tackleAttempts+=attempts;box[player.id].tackles+=won;
+     if(useSetPieces)for(let failed=0;failed<attempts-won;failed++)
+      if(setPieceNext()<.16)restart(player,side,minute);
     }
    }
   }
@@ -104,9 +161,19 @@
    if(events.filter(e=>e.type==='goal'&&String(e.team)===String(teams[side].id)).length!==score[side])throw Error('Quick Sim goal ledger invalid');
    if(stats[side].completedPasses>stats[side].passes)throw Error('Invalid completed pass count');
    if(stats[side].tackles>stats[side].tackleAttempts)throw Error('Won tackles exceed attempts');
+    if(useSetPieces){
+     if(stats[side].shotsOnTarget>stats[side].shots||
+        stats[side].shotsOnTarget!==stats[side].goals+stats[1-side].saves)
+      throw Error('PSE shot/goal/save reconciliation failed');
+     const fields=[['corners','cornersTaken'],['freeKicks','freeKicksTaken'],['penaltyKicks','penaltiesTaken']];
+     for(const [teamKey,boxKey] of fields)
+      if(teams[side].lineup.reduce((sum,p)=>sum+box[p.id][boxKey],0)!==stats[side][teamKey])
+       throw Error('PSE set-piece player/team counts diverged: '+teamKey);
+    }
   }
   return {home:teams[0].id,away:teams[1].id,score,stats,events,box,
-   origin:'quick-sim',statsModel:opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
+   origin:'quick-sim',...(useSetPieces?{setPieceRules:'v1'}:{}),
+    statsModel:opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
    calibration:current.status==='calibrated'?{referenceMatches:current.referenceMatches,engineCommit:current.engineCommit}:null,
    methodology:{shotStops:'Approximate saves in Quick Sim; not directly comparable to TacticMesh shotStops.',shotsOnTarget:'Estimated; genuine TacticMesh reports this as unavailable.'}};
  }
