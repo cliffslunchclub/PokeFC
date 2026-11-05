@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=18">
+<link rel="stylesheet" href="./challenge.css?v=19">
 </head>
 <body>
 <header class="pfc-header">
@@ -285,7 +285,7 @@ const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
-let draftPickerOpen=true,shopDrawerOpen=true;
+let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false;
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -585,6 +585,31 @@ function moveDraftedPokemon(from,to){
  dragStatus=(pokemon?.name||'Pokémon')+(target?' swapped positions.':' moved to '+FORMS[st.formation][b]+'.')+' No Pokémon moves remaining.';
  save();render();return {ok:true};
 }
+function pokemonDetailMarkup(index){
+ const i=Number(index),species=BY.get(st.roster[i]);
+ if(!Number.isInteger(i)||i<0||i>=11||!species)return '';
+ const position=FORMS[st.formation][i],item=st.items[i],display=displayPokemon(species,item);
+ const stats=effectiveStats(species,item);
+ const cost=itemFor(species,item)?.[1]||0;
+ const statNames=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
+ return '<section class="pokemon-detail-profile" data-detail-slot="'+i+'">'+
+  '<div class="pokemon-detail-lead">'+displaySprite(species,item,'pokemon-detail-sprite')+
+  '<div><span class="pfc-eyebrow">#'+String(species.id).padStart(4,'0')+' · GEN '+(species.gen||gen(species.id))+'</span>'+
+  '<h2>'+esc(display.name)+'</h2><p>'+esc(species.types.join(' / ').toUpperCase())+'</p>'+
+  '<div class="pokemon-detail-tags"><span>'+esc(position)+' POSITION</span>'+
+  '<span class="pokemon-detail-tier tier-'+tierFor(species,position,item).toLowerCase()+'">'+esc(tierFor(species,position,item))+' TIER</span>'+
+  (species.legendary?'<span>LEGENDARY CLASS</span>':'')+'</div></div></div>'+
+  '<div class="pokemon-detail-equipment"><strong>HELD ITEM</strong>'+
+  (item?'<span>'+itemSprite(item)+esc(item)+' <small>₽'+cost+'</small></span>':'<span>NONE EQUIPPED</span>')+'</div>'+
+  '<h3>EFFECTIVE PLAYER STATS</h3>'+
+  '<div class="pokemon-detail-stats">'+statNames.map(([label,key])=>{
+   const value=stats[key],diff=value-species.baseStats[key];
+   return '<div class="pokemon-detail-stat'+(diff>0?' is-boosted':diff<0?' is-reduced':'')+'"><span>'+label+'</span>'+
+    '<strong>'+value+'</strong><small>'+(diff?(diff>0?'+':'')+diff+' FROM ITEM':'BASE '+species.baseStats[key])+'</small></div>';
+  }).join('')+'</div>'+
+  '<p class="pokemon-detail-note">Position tier reflects item-adjusted fit. The underlying numerical position-fit rating stays hidden.</p>'+
+  '</section>';
+}
 function render(){const app=document.getElementById('app');
  window.PFC_CHALLENGE_DND?.cancel?.();
  let awardsAdded=false;
@@ -690,9 +715,9 @@ if(gauntletStarted){
    '<div class="challenge-gauntlet-action-buttons"><button id="play" class="primary" type="button">QUICK SIM →</button>'+
    '<a class="challenge-watch-link" href="../play/?challenge=1">WATCH MATCH ↗</a></div>'+
    '<p class="challenge-gauntlet-action-note">Watch the same locked XI and boss, or Quick Sim instantly. Watched matches can hand off to Quick Sim.</p></div>':
-   st.phase==='result'&&st.result?.outcome==='Victory'?'<div class="challenge-gauntlet-actions challenge-gauntlet-next" aria-label="Advance in Gauntlet">'+
-   '<div class="challenge-gauntlet-action-copy"><strong>'+esc(st.result.boss||'OPPONENT')+' DEFEATED</strong><span>Continue with your locked XI and equipped items.</span></div>'+
-   '<div class="challenge-gauntlet-action-buttons"><button id="next" class="primary" type="button">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button></div></div>':'')+
+   st.phase==='result'&&st.result?.outcome==='Victory'?'<div class="challenge-gauntlet-actions challenge-gauntlet-next" aria-label="Match result access">'+
+   '<div class="challenge-gauntlet-action-copy"><strong>'+esc(st.result.boss||'OPPONENT')+' DEFEATED</strong><span>Review the score and recorded match events before facing the next boss.</span></div>'+
+   '<div class="challenge-gauntlet-action-buttons"><button id="openMatchResultModal" class="primary" type="button">VIEW MATCH RESULT →</button></div></div>':'')+
  '</section>';
  if(hasReports)body+='<dialog id="challengeHistoryModal" class="challenge-dialog challenge-history-dialog" aria-labelledby="challengeHistoryTitle">'+
   '<div class="challenge-dialog-bar"><span id="challengeHistoryTitle">PREVIOUS MATCH REPORTS</span><button type="button" id="closeHistoryModal" aria-label="Close match history">✕ CLOSE</button></div>'+
@@ -739,8 +764,9 @@ body+=slots.map((pos,i)=>{
   (isShop&&selectedShopItem&&s?(itemFor(s,selectedShopItem)?'shop-target ':'shop-not-eligible '):'')+
   (s?'filled':'empty')+'"'+style+'><span class="slot-role">'+pos+'</span>'+sprite+
  '<span class="slot-name">'+(s?esc(displayPokemon(s,item).name):'OPEN SLOT')+'</span>'+
- '<button type="button" data-slot="'+i+'" '+(!((isDraft&&!s)||(isShop&&s))?'disabled':'')+
- ' aria-label="'+esc(isShop?'Equip selected item to '+(s?.name||'empty slot'):pos+' '+(s?s.name:'empty slot'))+'"></button>'+
+ '<button type="button" data-slot="'+i+'" '+(!((isDraft&&!s)||s)?'disabled':'')+
+ ' aria-label="'+esc(isShop&&selectedShopItem?'Equip selected item to '+(s?.name||'empty slot'):s?'View '+s.name+' details':pos+' empty slot')+'"></button>'+
+ (s?'<button type="button" class="slot-info" data-pokemon-info="'+i+'" aria-label="View '+esc(displayPokemon(s,item).name)+' details" title="Pokémon details">ⓘ</button>':'')+
  (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
  visibleStats+
  (s&&(isDraft||isShop)&&st.moves>0?'<span class="challenge-drag-grip slot-grip" data-drag-grip="pokemon" data-drag-value="'+i+'" title="Drag to move/swap (uses one move)">⠿</span>':'')+
@@ -830,12 +856,16 @@ if(gauntletStarted){
 
 }
 if(st.phase==='result'){
- const win=st.result?.outcome==='Victory';
- body+='<section class="panel"><span class="pfc-eyebrow">MATCH '+(st.round+1)+' / 6</span>'+
- '<h2>'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'Result')+'</h2>'+
- '<div class="challenge-final-score"><h1>'+(st.result?.score||[0,0]).join(' – ')+'</h1></div>'+
- matchReportHtml(st.result)+
- '</section>';
+ body+='<dialog id="challengeMatchResultModal" class="challenge-dialog challenge-match-result-dialog" aria-labelledby="challengeMatchResultTitle">'+
+  '<div class="challenge-dialog-bar"><span>MATCH '+(st.round+1)+' / 6 · OFFICIAL RESULT</span>'+
+  '<button type="button" id="closeMatchResultModal" aria-label="Close match result">✕ CLOSE</button></div>'+
+  '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">INDIGO LEAGUE · VICTORY</span>'+
+  '<h2 id="challengeMatchResultTitle">'+esc(st.result?.boss||'Opponent')+' DEFEATED</h2>'+
+  '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – '))+'</h1></div>'+
+  matchReportHtml(st.result)+'</div>'+
+  '<footer class="challenge-match-result-actions"><button type="button" id="closeMatchResultFooter">BACK TO MY XI</button>'+
+  '<button type="button" id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button></footer>'+
+ '</dialog>';
 }
 if(st.phase==='finished'&&st.result)body+='<section class="panel challenge-last-match" aria-label="Final match details">'+
  '<span class="pfc-eyebrow">FINAL GAUNTLET MATCH · '+esc(st.result.outcome||'RESULT')+'</span>'+
@@ -846,7 +876,12 @@ if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><d
  '<dialog id="runCompleteModal" class="challenge-dialog challenge-run-dialog" aria-labelledby="runResultTitle">'+
  '<div class="challenge-dialog-bar"><span>POKÉFC · GAUNTLET RESULTS</span><button type="button" id="closeRunModal" aria-label="Close run results">✕ CLOSE</button></div>'+
  completedRunCard()+'</dialog>';
-body+='</div></div><section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
+body+='</div></div>'+
+ '<dialog id="challengePokemonDetailModal" class="challenge-dialog challenge-pokemon-detail-dialog" aria-labelledby="pokemonDetailTitle">'+
+ '<div class="challenge-dialog-bar"><span id="pokemonDetailTitle">POKÉMON PROFILE · FINAL XI</span>'+
+ '<button type="button" id="closePokemonDetailModal" aria-label="Close Pokémon profile">✕ CLOSE</button></div>'+
+ '<div id="pokemonDetailContent" class="pokemon-detail-content"></div></dialog>'+
+ '<section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
 if(isDraft){
  const picker=document.getElementById('challengeDraftModal');
  const openPicker=()=>{draftPickerOpen=true;openFloatingDialog(picker)};
