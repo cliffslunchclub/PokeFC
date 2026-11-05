@@ -473,10 +473,17 @@ function matchReportHtml(match){
  const source=label==='tacticmesh'?'WATCHED MATCH':label==='hybrid'?'WATCH → QUICK SIM':'QUICK SIM';
  const score=Array.isArray(match.score)?match.score:[0,0];
  const scoreText=esc(score.join(' – '));
- const stats=report?.stats||{shots:match.shots,passes:match.passes};
+ const rawStats=report?.stats||{shots:match.shots,passes:match.passes};
+ const rate=(made,total)=>made!=null&&total!=null&&Number.isFinite(Number(made))&&
+  Number.isFinite(Number(total))&&Number(total)>0&&Number(made)>=0&&Number(made)<=Number(total)?
+  (100*Number(made)/Number(total)).toFixed(1):null;
+ const stats={...rawStats,
+  passAccuracy:[0,1].map(side=>rate(rawStats.completedPasses?.[side],rawStats.passes?.[side])),
+  tackleSuccess:[0,1].map(side=>rate(rawStats.tackles?.[side],rawStats.tackleAttempts?.[side]))};
  const rows=[
   ['SHOTS','shots',''],['POSSESSION','possession','%'],
-  ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['TACKLES WON','tackles',''],['SAVES','saves','']
+  ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['PASS ACCURACY','passAccuracy','%'],
+  ['TACKLES ATTEMPTED','tackleAttempts',''],['TACKLES WON','tackles',''],['TACKLE WIN RATE','tackleSuccess','%'],['SAVES','saves','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
  const table=rows.map(([label,key,unit])=>
   '<div class="match-stat-row"><strong>'+esc(stats[key][0]??'—')+(stats[key][0]==null?'':unit)+'</strong><span>'+label+'</span><strong>'+
