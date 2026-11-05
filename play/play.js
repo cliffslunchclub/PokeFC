@@ -7,7 +7,9 @@ const OPP=window.PFC_PLAY_OPPONENTS||[],SAVE='pokefc-free-builder-v1';
 const CHALLENGE_KEY='pokefc-challenge-alpha-1';
 const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('challenge')==='1');
 // Development-only opt-in; default Quick Play and production build stay unchanged.
-const SOCCERJS_PREVIEW=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('watch')==='soccerjs');
+// 2.5D Watch is default in browsers. Keep legacy via explicit rollback query.
+const WATCH_CHOICE=window.location?new URLSearchParams(window.location.search||'').get('watch'):null;
+const SOCCERJS_PREVIEW=!!window.location&&WATCH_CHOICE!=='tacticmesh';
 let SOCCERJS_READY=false;
 let soccerSession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
@@ -283,7 +285,7 @@ function watchSoccerPreview(){
   const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   $('soccerProjection').value='isometric';$('soccerCamera').value='wide';
   $('soccerWatchActions').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
-  $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D TEST';
+  $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D';
   $('matchClock').textContent="0' / 90'";$('matchState').textContent='Preparing isometric match viewer';
   $('engineStatus').textContent='Loading 2.5D Soccer-JS graphics; official Quick Sim outcome already locked.';
   stateBusy(true);
@@ -335,7 +337,7 @@ function watchSoccerPreview(){
 }
 function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
- $('engineStatus').textContent='2.5D preview enabled; the local Soccer-JS bundle must be built to watch.';
+ $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
  script.src='../watch/soccerjs/watch-bridge.js';
  script.onload=()=>{
@@ -382,7 +384,16 @@ function start(){
   $('region').disabled=true;$('opponent').disabled=true;$('tactic').disabled=true;$('fillXI').disabled=true;
   $('returnChallenge').hidden=false;
  }
- if(S.length!==1025||OPP.length!==38){$('engineStatus').textContent='Game data incomplete. Reload this page.';return}
+ if(window.location){
+   const toggle=$('watchEngineSwitch');
+   if(toggle){
+    const query=new URLSearchParams(window.location.search||'');
+    query.set('watch',SOCCERJS_PREVIEW?'tacticmesh':'soccerjs');
+    toggle.href='?'+query.toString();
+    toggle.textContent=SOCCERJS_PREVIEW?'Use legacy Watch':'Use Soccer-JS 2.5D Watch';
+   }
+  }
+  if(S.length!==1025||OPP.length!==38){$('engineStatus').textContent='Game data incomplete. Reload this page.';return}
  $('region').addEventListener('change',fillOpponents);
  $('opponent').addEventListener('change',selectOpponent);
  $('fillXI').addEventListener('click',autoFill);

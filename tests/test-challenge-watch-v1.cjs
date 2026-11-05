@@ -25,7 +25,7 @@ function el(id){
  });
  return elements.get(id);
 }
-const ctx=vm.createContext({window:{location:{search:'?challenge=1'},addEventListener(){}},URLSearchParams,console,Date,Math,
+const ctx=vm.createContext({window:{location:{search:'?challenge=1&watch=tacticmesh'},addEventListener(){}},URLSearchParams,console,Date,Math,
  document:{getElementById:el},
  localStorage:{getItem:key=>store.get(key)||null,setItem:(k,v)=>store.set(k,v)}});
 for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','play/opponents.js','challenge/special-items-data.js','challenge/leaderboard.js','challenge/match-report.js']){
