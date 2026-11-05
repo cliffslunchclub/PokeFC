@@ -22,6 +22,10 @@ const first={
  ],stats:{saves:[3,2]},playerShotsOnTarget:[
   {side:0,player:'Mega Charizard X',count:4},{side:0,player:'Pokémon 8',count:0},
   {side:1,player:'Gengar',count:2}
+ ],playerTackles:[
+  {side:0,player:'Mega Charizard X',attempts:7,won:3},
+  {side:0,player:'Pokémon 8',attempts:4,won:0},
+  {side:1,player:'Gengar',attempts:5,won:1}
  ]}
 };
 const award=model.matchAward(first,roster,enemy);
@@ -31,6 +35,9 @@ assert.equal(award.id,10);
 assert.equal(award.goals,2);
 assert.equal(award.shotsOnGoal,4,'Match award includes the Pokémon shot count');
 assert.equal(award.method,'recorded-contributions');
+assert.equal(award.tacklesWon,3,'Match award carries actual recorded tackle wins');
+assert.equal(award.tackleAttempts,7,'Match award carries actual recorded tackle attempts');
+
 const withAward={...first,award};
 const tie={score:[0,0],report:{goals:[],stats:{saves:[0,0]}}};
 const fallback=model.matchAward(tie,roster,enemy);
@@ -55,6 +62,13 @@ assert.equal(tournament.players.length,11);
 assert.equal(tournament.players[0].saves,3,'Dedicated GK receives reported team save total');
 assert.equal(tournament.players[9].shotsOnGoal,4,'Mega Charizard SOG from first match');
 assert.equal(tournament.players[9].shotGames,1,'Second match missing SOG is not counted as zero');
+assert.equal(tournament.players[9].tacklesWon,3,'Tournament tackle wins use saved player ledger');
+assert.equal(tournament.players[9].tackleAttempts,7,'Tournament tackle attempts use saved player ledger');
+assert.equal(tournament.players[9].tackleGames,1,'Unknown older match tackle data is not zero coverage');
+assert.equal(tournament.players[8].tacklesWon,0,'Recorded zero tackle win remains zero');
+assert.equal(tournament.players[8].tackleGames,1,'Recorded zero tackle is available data');
+assert.equal(tournament.players[6].tackleGames,0,'Absent player tackle data remains unavailable');
+
 assert.equal(tournament.players[8].shotsOnGoal,0,'Recorded zero stays at zero');
 assert.equal(tournament.players[8].shotGames,1,'Tracked zero still has data coverage');
 assert.equal(tournament.players[6].shotGames,0,'Missing player shot stats remain unknown');
