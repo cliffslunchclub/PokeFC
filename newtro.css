@@ -345,6 +345,76 @@ button:disabled,.play-btn:disabled { opacity:.48;cursor:not-allowed; }
   scrollbar-color:#be6461 #26272c!important;
 }
 
+/* Detail surfaces: keep dense Challenge tools as consistent as the main panels. */
+.challenge-frame .challenge-dialog.challenge-draft-panel {
+  background:#17191e!important;
+  border-color:#5c5e66!important;
+  box-shadow:0 24px 72px #000c!important;
+}
+.challenge-frame .shop-item-card {
+  background:#24262c!important;
+  color:#fff!important;
+  border:1px solid #565962!important;
+  border-radius:9px!important;
+}
+.challenge-frame .shop-item-card.active {
+  background:#402428!important;
+  border-color:#ff817a!important;
+  box-shadow:0 0 0 1px #e5393544;
+}
+.challenge-frame .shop-item-card small { color:#c5c9d0!important; }
+.challenge-frame .shop-assign-panel,
+.challenge-frame .shop-auto-equip,
+.challenge-frame .shop-lock-panel {
+  background:#21232a!important;
+  border:1px solid #4d5058!important;
+  border-radius:9px!important;
+}
+.challenge-frame .challenge-slot-machine {
+  background:linear-gradient(145deg,#29252a,#121419)!important;
+  border-color:#95504e!important;
+  border-radius:10px!important;
+}
+.challenge-frame .slot-reel { background:#1b1e23!important;border-color:#55575e!important; }
+.challenge-frame .slot-reel-label {
+  background:#3a2327!important;
+  color:#f8f8f8!important;
+  border-bottom-color:#55575e!important;
+}
+.challenge-frame .slot-window [data-reel-value] { color:#fff!important;text-shadow:0 2px 3px #0008; }
+.challenge-frame .challenge-gauntlet-track>div {
+  background:#24262c!important;
+  border-color:#565961!important;
+  border-radius:8px!important;
+}
+.challenge-frame .challenge-gauntlet-track>div.done,
+.challenge-frame .challenge-gauntlet-track>div.current {
+  background:#412529!important;
+  border-color:#ee6761!important;
+}
+.challenge-frame .challenge-gauntlet-track>div.current span,
+.challenge-frame .challenge-gauntlet-track>div.done span { color:#ffaca6!important; }
+.challenge-frame .challenge-leaderboard-teaser,
+.challenge-frame .run-share-panel,
+.challenge-frame .challenge-match-result-content>.challenge-final-score {
+  background:linear-gradient(125deg,#29252a,#1b1c22)!important;
+  border:1px solid #59565d!important;
+  border-radius:10px!important;
+}
+.challenge-frame .challenge-match-result-content>h2 { color:white!important; }
+.challenge-frame .challenge-message-content textarea { background:#0f1115!important;border-color:#595c65!important; }
+.challenge-frame .challenge-draft-panel .challenge-dialog-bar button,
+.challenge-frame .challenge-shop-drawer-bar button { min-height:36px!important; }
+
+/* Ratings reference is part of the same five-page experience. */
+.grade-wrap { width:100%;max-width:1240px;margin-inline:auto; }
+.grade-wrap h1,.grade-wrap h2 { color:var(--pfc-white); }
+.grade-wrap :is(.card,.grade-card,.grade-panel) {
+  background:var(--pfc-surface)!important;
+  border-color:var(--pfc-border)!important;
+  border-radius:var(--pfc-panel-radius)!important;
+}
+
 /* Franchise: broadcast-like row alignment and consistent surface dimensions. */
 .franchise-title { padding-top:28px; }
 .franchise-title h1 { color:white; }
