@@ -612,6 +612,10 @@ function pokemonDetailMarkup(index){
   '</section>';
 }
 function render(){const app=document.getElementById('app');
+ if(st.phase==='shop'&&app?.querySelector){
+  const drawer=app.querySelector('#challengeShopDrawer');
+  if(drawer&&!drawer.hidden)shopScrollTop=drawer.scrollTop||0;
+ }
  draftWindowCleanup?.();draftWindowCleanup=null;
  shopWindowCleanup?.();shopWindowCleanup=null;
  window.PFC_CHALLENGE_DND?.cancel?.();
@@ -973,14 +977,14 @@ if(isDraft){
 if(isShop){
  mountShopWindow();
  const toggle=()=>{
-  const catalog=document.getElementById('shopCatalog');
-  shopScrollTop=catalog?.scrollTop||shopScrollTop;
+  const drawer=document.getElementById('challengeShopDrawer');
+  shopScrollTop=drawer?.scrollTop||0;
   shopDrawerOpen=!shopDrawerOpen;render();
  };
  document.getElementById('toggleShopDrawer').onclick=toggle;
  document.getElementById('closeShopDrawer').onclick=()=>{
-  const catalog=document.getElementById('shopCatalog');
-  shopScrollTop=catalog?.scrollTop||shopScrollTop;
+  const drawer=document.getElementById('challengeShopDrawer');
+  shopScrollTop=drawer?.scrollTop||0;
   shopDrawerOpen=false;render();
  };
 }
@@ -1155,10 +1159,10 @@ if(st.phase==='shop'){
   selectedShopItem=null;shopMessage='';shopScrollTop=0;
   render();
  });
- const restore=document.getElementById('shopCatalog');
+ const restore=document.getElementById('challengeShopDrawer');
  if(restore)restore.scrollTop=shopScrollTop;
  app.querySelectorAll('[data-shop-pick]').forEach(b=>b.onclick=()=>{
-  const el=document.getElementById('shopCatalog');
+  const el=document.getElementById('challengeShopDrawer');
   shopScrollTop=el?.scrollTop||0;
   selectedShopItem=b.dataset.shopPick;shopMessage='';render();
  });
