@@ -1,0 +1,34 @@
+name: PSE shared knockout regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "pse-knockout.js"
+      - "tests/test-pse-knockout.cjs"
+      - "challenge/index.html"
+      - "career.js"
+      - "franchise/index.html"
+      - "scripts/build-siteground.sh"
+      - ".github/workflows/pse-knockout-pr-checks.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  knockout-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and full knockout regression
+        run: |
+          node --check pse-knockout.js
+          node --check career.js
+          node tests/test-pse-knockout.cjs
+      - name: Existing challenge and franchise compatibility
+        run: |
+          node tests/test-challenge-penalties.cjs
+          node tests/test-challenge-gauntlet.cjs
+          node tests/test-challenge-play.cjs
+          node tests/test-v08-league.cjs
+          node tests/test-franchise-soccerjs-watch.cjs
+          node tests/test-challenge-soccerjs-watch.cjs
+          bash scripts/build-siteground.sh
