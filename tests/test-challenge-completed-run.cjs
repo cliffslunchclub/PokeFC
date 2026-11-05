@@ -133,7 +133,7 @@ function launch(champion,withShotData=false){
  assert.match(won.app.innerHTML,/SIX WINS · CHAMPION/,'Champion summary celebrates six wins, not defeated player');
  assert.match(won.app.innerHTML,/FINAL MATCH · VS RED/);
  assert.match(won.app.innerHTML,/id="finalMatchHeading"[^>]*>VICTORY<\/h2>/);
- assert.match(won.app.innerHTML,/VS LANCE<\/span><strong>2–1<\/strong><small>WIN/,'Tournament match history uses Win from the player's perspective');
+ assert.match(won.app.innerHTML,/VS LANCE<\/span><strong>2–1<\/strong><small>WIN/,'Tournament match history uses Win from the player perspective');
  assert.equal(won.elements.runCompleteModal.open,true,'Champion completion opens results modal');
  assert.match(won.app.innerHTML,/6W · 0L/);
  assert.match(won.app.innerHTML,/6 \/ 6/);
