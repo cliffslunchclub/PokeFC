@@ -38,6 +38,7 @@ on:
       - "tests/test-challenge-leaderboard.cjs"
       - "tests/test-challenge-run-card.cjs"
       - "tests/test-challenge-v1-flow.cjs"
+      - "tests/test-challenge-striker-first.cjs"
       - "tests/test-challenge-watch-v1.cjs"
       - "tests/test-challenge-slot-reels.cjs"
       - "tests/test-challenge-tier-positions.cjs"
@@ -89,6 +90,7 @@ jobs:
           node tests/test-challenge-leaderboard.cjs
           node tests/test-challenge-run-card.cjs
           node tests/test-challenge-v1-flow.cjs
+          node tests/test-challenge-striker-first.cjs
           node tests/test-challenge-watch-v1.cjs
           node tests/test-challenge-slot-reels.cjs
           node tests/test-challenge-tier-positions.cjs
