@@ -36,7 +36,8 @@ assert(app.innerHTML.includes('challenge-run-layout'),'Pitch and picker columns'
 assert(app.innerHTML.includes('challenge-pitch'),'Football pitch for 11 Pokémon');
 assert(app.innerHTML.includes('challenge-draft-panel'),'Separate draft room');
 assert(app.innerHTML.includes('id="challengeSlotMachine"'),'Animated scouting slot machine is present');
-assert.equal((app.innerHTML.match(/data-reel-value="(?:region|type|pool)"/g)||[]).length,3,'All 3 scouting reels are present');
+assert.equal((app.innerHTML.match(/data-reel-value="(?:region|type)"/g)||[]).length,2,'Region and Type scouting reels are present');
+assert(!app.innerHTML.includes('data-reel-value="pool"'),'No third draft status reel');
 assert(app.innerHTML.includes('data-reel-skip'),'Slot reveal is skippable');
 assert(app.innerHTML.includes('challenge-pick-grid'),'Pokémon cards in pick grid');
 assert.equal((app.innerHTML.match(/data-slot="\d+"/g)||[]).length,11);
