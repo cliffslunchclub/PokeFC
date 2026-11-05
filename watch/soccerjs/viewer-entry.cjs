@@ -161,9 +161,20 @@ function advanceKick(){
 }
 function step(now){
  if(playing){
-  if(last!==null)minute=Math.min(stopAt,minute+Math.min(.1,(now-last)/1000)*playbackRate(minute,match.events,speed));
-  if(minute>=stopAt)playing=false;
-  last=now;render(minute);
+  if(last!==null){
+   const elapsed=Math.min(.1,(now-last)/1000);
+   if(minute<stopAt)minute=Math.min(stopAt,
+    minute+elapsed*playbackRate(minute,match.events,speed));
+   else if(minute>=match.durationMinutes&&match.shootout&&
+      kickIndex<match.shootout.attempts.length){
+    kickElapsed+=elapsed*speed;
+    if(kickElapsed>=1.2)advanceKick();
+   }else playing=false;
+  }
+  last=now;
+  if(minute>=stopAt&&(minute<match.durationMinutes||
+    !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
+  render(minute);
  }
  requestAnimationFrame(step);
 }
@@ -223,8 +234,17 @@ async function boot(){
    list.append(row);
   }
   $('stats').textContent=shotSummary(match.stats);
-  $('play').onclick=()=>{if(minute>=90)minute=0;stopAt=90;last=null;playing=true;};
-  $('playFive').onclick=()=>{if(minute>=90)minute=0;stopAt=Math.min(90,(Math.floor(minute/5)+1)*5);last=null;playing=true;};
+  $('play').onclick=()=>{
+    if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
+     minute=0;kickIndex=0;
+    }
+    stopAt=match.durationMinutes;last=null;playing=true;
+   };
+  $('playFive').onclick=()=>{
+    if(minute>=match.durationMinutes){playing=true;last=null;return}
+    stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
+    last=null;playing=true;
+   };
   $('pause').onclick=()=>seek(minute);
   $('restart').onclick=()=>{kickIndex=0;seek(0)};
   $('skip').onclick=finish;
