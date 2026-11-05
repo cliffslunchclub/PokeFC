@@ -154,15 +154,38 @@ function render(t){
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
   kickIndex,totalKicks};
 }
+function advanceKick(){
+ if(!match?.shootout||minute<match.durationMinutes||
+    kickIndex>=match.shootout.attempts.length)return false;
+ kickIndex++;kickElapsed=0;render(minute);return true;
+}
 function step(now){
  if(playing){
-  if(last!==null)minute=Math.min(stopAt,minute+Math.min(.1,(now-last)/1000)*.32*speed);
-  if(minute>=stopAt)playing=false;
-  last=now;render(minute);
+  if(last!==null){
+   const elapsed=Math.min(.1,(now-last)/1000);
+   if(minute<stopAt)minute=Math.min(stopAt,minute+elapsed*.32*speed);
+   else if(minute>=match.durationMinutes&&match.shootout&&kickIndex<match.shootout.attempts.length){
+    kickElapsed+=elapsed*speed;
+    if(kickElapsed>=1.2)advanceKick();
+   }else playing=false;
+  }
+  last=now;
+  if(minute>=stopAt&&(minute<match.durationMinutes||
+   !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
+  render(minute);
  }
  requestAnimationFrame(step);
 }
-function seek(t){playing=false;last=null;smoothedFocus=null;minute=Math.max(0,Math.min(90,t));render(minute);}
+function seek(t){
+ playing=false;last=null;smoothedFocus=null;kickElapsed=0;
+ minute=Math.max(0,Math.min(match.durationMinutes,t));
+ if(minute<match.durationMinutes)kickIndex=0;
+ render(minute);
+}
+function finish(){
+ playing=false;last=null;smoothedFocus=null;minute=match.durationMinutes;
+ kickIndex=match.shootout?.attempts.length||0;kickElapsed=0;render(minute);
+}
 async function boot(){
  try{
   window.__APP_ROOT__=new URL('./',location.href).href;
@@ -172,6 +195,10 @@ async function boot(){
    match=await response.json();
   }
   verify(match);
+  stopAt=match.durationMinutes;
+  $('scrub').max=String(stopAt);$('seekEnd').textContent=stopAt+"'";
+  if(match.durationMinutes===120)$('notice').textContent=
+   'PSE knockout replay includes 90 minutes plus 30 minutes of extra time. Shootout kicks are separate from match goals and statistics. Player paths and ball physics remain illustrative.';
   Settings.app={canvas:$('pitch'),camX:0,camY:0};
   Settings.HEADLESS=false;Settings.showFPS=false;Settings.showTime=false;
   Settings.soundsMuted=true;
@@ -204,18 +231,30 @@ async function boot(){
      (helper?' (assist '+helper.name+')':'');
    list.append(row);
   }
-  $('stats').textContent='Shots '+match.stats[0].shots+'–'+match.stats[1].shots+
-   ' · On target '+match.stats[0].shotsOnTarget+'–'+match.stats[1].shotsOnTarget;
-  $('play').onclick=()=>{if(minute>=90)minute=0;stopAt=90;last=null;playing=true;};
-  $('playFive').onclick=()=>{if(minute>=90)minute=0;stopAt=Math.min(90,(Math.floor(minute/5)+1)*5);last=null;playing=true;};
+  $('stats').textContent='FINAL TOTALS · Shots '+match.stats[0].shots+'–'+match.stats[1].shots+
+   ' · On target '+match.stats[0].shotsOnTarget+'–'+match.stats[1].shotsOnTarget+
+   ' · Keeper saves '+match.stats[0].saves+'–'+match.stats[1].saves;
+  $('play').onclick=()=>{
+   if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
+    minute=0;kickIndex=0;
+   }
+   stopAt=match.durationMinutes;last=null;playing=true;
+  };
+  $('playFive').onclick=()=>{
+   if(minute>=match.durationMinutes){playing=true;last=null;return}
+   stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
+   last=null;playing=true;
+  };
   $('pause').onclick=()=>seek(minute);
-  $('restart').onclick=()=>seek(0);
-  $('skip').onclick=()=>seek(90);
+  $('restart').onclick=()=>{kickIndex=0;seek(0)};
+  $('skip').onclick=finish;
   $('scrub').oninput=e=>seek(Number(e.target.value));
   $('nextGoal').onclick=()=>{
-   const g=match.events.find(e=>e.minute>minute+.01);
-   seek(g?g.minute+.01:90);
+   const goal=match.events.find(e=>e.type==='goal'&&e.minute>minute+.01);
+   seek(goal?Math.min(goal.minute+.01,match.durationMinutes):match.durationMinutes);
   };
+  $('nextKick').onclick=advanceKick;
+  $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;};
   $('projection').onchange=e=>{
    if(!validViews.has(e.target.value))return;
@@ -237,7 +276,8 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
-    if(minute>=90)return;
+    if(minute>=match.durationMinutes&&
+     (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
     $('speed').value=String([1,2,4].includes(speed)?speed:4);
     playing=true;last=null;
@@ -249,7 +289,9 @@ async function boot(){
     if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;render(minute);}
    }else if(msg.action==='seek'){
     const m=Number(msg.minute);
-    if(Number.isFinite(m)&&m>=0&&m<=90)seek(m);
+    if(Number.isFinite(m)&&m>=0&&m<=match.durationMinutes)seek(m);
+   }else if(msg.action==='next-kick'){advanceKick();
+   }else if(msg.action==='finish'){finish();
    }else if(msg.action==='projection'&&validViews.has(msg.projection)){
     $('projection').value=msg.projection;Settings.projectionMode=msg.projection;smoothedFocus=null;
     sim.pitch?.invalidateRenderCache?.();render(minute);
