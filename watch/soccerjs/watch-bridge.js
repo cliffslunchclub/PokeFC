@@ -188,6 +188,9 @@
     announce('loading',{message:'Official Quick Sim fixture accepted; preparing isometric Soccer-JS'});
    }else if(e.data.type===TYPE+'-booted'){
     if(booted||!ready||error)return;
+    if(e.data.projection!=='isometric'){
+     fail('Expected an isometric 2.5D Soccer-JS camera at startup');return;
+    }
     booted=true;
     if(watchdog!==null){root.clearTimeout(watchdog);watchdog=null;}
     announce('ready',{projection:'isometric'});
