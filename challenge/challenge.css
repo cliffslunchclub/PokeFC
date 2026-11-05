@@ -650,3 +650,42 @@
  .challenge-player-award img{width:43px;height:43px;flex-basis:43px}
  .challenge-player-award strong{font-size:14px}
 }
+
+/* End-of-match stars and tournament recap: sprites, scores and recorded contributions. */
+.challenge-player-award{display:flex;align-items:center;gap:10px;border:1px solid #a29356;background:linear-gradient(110deg,#39402b,#243a3d);border-radius:8px;padding:9px 12px;margin:7px 0 11px}
+.challenge-player-award img{width:49px;height:49px;object-fit:contain;image-rendering:pixelated;flex:0 0 auto;filter:drop-shadow(0 3px 4px #0009)}
+.challenge-player-award>div{display:flex;flex-direction:column;min-width:0;gap:1px}
+.challenge-player-award .pfc-eyebrow{font-size:9px;color:#f3d488}
+.challenge-player-award strong{font-size:15px;color:#f6ffef;line-height:1.2;font-weight:1000}
+.challenge-player-award small{font-size:10px;color:#d4e3d7;line-height:1.4}
+.tournament-best{margin:12px 0 16px;padding:13px 15px;border-radius:10px;border:1px solid #bfa16c;background:linear-gradient(110deg,#3b3928,#223a40)}
+.tournament-best .pfc-eyebrow{font-size:10px;letter-spacing:.075em;color:#f5db9a}
+.tournament-best-info{display:flex;align-items:center;gap:13px;margin-top:7px}
+.tournament-best-info img{width:70px;height:70px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 5px 8px #000a)}
+.tournament-best-info>div{display:flex;flex-direction:column;gap:3px}
+.tournament-best-info strong{font-size:21px;font-weight:1000;line-height:1.2;color:#f7fff4}
+.tournament-best-info small{font-size:11px;font-weight:950;color:#f4e1ac}
+.tournament-best-info span{font-size:10px;color:#c7d6d9;line-height:1.4}
+.tournament-stats{margin:17px 0 13px}
+.tournament-stats h3{font-size:15px;margin:0 0 5px!important;color:#e3f7e5;letter-spacing:.02em}
+.tournament-stats p{font-size:10px!important;color:#adc4cf!important;margin:0 0 9px!important;line-height:1.5}
+.tournament-stat-grid{display:grid;gap:0;border:1px solid #466477;border-radius:9px;overflow-x:auto;max-width:100%}
+.tournament-player-head,.tournament-player-row{display:grid;grid-template-columns:40px 39px minmax(135px,1fr) repeat(5,minmax(34px,45px));align-items:center;gap:5px;min-width:515px;padding:6px 10px}
+.tournament-player-head{background:#2a4855;color:#d7edec;font-size:9px;font-weight:1000;letter-spacing:.04em}
+.tournament-player-row{background:#192f3d;border-top:1px solid #354f60;font-size:10px}
+.tournament-player-row:nth-child(odd){background:#203846}
+.tournament-player-position{font-size:9px;font-weight:950;color:#f2d998}
+.tournament-player-row img{width:35px;height:35px;object-fit:contain;image-rendering:pixelated}
+.tournament-player-name{min-width:0;display:flex;flex-direction:column;gap:2px}
+.tournament-player-name strong{color:#f2f9fa;font-size:11px;line-height:1.15;overflow-wrap:anywhere}
+.tournament-player-name small{font-size:9px;color:#bdcdd6;line-height:1.25}
+.tournament-player-metric{font-size:12px;color:#e3f6ef;text-align:center;font-weight:950;font-variant-numeric:tabular-nums}
+.tournament-player-head span:nth-child(n+4){text-align:center}
+@media(max-width:560px){
+ .tournament-player-head,.tournament-player-row{grid-template-columns:28px 32px minmax(95px,1fr) repeat(5,32px);gap:3px;min-width:385px;padding:7px 5px}
+ .tournament-best-info img{width:54px;height:54px}
+ .tournament-best-info strong{font-size:17px}
+ .tournament-player-row img{width:30px;height:30px}
+ .tournament-player-metric{font-size:10px}
+ .tournament-player-name strong{font-size:10px}
+}
