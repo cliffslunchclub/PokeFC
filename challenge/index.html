@@ -418,9 +418,9 @@ function shootoutMarkup(match){
   '<span class="shootout-mark">'+(kick.scored?'✓ GOAL':'× MISS')+'</span></div>').join('');
  return '<section class="challenge-penalty-summary" aria-label="Penalty shootout details">'+
   '<div class="shootout-heading"><span>PENALTY SHOOTOUT</span><strong>YOUR XI '+p.home+' – '+p.away+' '+esc(match.boss||'OPPONENT')+'</strong></div>'+
-  '<p>Regulation ended '+esc((match.score||[0,0]).join(' – '))+'. '+(p.winner==='home'?'Your XI wins':'Opponent wins')+' on penalties.</p>'+
+  '<p>'+(match.extraTime?'After extra time':'Regulation ended')+' '+esc((match.score||[0,0]).join(' – '))+'. '+(p.winner==='home'?'Your XI wins':'Opponent wins')+' on penalties.</p>'+
   '<details class="shootout-kicks"><summary>VIEW PENALTY KICKS · '+attempts.length+' ATTEMPTS</summary>'+rows+'</details>'+
-  '<small>Provisional seeded Quick Sim shootout. Attempts are modeled separately from match goals; full extra-time and penalty physics are not yet available.</small></section>';
+  '<small>'+(p.version==='pse-shootout-v1'?'PSE-modeled penalty attempts, separate from the match goal ledger. Ball physics and keeper collisions remain illustrative.':'Provisional seeded Quick Sim shootout. Attempts are modeled separately from match goals; full extra-time and penalty physics are not yet available.')+'</small></section>';
 }
 function penaltyScore(match){
  const p=match?.shootout;
@@ -1430,14 +1430,28 @@ function playBoss(){
   return build(s,i,role(FORMS[bossFormation][i]),'boss',item);
  })};
  const seed='challenge:'+st.rng+':'+st.round;
- const out=window.FXI_QUICK.simulate({home:ours,away:theirs,seed},{seed});
- let outcome=out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw',tiebreak=null,shootout=null;
- if(outcome==='Draw'){
+ const preview={home:ours,away:theirs,seed};
+ const regulation=window.FXI_QUICK.simulate(preview,{seed});
+ const ko=window.PFC_KNOCKOUT?.resolve?.(preview,regulation,{seed})||null;
+ const out=ko?.match||regulation;
+ let outcome=out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw',
+  tiebreak=null,shootout=ko?.shootout||null;
+ if(shootout){
+  outcome=shootout.winner==='home'?'Victory':'Defeat';
+  tiebreak='Penalty shootout '+shootout.home+'–'+shootout.away+' · official modeled PSE kicks';
+ }else if(ko?.extraTime){
+  tiebreak='Extra time '+ko.extraTime.score.join('–')+' · 120-minute match result';
+ }else if(outcome==='Draw'){
   shootout=simulatePenaltyShootout(ours,theirs,seed);
   outcome=shootout.winner==='home'?'Victory':'Defeat';
   tiebreak='Penalty shootout '+shootout.home+'–'+shootout.away+' · provisional seeded resolution';
  }
- return {boss:boss.leader,round:st.round+1,score:out.score,shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),outcome,tiebreak,shootout,seed,origin:'quick-sim',report:MATCH_REPORT?.fromResult(out,{home:ours,away:theirs})||null};
+ return {boss:boss.leader,round:st.round+1,score:out.score,
+  ...(ko?{knockoutRules:'pse-knockout-v1',regulationScore:ko.regulationScore,
+   extraTime:ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events}:null}:{}),
+  shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),
+  outcome,tiebreak,shootout,seed,origin:'quick-sim',
+  report:MATCH_REPORT?.fromResult(out,preview)||null};
 }
 save();render();
 })();
