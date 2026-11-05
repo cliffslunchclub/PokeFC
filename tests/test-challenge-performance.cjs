@@ -19,13 +19,17 @@ const first={
   {side:0,player:'Mega Charizard X',assist:'Pokémon 8'},
   {side:0,player:'Charizard',assist:'Pokémon 7'},
   {side:1,player:'Gengar',assist:null}
- ],stats:{saves:[3,2]}}
+ ],stats:{saves:[3,2]},playerShotsOnTarget:[
+  {side:0,player:'Mega Charizard X',count:4},{side:0,player:'Pokémon 8',count:0},
+  {side:1,player:'Gengar',count:2}
+ ]}
 };
 const award=model.matchAward(first,roster,enemy);
 assert.equal(award.name,'Mega Charizard X','Mega aliases are linked to the same player');
 assert.equal(award.side,0);
 assert.equal(award.id,10);
 assert.equal(award.goals,2);
+assert.equal(award.shotsOnGoal,4,'Match award includes the Pokémon shot count');
 assert.equal(award.method,'recorded-contributions');
 const withAward={...first,award};
 const tie={score:[0,0],report:{goals:[],stats:{saves:[0,0]}}};
@@ -49,6 +53,11 @@ assert.equal(tournament.best.appearances,2);
 assert.equal(tournament.best.potm,1,'One POTM award tallied in trophy race');
 assert.equal(tournament.players.length,11);
 assert.equal(tournament.players[0].saves,3,'Dedicated GK receives reported team save total');
+assert.equal(tournament.players[9].shotsOnGoal,4,'Mega Charizard SOG from first match');
+assert.equal(tournament.players[9].shotGames,1,'Second match missing SOG is not counted as zero');
+assert.equal(tournament.players[8].shotsOnGoal,0,'Recorded zero stays at zero');
+assert.equal(tournament.players[8].shotGames,1,'Tracked zero still has data coverage');
+assert.equal(tournament.players[6].shotGames,0,'Missing player shot stats remain unknown');
 assert(tournament.players.every(p=>p.appearances===2),'Every locked XI Pokémon appears in both games');
 assert.equal(tournament.method,'recorded-contributions');
 console.log('PASS Challenge performance awards: Mega aliases, two-goal POTM, fallback, penalty distinction, best player and GK saves');

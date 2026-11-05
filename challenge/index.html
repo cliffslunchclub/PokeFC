@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=14">
+<link rel="stylesheet" href="./challenge.css?v=15">
 </head>
 <body>
 <header class="pfc-header">
@@ -70,8 +70,8 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
  </div>
 </dialog>
 </div>
-<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=1"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=1"></script><script src="../play/opponents.js"></script><script>
+<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=2"></script><script src="./special-items-data.js?v=2"></script>
+<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=2"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=2"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -192,6 +192,9 @@ function shopMarkup(used){
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
   '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Opponent XI remains hidden until your Pokémon and items are locked. Item compatibility, refunds, and budget rules still apply.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
+  '<div class="shop-auto-equip"><div><strong>AI ITEM PICK</strong><small>Finds the best legal item combination for your current positions. Replaces your existing items.</small></div>'+
+   '<button type="button" id="autoEquip" class="primary">AUTO-EQUIP · MAX SCORE →</button>'+
+   (autoEquipSummary?'<p role="status" class="shop-auto-result">'+esc(autoEquipSummary)+'</p>':'')+'</div>'+
   '<div class="shop-stat-filter" role="group" aria-label="Filter items by boosted stats">'+
    '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS</span></div>'+
    '<div class="shop-stat-buttons">'+SHOP_STAT_FILTERS.map(([key,label])=>'<button type="button" data-shop-stat="'+key+'" class="shop-stat-button'+(shopStatFilters.has(key)?' active':'')+'" aria-pressed="'+shopStatFilters.has(key)+'">+'+label+'</button>').join('')+'</div>'+
@@ -232,11 +235,12 @@ function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rer
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
-let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set();
+let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
 const MATCH_REPORT=window.PFC_MATCH_REPORT;
+const ITEM_OPTIMIZER=window.PFC_CHALLENGE_ITEM_OPTIMIZER;
 const PERFORMANCE=window.PFC_CHALLENGE_PERFORMANCE;
 let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false;
 function openDialog(d){
@@ -394,21 +398,16 @@ function awardMarkup(match){
   '<small>'+esc(extras||(a.method==='position-fit-fallback'?'Fit-based pick · player-level events unavailable':'Clean sheet / positional fit'))+'</small></div>'+
   '</div>';
 }
-// Shots on goal are recorded match shots on target; never infer missing counts.
-function shotsOnGoal(match){
- const source=match?.report?.stats?.shotsOnTarget||match?.shotsOnTarget;
- return [0,1].map(i=>{
-  const n=Array.isArray(source)?source[i]:null;
-  return n===null||n===undefined||n===''||!Number.isFinite(Number(n))?null:Number(n);
- });
-}
-function shotsOnGoalSummary(matches){
- const valid=(matches||[]).map(shotsOnGoal).filter(([home,away])=>home!==null&&away!==null);
- return valid.length?{home:valid.reduce((a,v)=>a+v[0],0),away:valid.reduce((a,v)=>a+v[1],0),recorded:valid.length}:null;
-}
-function matchSogLabel(match){
- const [home,away]=shotsOnGoal(match);
- return 'SOG '+(home??'—')+'–'+(away??'—');
+function individualShotsHtml(match){
+ const all=Array.isArray(match?.report?.playerShotsOnTarget)?match.report.playerShotsOnTarget:[];
+ if(!all.length)return '<p class="match-report-note">Individual Pokémon shots on goal were not recorded for this match.</p>';
+ const recorded=all.filter(s=>Number(s.count)>0).sort((a,b)=>Number(a.side)-Number(b.side)||Number(b.count)-Number(a.count)||String(a.player).localeCompare(String(b.player)));
+ const rows=recorded.map(p=>'<div class="individual-shot-row"><span>'+((Number(p.side)===0)?'YOUR XI':'OPPONENT')+'</span>'+
+  '<strong>'+esc(p.player||'Pokémon')+'</strong><b>'+Number(p.count)+' SOG</b></div>').join('');
+ return '<section class="individual-shots-on-goal" aria-label="Pokémon shots on goal">'+
+  '<h4>POKÉMON SHOTS ON GOAL</h4>'+
+  (rows||'<p>No Pokémon recorded a shot on goal in this match.</p>')+
+  '<small>From individual match-box data. Penalty shootout attempts are excluded.</small></section>';
 }
 function matchReportHtml(match){
  if(!match)return '<p class="match-report-note">No game record available.</p>';
@@ -419,7 +418,7 @@ function matchReportHtml(match){
  const scoreText=esc(score.join(' – '));
  const stats=report?.stats||{shots:match.shots,passes:match.passes};
  const rows=[
-  ['SHOTS','shots',''],['SHOTS ON GOAL','shotsOnTarget',''],['POSSESSION','possession','%'],
+  ['SHOTS','shots',''],['POSSESSION','possession','%'],
   ['PASSES','passes',''],['COMPLETED PASSES','completedPasses',''],['TACKLES WON','tackles',''],['SAVES','saves','']
  ].filter(([,key])=>Array.isArray(stats[key])&&stats[key].some(v=>v!==null&&v!==undefined));
  const table=rows.map(([label,key,unit])=>
@@ -443,6 +442,7 @@ function matchReportHtml(match){
   '<h4>GOALS &amp; MATCH MINUTES</h4><ol class="match-goal-feed">'+goalFeed+'</ol>'+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
+  individualShotsHtml(match)+
   shootoutMarkup(match)+
  '</div>';
 }
@@ -455,8 +455,8 @@ function matchHistoryHtml(history){
 }
 function completedRunCard(){
  const r=runStats(),last=r.matches[r.matches.length-1]||st.result;
- const shotsTotal=shotsOnGoalSummary(r.matches);
  const tournament=tournamentStats(),playerStats=tournament?.players||lineupPerformance(r.line,r.formation,st.locked?.items||st.items).map(p=>({...p,goals:0,assists:0,saves:0,penalties:0,potm:0,appearances:r.matches.length,cleanSheets:0}));
+ const recordedShotMatches=r.matches.filter(m=>m.report?.playerShotsOnTarget?.some?.(p=>Number(p.side)===0)).length;
  const tournamentBest=tournament?.best;
  const tournamentBadge=tournamentBest?'<div class="tournament-mvp">'+
   '<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+tournamentBest.spriteId+'.png">'+
@@ -470,11 +470,12 @@ function completedRunCard(){
    '<div class="tournament-pokemon-name"><span>'+esc(FORMS[r.formation][i])+'</span><strong>'+esc(d.name)+'</strong><small>'+esc(item||'NO ITEM')+'</small></div>'+
    '<div class="tournament-pokemon-stats"><span><b>'+p.goals+'</b>G</span><span><b>'+p.assists+'</b>A</span>'+
    '<span><b>'+p.appearances+'</b>APP</span><span><b>'+p.potm+'</b>POTM</span>'+
+   '<span class="pokemon-shot-stat"><b>'+(p.shotGames?p.shotsOnGoal:'—')+'</b>SOG</span>'+
    (p.pos==='GK'?'<span><b>'+p.saves+'</b>SV</span><span><b>'+p.cleanSheets+'</b>CS</span>':'')+
    (p.penalties?'<span><b>'+p.penalties+'</b>PK</span>':'')+'</div></div>';
  }).join('')+'</div>';
  const roster=r.line.map((id,i)=>'<span>'+esc(FORMS[r.formation][i])+' · '+esc(displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name)+'</span>').join('');
- const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><span class="run-fixture-score"><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(matchSogLabel(m))+'</small></span><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
+ const matchList=r.matches.map((m,i)=>'<details class="run-match '+(m.outcome==='Victory'?'won':'lost')+'"'+(!r.champion&&i===r.matches.length-1?' open':'')+'><summary><span>0'+(i+1)+' · '+esc(m.boss)+'</span><strong>'+esc(m.score.join('–')+penaltyScore(m))+'</strong><small>'+esc(m.outcome)+'</small></summary>'+matchReportHtml(m)+'</details>').join('');
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 ALL SIX DEFEATED':'RUN ENDED AT '+esc((last?.boss||'OPPONENT').toUpperCase()))+'</span></div>'+
   '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
@@ -483,9 +484,6 @@ function completedRunCard(){
   '<div><span>RECORD</span><strong>'+r.wins+'W · '+r.lost+'L</strong></div>'+
   '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
   '<div><span>FORMATION</span><strong>'+esc(r.formation)+'</strong></div></div>'+
-  '<div class="run-shots-summary" aria-label="Tournament shots on goal"><div class="run-shots-home"><strong>SHOTS ON GOAL · TOTAL</strong><span>YOUR XI</span><b>'+(shotsTotal?shotsTotal.home:'—')+'</b></div>'+
-  '<span class="run-shots-divider">VS</span><div class="run-shots-away"><span>OPPONENTS</span><b>'+(shotsTotal?shotsTotal.away:'—')+'</b></div>'+
-  '<small>'+(shotsTotal?'From '+shotsTotal.recorded+' of '+r.matches.length+' matches with saved shot data.':'Shots on goal were not saved for these earlier matches.')+'</small></div>'+
   '<p class="run-category">'+esc(r.category)+'</p>'+
   '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="downloadRunCard" class="run-download">↓ DOWNLOAD PNG CARD</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
   '<div id="runSharePanel" class="run-share-panel" hidden>'+
@@ -496,7 +494,7 @@ function completedRunCard(){
    '<div class="run-share-actions"><button id="copyRunSummary" type="button">COPY RUN SUMMARY</button>'+
    '<button id="postTwitter" type="button" disabled title="X posting is not available yet">POST TO X / TWITTER · COMING SOON</button></div>'+
    '<p id="runShareStatus" role="status" aria-live="polite"></p></div>'+
-  '<section class="run-tournament-panel"><h3>TOURNAMENT STATS</h3>'+tournamentBadge+'<p>G = goals · A = assists · APP = appearances · POTM = match awards · PK = shootout conversions · SV/CS = goalkeeper saves/clean sheets.</p>'+tournamentCards+'</section>'+ 
+  '<section class="run-tournament-panel"><h3>TOURNAMENT STATS</h3>'+tournamentBadge+'<p>G = goals · A = assists · APP = appearances · POTM = match awards · SOG = individual shots on goal · PK = shootout conversions · SV/CS = goalkeeper saves/clean sheets.</p>'+tournamentCards+'<p class="run-sog-coverage">Individual shots on goal recorded for '+recordedShotMatches+' of '+r.matches.length+' matches. A dash (—) means player-level shot data was unavailable; a zero is a recorded zero.</p></section>'+ 
    '<div class="run-match-recap"><h3>GAUNTLET RESULTS</h3>'+matchList+'</div>'+
   '<details class="run-roster-details"><summary>VIEW FINAL XI &amp; EQUIPMENT</summary><div class="run-roster-list">'+roster+'</div></details>'+
   '</section>';
@@ -878,6 +876,34 @@ app.querySelectorAll('[data-slot]').forEach(b=>{
 });
 draftPickButtons.forEach(b=>b.onclick=()=>draftPokemon(Number(b.dataset.pick),st.selected));
 if(st.phase==='shop'){
+ const autoButton=document.getElementById('autoEquip');
+ if(autoButton)autoButton.onclick=()=>{
+  if(!ITEM_OPTIMIZER){showChallengeMessage('AUTO-EQUIP UNAVAILABLE','The item optimizer could not be loaded.');return}
+  const before=teamScore();
+  try{
+   const result=ITEM_OPTIMIZER.optimize({
+    roster:st.roster.map((id,i)=>({pokemon:BY.get(id),position:FORMS[st.formation][i]})),
+    items:shopCatalog(),budget:1000,
+    rate:rating,
+    canEquip:(pokemon,item)=>Boolean(itemFor(pokemon,item)),
+    isTransformation:(pokemon,item)=>Boolean(megaForm(pokemon,item))
+   });
+   const proposed=result.items;
+   const cost=proposed.reduce((sum,item,i)=>sum+(itemFor(BY.get(st.roster[i]),item)?.[1]||0),0);
+   if(cost>1000||new Set(proposed.filter(Boolean)).size!==proposed.filter(Boolean).length||
+    proposed.filter((item,i)=>Boolean(megaForm(BY.get(st.roster[i]),item))).length>1)
+    throw new Error('Optimizer returned an invalid equipment assignment.');
+   if(result.score+1e-6<before)throw new Error('Auto-equipment would lower your current team score.');
+   st.items=proposed;
+   save();
+   const after=teamScore();
+   autoEquipSummary='Optimized team score '+before.toFixed(2)+' → '+after.toFixed(2)+
+    ' (+'+Math.max(0,after-before).toFixed(2)+') · ₽'+cost+' / ₽1,000 · '+
+    proposed.filter(Boolean).length+' items.';
+   shopMessage='AI Auto-Equip completed. Review your XI and item assignments before locking.';
+   selectedShopItem=null;shopScrollTop=0;render();
+  }catch(error){showChallengeMessage('AUTO-EQUIP FAILED',error?.message||'Could not find a legal item combination.')}
+ };
  app.querySelectorAll('[data-shop-stat]').forEach(button=>button.onclick=()=>{
   const stat=button.dataset.shopStat;
   if(!SHOP_STAT_FILTERS.some(([key])=>key===stat))return;
@@ -927,7 +953,7 @@ if((st.phase==='draft'||st.phase==='shop')&&st.moves>0&&filled>0){
 if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{
  if(st.roster.some(x=>!x)||used>1000)return;
  showChallengeMessage('LOCK FINAL XI?','Your XI, formation, tactics and held items will be locked for all six Gauntlet matches.',{confirmLabel:'LOCK MY XI',onConfirm:()=>{
-  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;shopStatFilters.clear();
+  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;shopStatFilters.clear();autoEquipSummary='';
   st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));
   save();render();
  }});
@@ -987,7 +1013,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;shopStatFilters.clear();Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;shopStatFilters.clear();autoEquipSummary='';Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');

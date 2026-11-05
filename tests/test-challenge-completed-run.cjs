@@ -14,7 +14,12 @@ const makeState=champion=>{
 function launch(champion,withShotData=false){
  const saved=makeState(champion);
  if(withShotData)saved.history.forEach((match,i)=>{
-  if(i%2===0)match.report={stats:{shotsOnTarget:[i+3,i+1]}};
+  if(i%2===0)match.report={stats:{shotsOnTarget:[i+3,i+1]},
+   playerShotsOnTarget:[
+    {side:0,player:'Jolteon',count:i+3},
+    {side:0,player:'Charizard',count:0},
+    {side:1,player:'Lapras',count:i+1}
+   ]};
  });
  let stored=JSON.stringify(saved);
  const localRecords=JSON.stringify({'classic-legends':{attempts:4,best:6,champions:1}});
@@ -51,9 +56,10 @@ function launch(champion,withShotData=false){
  assert.match(lost.app.innerHTML,/BEST PLAYER OF THE TOURNAMENT/,'Tournament MVP shown in loss recap');
  assert.equal((lost.app.innerHTML.match(/class="tournament-pokemon(?: tournament-top-player)?"/g)||[]).length,11,'Eleven Pokémon portraits in recap');
  assert.match(lost.app.innerHTML,/TOURNAMENT STATS/);
- assert.match(lost.app.innerHTML,/SHOTS ON GOAL · TOTAL/,'SOG totals shown in run modal');
- assert.match(lost.app.innerHTML,/Shots on goal were not saved for these earlier matches/,'Legacy matches without SOG do not invent totals');
- assert.match(lost.app.innerHTML,/SOG —–—/,'Legacy fixtures show missing SOG');
+ assert.doesNotMatch(lost.app.innerHTML,/SHOTS ON GOAL · TOTAL/,'No team-level shot totals in recap');
+ assert.match(lost.app.innerHTML,/Individual shots on goal recorded for 0 of 5 matches/,'Legacy shot coverage clearly disclosed');
+ assert.match(lost.app.innerHTML,/class="pokemon-shot-stat"><b>—<\/b>SOG/,'Legacy Pokémon show unknown, not zero');
+ assert.match(lost.app.innerHTML,/Individual Pokémon shots on goal were not recorded for this match/,'Legacy detailed match does not invent shooters');
  assert.match(lost.app.innerHTML,/<dialog id="runCompleteModal"/,'Completed run is rendered inside a dialog');
  assert.equal(lost.elements.runCompleteModal.open,true,'Loss opens run results modal');
  lost.elements.closeRunModal.onclick();
@@ -94,11 +100,12 @@ function launch(champion,withShotData=false){
  assert.equal(fresh.formationChanges,1);
  assert.match(lost.app.innerHTML,/challenge-draft-panel/,'Restart begins another draft');
  const withShots=launch(true,true);
- assert.match(withShots.app.innerHTML,/From 3 of 6 matches with saved shot data/,'SOG totals indicate data coverage');
- assert.match(withShots.app.innerHTML,/class="run-shots-home"[\s\S]*?<b>15<\/b>/,'Home totals sum only recorded matches');
- assert.match(withShots.app.innerHTML,/class="run-shots-away"[\s\S]*?<b>9<\/b>/,'Away totals sum only recorded matches');
- assert.match(withShots.app.innerHTML,/SOG 3–1/,'Per-match SOG shown without expanding report');
- assert.match(withShots.app.innerHTML,/SHOTS ON GOAL/,'Expanded match reports use matching stat terminology');
+ assert.match(withShots.app.innerHTML,/Individual shots on goal recorded for 3 of 6 matches/,'Player SOG coverage reflects saved games');
+ assert.match(withShots.app.innerHTML,/class="pokemon-shot-stat"><b>15<\/b>SOG/,'Jolteon has 15 actual shots on goal');
+ assert.match(withShots.app.innerHTML,/class="pokemon-shot-stat"><b>0<\/b>SOG/,'Known zero is displayed as 0');
+ assert.doesNotMatch(withShots.app.innerHTML,/class="run-shots-summary"/,'No aggregate team shooting panel');
+ assert.match(withShots.app.innerHTML,/POKÉMON SHOTS ON GOAL/,'Expanded game shows individual shooter lines');
+ assert.match(withShots.app.innerHTML,/Jolteon<\/strong><b>3 SOG/,'Scoring report attributes shot to correct Pokémon');
  const won=launch(true);
  assert.match(won.app.innerHTML,/CHALLENGE CHAMPION/);
  assert.equal(won.elements.runCompleteModal.open,true,'Champion completion opens results modal');

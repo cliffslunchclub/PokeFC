@@ -726,3 +726,23 @@
  .challenge-gauntlet-action-note{grid-column:1}
 }
 @media(max-width:400px){.challenge-gauntlet-action-buttons>*{flex-basis:100%}}
+
+/* AI item pick: exact score-maximizing legal assignment, no network call. */
+.shop-auto-equip{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:9px 15px;background:linear-gradient(120deg,#29483d,#1d3943);border:1px solid #86a278;border-radius:9px;padding:12px;margin:12px 0}
+.shop-auto-equip>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.shop-auto-equip strong{font-size:11px;letter-spacing:.055em;color:#ecf7db;font-weight:1000}
+.shop-auto-equip small{font-size:10px;line-height:1.4;color:#c7ddd4}
+.shop-auto-equip button{min-height:42px;font-size:10px!important;padding:10px 13px!important;white-space:nowrap}
+.shop-auto-result{grid-column:1/-1;font-size:11px!important;line-height:1.5!important;color:#d6f4d2!important;padding:9px;margin:0!important;background:#1a4336;border:1px solid #67977c;border-radius:6px}
+/* Individual shots on goal are recorded per Pokémon, not run-level team totals. */
+.individual-shots-on-goal{margin-top:10px}
+.individual-shots-on-goal h4{margin:12px 0 8px!important;font-size:11px;color:#f2df9c;letter-spacing:.045em}
+.individual-shot-row{display:grid;grid-template-columns:70px minmax(0,1fr) 65px;align-items:center;gap:9px;border:1px solid #3c5765;border-radius:6px;background:#183646;padding:7px 9px;margin:4px 0}
+.individual-shot-row span{font-size:9px;font-weight:900;color:#b5cbd0}
+.individual-shot-row strong{font-size:11px;color:#eff6f3;overflow-wrap:anywhere}
+.individual-shot-row b{text-align:right;font-size:12px;font-weight:1000;font-variant-numeric:tabular-nums;color:#b7edbd}
+.individual-shots-on-goal>small{display:block;font-size:9px;line-height:1.45;margin:8px 0 3px;color:#afc7cb}
+.tournament-pokemon-stats .pokemon-shot-stat{background:#2e5046;border:1px solid #67877b;border-radius:4px}
+.tournament-pokemon-stats .pokemon-shot-stat b{color:#ccf7ca}
+.run-tournament-panel .run-sog-coverage{margin-top:10px!important;padding:8px 9px;color:#b9d1db!important;font-size:10px!important;line-height:1.45}
+@media(max-width:620px){.shop-auto-equip{grid-template-columns:1fr;padding:10px}.shop-auto-equip button{width:100%}.individual-shot-row{grid-template-columns:52px minmax(0,1fr) 54px;gap:5px;padding:7px}.individual-shot-row span{font-size:8px}}

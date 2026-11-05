@@ -30,8 +30,15 @@
   const complete=logged.every((count,i)=>count===score[i]);
   const fields=['shots','shotsOnTarget','passes','completedPasses','possession','tackles','saves'];
   const stats={};for(const field of fields)stats[field]=[0,1].map(i=>scalar(num(result?.stats?.[i]?.[field])));
+  // Individual shots on goal come directly from each match engine player's box
+  // (Quick Sim supplies these values). Never allocate team totals by guesswork.
+  const playerShotsOnTarget=teams.flatMap((team,side)=>(team.lineup||[]).map(player=>{
+   const count=num(result?.box?.[safe(player.id)]?.shotsOnTarget);
+   return count!=null&&Number.isInteger(count)&&count>=0?
+    {side,id:safe(player.id),player:safe(player.name),count}:null;
+  }).filter(Boolean));
   return {
-   version:1,score,goals,stats,
+   version:2,score,goals,stats,playerShotsOnTarget,
    status:complete?'complete':goals.length?'partial':'unavailable',
    note:complete?'':(events.length?'Some scorer or minute details were not supplied by the match engine.':'Scorer and minute details were not recorded for this match.'),
    origin:safe(result?.origin||'quick-sim'),

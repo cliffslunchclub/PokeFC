@@ -6,7 +6,7 @@
  const eq=(a,b)=>String(a||'').toLocaleLowerCase()===String(b||'').toLocaleLowerCase();
  function empty(p,side){
   return {id:p.id,name:p.name,side,pos:p.pos,spriteId:p.spriteId||p.id,
-   goals:0,assists:0,saves:0,penalties:0,cleanSheets:0,appearances:1,
+   goals:0,assists:0,saves:0,shotsOnGoal:0,shotGames:0,penalties:0,cleanSheets:0,appearances:1,
    fit:number(p.fit),score:0};
  }
  function fill(match,home,away){
@@ -23,6 +23,15 @@
    if(scorer)scorer.goals++;
    const assister=find(side,goal.assist);
    if(assister)assister.assists++;
+  }
+  // Each recorded Pokémon line has its own real match-box shots on target.
+  // Older watched/legacy games may not provide this detail; unknown != zero.
+  const shots=Array.isArray(match?.report?.playerShotsOnTarget)?match.report.playerShotsOnTarget:[];
+  for(const shot of shots){
+   const side=Number(shot.side),count=Number(shot.count);
+   if(!Number.isInteger(count)||count<0)continue;
+   const player=find(side,shot.player);
+   if(player){player.shotsOnGoal+=count;player.shotGames++}
   }
   const attempts=match?.shootout?.attempts||[];
   for(const kick of attempts){
@@ -50,7 +59,7 @@
   const top=players.slice().sort((a,b)=>b.score-a.score||b.fit-a.fit||a.name.localeCompare(b.name))[0];
   if(!top)return null;
   return {id:top.id,name:top.name,side:top.side,pos:top.pos,spriteId:top.spriteId,
-   goals:top.goals,assists:top.assists,saves:top.saves,penalties:top.penalties,cleanSheets:top.cleanSheets,
+   goals:top.goals,assists:top.assists,saves:top.saves,shotsOnGoal:top.shotsOnGoal,shotGames:top.shotGames,penalties:top.penalties,cleanSheets:top.cleanSheets,
    method:tracked?'recorded-contributions':'position-fit-fallback',provisional:true,score:Math.round(top.score*10)/10};
  }
  function tournament(matches,home){
@@ -63,7 +72,7 @@
     const row=byId.get(p.id);
     if(!row)continue;
     row.appearances++;row.goals+=p.goals;row.assists+=p.assists;
-    row.saves+=p.saves;row.penalties+=p.penalties;row.cleanSheets+=p.cleanSheets;
+    row.saves+=p.saves;row.shotsOnGoal+=p.shotsOnGoal;row.shotGames+=p.shotGames;row.penalties+=p.penalties;row.cleanSheets+=p.cleanSheets;
    }
    const award=match?.award;
    if(award?.side===0&&byId.has(award.id))byId.get(award.id).potm++;
