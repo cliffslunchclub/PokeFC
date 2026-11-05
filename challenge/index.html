@@ -293,7 +293,7 @@ const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
 const MATCH_REPORT=window.PFC_MATCH_REPORT;
 const ITEM_OPTIMIZER=window.PFC_CHALLENGE_ITEM_OPTIMIZER;
 const PERFORMANCE=window.PFC_CHALLENGE_PERFORMANCE;
-let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false;
+let challengeView='run',boardCategory='classic-standard',runRecapDismissed=false,runRecapStage='match',draftScrollTop=0;
 function openDialog(d){
  if(!d)return;
  if(typeof d.showModal==='function'){if(!d.open)d.showModal()}
@@ -493,14 +493,15 @@ function matchReportHtml(match){
  }).join(''):'<li class="match-no-goals">'+(Number(score[0])===0&&Number(score[1])===0?'No goals in regulation.':'Goal scorer and minute details were not recorded for this match.')+'</li>';
  const savedTimeline=Array.isArray(report?.timeline)&&report.timeline.length?report.timeline:
   goals.map(goal=>({...goal,type:'goal'})); // Legacy runs retain their real scorer ledger.
- const timelineHtml=MATCH_REPORT?.renderTimeline?.(savedTimeline,{
-  empty:'No individual events were recorded for this match.'
+ const timelineHtml=MATCH_REPORT?.renderGroupedTimeline?.(savedTimeline,{
+  goalsEmpty:'No goals recorded for this match.',
+  otherEmpty:'No saves or other events recorded for this match.'
  })||'<ol class="match-goal-feed">'+goalFeed+'</ol>';
  const incomplete=report?.status&&report.status!=='complete'?'<p class="match-report-warning">'+esc(report.note||'Not all goal events were recorded.')+'</p>':!report&&score.some(x=>Number(x)>0)?'<p class="match-report-warning">This earlier game was saved before detailed goal logs were supported.</p>':'';
  return '<div class="gauntlet-match-report">'+
   awardMarkup(match)+
   '<div class="match-report-heading"><span class="pfc-eyebrow">'+esc(source)+'</span><strong>YOUR XI&nbsp; '+scoreText+'&nbsp; '+esc(match.boss||'OPPONENT')+'</strong></div>'+
-  '<h4>MATCH EVENT TIMELINE</h4>'+timelineHtml+incomplete+
+  '<h4>MATCH TIMELINE</h4>'+timelineHtml+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
   individualShotsHtml(match)+
@@ -873,15 +874,24 @@ if(st.phase==='result'){
   '<button type="button" id="next" class="primary">ADVANCE TO '+esc((BOSSES[st.round+1]?.leader||'NEXT').toUpperCase())+' →</button></footer>'+
  '</dialog>';
 }
-if(st.phase==='finished'&&st.result)body+='<section class="panel challenge-last-match" aria-label="Final match details">'+
+if(st.phase==='finished'&&st.result)body+='<section class="panel challenge-last-match" aria-label="Final match summary">'+
  '<span class="pfc-eyebrow">FINAL GAUNTLET MATCH · '+esc(st.result.outcome||'RESULT')+'</span>'+
  '<h2>'+esc(st.result.boss||'OPPONENT')+' · '+esc((st.result.score||[0,0]).join(' – ')+penaltyScore(st.result))+'</h2>'+
- '<p class="challenge-last-match-summary">Full match details remain here after the run ends. Open the modal for your complete run recap.</p>'+
- matchReportHtml(st.result)+'</section>';
-if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><div><strong>RUN COMPLETE</strong><p>Your finished Gauntlet results are saved in this browser.</p></div><button type="button" id="openRunModal" class="primary">VIEW RUN RESULTS →</button></section>'+
- '<dialog id="runCompleteModal" class="challenge-dialog challenge-run-dialog" aria-labelledby="runResultTitle">'+
- '<div class="challenge-dialog-bar"><span>POKÉFC · GAUNTLET RESULTS</span><button type="button" id="closeRunModal" aria-label="Close run results">✕ CLOSE</button></div>'+
- completedRunCard()+'</dialog>';
+ '<p class="challenge-last-match-summary">Review the last match first, then continue to your tournament overview.</p>'+
+ '<button type="button" id="openLastMatchModal" class="primary">VIEW FINAL MATCH →</button></section>';
+if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><div><strong>RUN COMPLETE</strong><p>Your finished Gauntlet results are saved in this browser.</p></div><button type="button" id="openRunModal" class="primary">VIEW TOURNAMENT OVERVIEW →</button></section>'+
+ '<dialog id="runCompleteModal" class="challenge-dialog challenge-run-dialog" aria-labelledby="runRecapModalTitle">'+
+ '<div class="challenge-dialog-bar"><span id="runRecapModalTitle">POKÉFC · MATCH RESULT</span><button type="button" id="closeRunModal" aria-label="Close results">✕ CLOSE</button></div>'+
+ '<div id="runFinishMatchStep" class="challenge-run-step">'+
+ '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">FINAL MATCH · '+esc(st.result?.outcome||'RESULT')+'</span>'+
+ '<h2 id="finalMatchHeading">'+esc(st.result?.boss||'Opponent')+' · '+esc(st.result?.outcome||'RESULT')+'</h2>'+
+ '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – ')+penaltyScore(st.result))+'</h1></div>'+
+ matchReportHtml(st.result)+'</div>'+
+ '<footer class="challenge-match-result-actions"><button type="button" id="finishCloseMatch">BACK TO PITCH</button>'+
+ '<button type="button" id="continueTournamentOverview" class="primary">CONTINUE TO TOURNAMENT OVERVIEW →</button></footer></div>'+
+ '<div id="runFinishOverviewStep" class="challenge-run-step" hidden>'+
+ '<div class="challenge-overview-back"><button type="button" id="backToFinalMatch">← BACK TO FINAL MATCH</button></div>'+
+ completedRunCard()+'</div></dialog>';
 body+='</div></div>'+
  '<dialog id="challengePokemonDetailModal" class="challenge-dialog challenge-pokemon-detail-dialog" aria-labelledby="pokemonDetailTitle">'+
  '<div class="challenge-dialog-bar"><span id="pokemonDetailTitle">POKÉMON PROFILE · FINAL XI</span>'+
@@ -1195,21 +1205,34 @@ if(st.phase==='locked')document.getElementById('play').onclick=()=>{try{
  matchResultDismissed=false;
  st.result=playBoss();st.result.award=calculateMatchAward(st.result);st.history.push({...st.result});
  st.phase=st.result.outcome!=='Victory'||st.round===5?'finished':'result';
- if(st.phase==='finished'){runRecapDismissed=false;savePersonalRecord();BOARD?.archive(st,localStorage)}
+ if(st.phase==='finished'){runRecapDismissed=false;runRecapStage='match';savePersonalRecord();BOARD?.archive(st,localStorage)}
  save();render()
 }catch(e){showChallengeMessage('QUICK SIM ERROR',e?.message||'Unable to finish this match. Please try again.')}};
 if(st.phase==='result'&&st.result?.outcome==='Victory')document.getElementById('next').onclick=()=>{if(st.round>=5)return;matchResultDismissed=false;st.round++;st.phase='locked';st.result=null;save();render()};
 if(st.phase==='finished'){
  const runModal=document.getElementById('runCompleteModal');
+ const showRecapStage=stage=>{
+  runRecapStage=stage==='overview'?'overview':'match';
+  const match=document.getElementById('runFinishMatchStep'),overview=document.getElementById('runFinishOverviewStep');
+  if(match)match.hidden=runRecapStage!=='match';
+  if(overview)overview.hidden=runRecapStage!=='overview';
+  const heading=document.getElementById('runRecapModalTitle');
+  if(heading)heading.textContent=runRecapStage==='match'?'POKÉFC · MATCH RESULT':'POKÉFC · TOURNAMENT OVERVIEW';
+  if(runModal)runModal.scrollTop=0;
+ };
  const closeRecap=()=>{runRecapDismissed=true;closeDialog(runModal)};
- const openRecap=()=>{runRecapDismissed=false;openDialog(runModal)};
+ const openRecap=(stage=runRecapStage)=>{runRecapDismissed=false;showRecapStage(stage);openDialog(runModal)};
  document.getElementById('closeRunModal').onclick=closeRecap;
- document.getElementById('openRunModal').onclick=openRecap;
+ document.getElementById('openRunModal').onclick=()=>openRecap('overview');
+ document.getElementById('openLastMatchModal').onclick=()=>openRecap('match');
+ document.getElementById('finishCloseMatch').onclick=closeRecap;
+ document.getElementById('continueTournamentOverview').onclick=()=>showRecapStage('overview');
+ document.getElementById('backToFinalMatch').onclick=()=>showRecapStage('match');
  if(runModal){
   runModal.oncancel=()=>{runRecapDismissed=true};
   runModal.onclose=()=>{runRecapDismissed=true};
   runModal.onclick=e=>{if(e?.target===runModal)closeRecap()};
-  if(!runRecapDismissed)openRecap();
+  if(!runRecapDismissed)openRecap(runRecapStage);
  }
  const cardState=()=>{
   if(!RUN_CARD)throw new Error('Run card module unavailable.');
@@ -1247,7 +1270,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;runRecapStage='match';matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
@@ -1297,7 +1320,7 @@ if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  window.PFC_CHALLENGE_DND.mount(app,{canDrag,canDrop,onDrop});
 }
 
-document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;save();render()}})}
+document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;runRecapStage='match';matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
  const key='pokefc-challenge-personal-records-v1';
