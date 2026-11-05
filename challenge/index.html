@@ -755,7 +755,7 @@ if(gauntletStarted){
    '<div class="challenge-gauntlet-action-copy"><strong>MATCH '+(st.round+1)+' / 6 · '+esc((currentBoss?.leader||'OPPONENT').toUpperCase())+'</strong>'+
    '<span>'+esc(currentBoss?.formation||'4-3-3')+' · '+esc(currentBoss?.tactic||'balanced')+' tactics · Final XI and items locked</span></div>'+
    '<div class="challenge-gauntlet-action-buttons"><button id="play" class="primary" type="button">QUICK SIM →</button>'+
-   '<a class="challenge-watch-link" href="../play/?challenge=1">WATCH MATCH ↗</a></div>'+
+   '<a class="challenge-watch-link" href="../play/?challenge=1&amp;watch=soccerjs">WATCH MATCH ↗</a></div>'+
    '<p class="challenge-gauntlet-action-note">Watch the same locked XI and boss, or Quick Sim instantly. Watched matches can hand off to Quick Sim.</p></div>':
    st.phase==='result'&&st.result?.outcome==='Victory'?'<div class="challenge-gauntlet-actions challenge-gauntlet-next" aria-label="Match result access">'+
    '<div class="challenge-gauntlet-action-copy"><strong>'+esc(st.result.boss||'OPPONENT')+' DEFEATED</strong><span>Review the score and recorded match events before facing the next boss.</span></div>'+
