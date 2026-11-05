@@ -22,37 +22,71 @@
     return {id,name:String(p.name||p.species||id),pos:String(p.pos||'MID'),speciesId:p.speciesId??p.pokemonId??p.dexId??null,jerseyNumber:p.jerseyNumber??p.shirtNumber??null};
    })
   });
-  const safeTeams=teams.map(clean),events=result.events.filter(e=>e.type==='goal').map(e=>{
-   requireValid(Number.isFinite(e.minute)&&e.minute>=0&&e.minute<90,'Invalid official goal time');
+  const safeTeams=teams.map(clean),v1=result.setPieceRules==='v1';
+  requireValid(!result.setPieceRules||v1,'Unknown PSE set-piece ruleset');
+  const supported=v1?new Set(['goal','save','shot','corner','foul','free-kick','penalty-kick']):new Set(['goal']);
+  const eventIds=new Set();
+  const events=(Array.isArray(result.events)?result.events:[]).filter(e=>supported.has(e?.type)).map(e=>{
+   requireValid(Number.isFinite(e.minute)&&e.minute>=0&&e.minute<90,'Invalid official event time');
    const side=teams.findIndex(t=>String(t.id)===String(e.team));
-   requireValid(side!==-1,'Goal team does not match fixture');
-   requireValid(safeTeams[side].lineup.some(p=>p.id===String(e.player)),'Goal scorer not on team');
-   if(e.assist!=null)requireValid(safeTeams[side].lineup.some(p=>p.id===String(e.assist)),'Invalid assist');
-   return {type:'goal',minute:e.minute,team:safeTeams[side].id,player:String(e.player),assist:e.assist==null?null:String(e.assist),source:'quick-sim'};
+   requireValid(side!==-1,'Event team does not match fixture');
+   const team=safeTeams[side],player=team.lineup.find(p=>p.id===String(e.player));
+   requireValid(player,'Official event player not in team: '+e.type);
+   if(e.type==='goal'&&e.assist!=null)
+    requireValid(team.lineup.some(p=>p.id===String(e.assist)),'Invalid assist');
+   if(v1){
+    requireValid(typeof e.id==='string'&&e.id.length>0&&!eventIds.has(e.id),'Duplicate or missing event ID');
+    eventIds.add(e.id);
+    requireValid(e.ruleset==='set-pieces-v1','Invalid set-piece provenance');
+    if(e.type==='shot'||e.type==='penalty-kick')
+     requireValid(['goal','saved','off-target'].includes(e.outcome),'Unknown official shot outcome');
+    if(e.type==='save'&&e.shooter!=null)
+     requireValid(safeTeams[1-side].lineup.some(p=>p.id===String(e.shooter)),'Invalid shot owner on save');
+   }
+   return v1?{...e,team:team.id,player:player.id,source:'quick-sim'}:
+    {type:'goal',minute:e.minute,team:team.id,player:player.id,
+     assist:e.assist==null?null:String(e.assist),source:'quick-sim'};
   }).sort((a,b)=>a.minute-b.minute);
+  if(v1){
+   for(const e of events)if(e.causedBy!=null){
+    requireValid(eventIds.has(e.causedBy),'Missing linked PSE incident '+e.causedBy);
+    const prior=events.find(x=>x.id===e.causedBy);
+    requireValid(prior.minute<=e.minute,'PSE event cannot precede its cause');
+   }
+  }
   const box={};
   for(const team of safeTeams)for(const p of team.lineup){
    const b=result.box?.[p.id];
    requireValid(b,'Missing official player box score for '+p.id);
    box[p.id]={};
-   for(const k of ['goals','assists','saves','shots','tackleAttempts','tackles','minutes'])
+   for(const k of ['goals','assists','saves','shots','shotsOnTarget','tackleAttempts','tackles','minutes',
+    ...(v1?['cornersTaken','freeKicksTaken','penaltiesTaken','penaltiesScored']:[])])
     box[p.id][k]=Number(b[k]||0);
   }
   for(let side=0;side<2;side++){
-   const count=events.filter(e=>e.team===safeTeams[side].id).length;
+   const count=events.filter(e=>e.type==='goal'&&e.team===safeTeams[side].id).length;
    requireValid(count===result.score[side]&&count===result.stats[side].goals,'Official goal tally mismatch');
    requireValid(safeTeams[side].lineup.reduce((n,p)=>n+box[p.id].shots,0)===result.stats[side].shots,'Player shots mismatch');
+   if(v1){
+    const team=safeTeams[side],stat=result.stats[side];
+    requireValid(stat.shotsOnTarget===stat.goals+result.stats[1-side].saves,'PSE shot/save ledger mismatch');
+    const counts=[['corner','corners'],['foul','foulsCommitted'],['free-kick','freeKicks'],['penalty-kick','penaltyKicks']];
+    for(const [type,field] of counts)
+     requireValid(events.filter(e=>e.type===type&&e.team===team.id).length===stat[field],'Incorrect official '+type+' count');
+    for(const [teamKey,playerKey] of [['corners','cornersTaken'],['freeKicks','freeKicksTaken'],['penaltyKicks','penaltiesTaken']])
+     requireValid(team.lineup.reduce((n,p)=>n+box[p.id][playerKey],0)===stat[teamKey],'PSE player count mismatch '+teamKey);
+   }
   }
   return {
    schema:'pokefc-quick-sim-export/v1',origin:'quick-sim',competition:'league',durationMinutes:90,
    source:'Private PokeFC Quick Sim live fixture (result data only)',
    home:safeTeams[0],away:safeTeams[1],score:result.score.slice(),
-   stats:result.stats.map(s=>({...s})),events,box
+   ...(v1?{setPieceRules:'v1'}:{}),stats:result.stats.map(s=>({...s})),events,box
   };
  }
  function scoreAt(fixture,minute){
   const s=[0,0];
-  for(const e of fixture.events)if(e.minute<=minute){
+  for(const e of fixture.events)if(e.type==='goal'&&e.minute<=minute){
    const i=e.team===fixture.home.id?0:1;s[i]++;
   }
   return s;
