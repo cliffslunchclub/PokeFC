@@ -682,3 +682,29 @@
  .shop-equipped-item .item-sprite{width:18px;height:18px;flex-basis:18px}
  .challenge-pitch .held-item-badge .item-sprite{width:12px;height:12px;flex-basis:12px}
 }
+
+/* Equipment shop: six stacked, accessible stat-boost toggle filters. */
+.shop-stat-filter{margin:10px 0 12px;padding:10px 11px;background:#162f3e;border:1px solid #4d6b76;border-radius:8px}
+.shop-stat-filter-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.shop-stat-filter-head strong{font-size:10px;letter-spacing:.075em;color:#dbf0de;font-weight:950}
+.shop-stat-filter-head span{font-size:9px;color:#adc5ce;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+.shop-stat-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.shop-stat-button{min-height:35px;padding:7px 5px!important;border:1px solid #567586!important;background:#203b4d!important;color:#d5e4ed!important;font-size:11px!important;font-weight:950!important;letter-spacing:.02em}
+.shop-stat-button:hover{border-color:#8eb9af!important;background:#294b58!important}
+.shop-stat-button.active,.shop-stat-button[aria-pressed="true"]{color:#13362a!important;background:#a6ecae!important;border-color:#d3f8c4!important;box-shadow:inset 0 0 0 1px #e6ffda4d}
+.shop-stat-button:focus-visible{outline:2px solid #f3d58b;outline-offset:2px}
+.shop-stat-filter>small{display:block;font-size:9px;line-height:1.5;color:#b1cbd4;margin-top:8px}
+.shop-filter-empty{grid-column:1/-1;padding:18px 10px!important;text-align:center;color:#bacbd8;font-size:11px!important}
+/* Shots on goal: actual shotsOnTarget statistics, including missing-data indicators. */
+.run-shots-summary{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);align-items:center;gap:7px;padding:10px 13px;margin:10px 0;border:1px solid #517667;border-radius:9px;background:#1b3940}
+.run-shots-summary>div{min-width:0;display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:5px}
+.run-shots-summary .run-shots-home strong{display:block;width:100%;font-size:10px;letter-spacing:.065em;text-align:center;color:#c9e9d6}
+.run-shots-summary>div span{font-size:9px;color:#c4d9d9;font-weight:900}
+.run-shots-summary>div b{font-size:22px;font-variant-numeric:tabular-nums;color:#d0f2d3}
+.run-shots-summary .run-shots-away b{color:#f0d9b6}
+.run-shots-divider{color:#ebd8a5;font-size:12px;text-align:center;font-weight:1000}
+.run-shots-summary>small{grid-column:1/-1;text-align:center;color:#a8c7cd;font-size:9px;line-height:1.45}
+.run-fixture-score{display:flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap}
+.run-fixture-score strong{color:#f6fafc;font-size:12px;font-variant-numeric:tabular-nums}
+.run-fixture-score small{color:#d0dce0!important;font-size:9px!important;white-space:nowrap;letter-spacing:.02em;text-align:center!important}
+@media(max-width:570px){.shop-stat-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}.shop-stat-button{min-height:33px}.run-shots-summary{padding:9px 7px}.run-shots-summary>div b{font-size:19px}.run-match summary{gap:6px}.run-fixture-score small{font-size:8px!important}}

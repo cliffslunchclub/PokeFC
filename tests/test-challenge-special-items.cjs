@@ -12,6 +12,7 @@ const app={innerHTML:'',querySelectorAll(sel){
  if(sel==='[data-shop-pick]')buttons=[...this.innerHTML.matchAll(/<button type="button" data-shop-pick="([^"]+)"[^>]*>/g)]
   .map(x=>({dataset:{shopPick:x[1]},onclick:null,disabled:/\bdisabled\b/.test(x[0])}));
  if(sel==='[data-shop-clear]')buttons=[...this.innerHTML.matchAll(/data-shop-clear="(\d+)"/g)].map(x=>({dataset:{shopClear:x[1]},onclick:null}));
+ if(sel==='[data-shop-stat]')buttons=[...this.innerHTML.matchAll(/data-shop-stat="([^"]+)"/g)].map(x=>({dataset:{shopStat:x[1]},onclick:null}));
  bound[sel]=buttons;return buttons;
 }};
 const doc={getElementById(id){return id==='app'?app:(controls[id]??={id,value:id==='tactic'?'balanced':'',textContent:'',scrollTop:0,onclick:null})}};
@@ -31,11 +32,30 @@ vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</sc
 const state=()=>JSON.parse(stored);
 assert.match(app.innerHTML,/id="shopCatalog"/);
 assert.match(app.innerHTML,/id="shopTarget"/);
-assert.match(app.innerHTML,/LORELEI · OPPONENT XI/,'Show first opponent pitch while selecting equipment');
+assert.doesNotMatch(app.innerHTML,/LORELEI · OPPONENT XI/,'Opponent remains hidden until lineup and equipment locked');
 assert.doesNotMatch(app.innerHTML,/data-slot-card="0" class="slot active /,'GK no longer highlighted during equipment selection');
 assert.doesNotMatch(app.innerHTML,/challenge-versus-rating/,'Head-to-head team ratings only appear once locked');
-assert.equal((app.innerHTML.match(/data-opponent-id="\d+"/g)||[]).length,11,'Show all Lorelei Pokémon during equipment shopping');
+assert.equal((app.innerHTML.match(/data-opponent-id="\d+"/g)||[]).length,0,'No opponent sprites leaked during equipment shopping');
 assert.match(app.innerHTML,/data-shop-pick="Leftovers"/);
+assert.equal((app.innerHTML.match(/data-shop-stat="/g)||[]).length,6,'Exactly six stat filter buttons');
+function filterStat(stat){
+ const button=bound['[data-shop-stat]']?.find(x=>x.dataset.shopStat===stat);
+ assert(button?.onclick,'Filter '+stat+' available');button.onclick();
+}
+filterStat('attack');
+assert.match(app.innerHTML,/data-shop-pick="Muscle Band"/,'Attack filter includes attack boost');
+assert.match(app.innerHTML,/data-shop-pick="Eviolite"/,'Attack filter includes multi-stat Eviolite');
+assert.doesNotMatch(app.innerHTML,/data-shop-pick="Leftovers"/,'Attack filter removes HP-only item');
+assert.doesNotMatch(app.innerHTML,/data-shop-pick="Wise Glasses"/,'Attack filter removes SpA-only item');
+assert.match(app.innerHTML,/data-shop-stat="attack"[^>]*aria-pressed="true"/,'Active stat filter marked for screen reader');
+filterStat('spAttack');
+assert.match(app.innerHTML,/data-shop-pick="Wise Glasses"/,'Combined filters include SpA items');
+assert.doesNotMatch(app.innerHTML,/data-shop-pick="Leftovers"/,'OR filters still exclude HP-only items');
+filterStat('attack');
+assert.doesNotMatch(app.innerHTML,/data-shop-pick="Muscle Band"/,'Toggling attack off retains SpA filter');
+filterStat('spAttack');
+assert.match(app.innerHTML,/data-shop-pick="Leftovers"/,'Clearing filters restores all items');
+
 assert.match(app.innerHTML,/data-shop-pick="Eviolite"/);
 assert.match(app.innerHTML,/data-shop-pick="Charizardite X"/);
 assert.match(app.innerHTML,/data-shop-pick="Charizardite Y"/);
@@ -99,6 +119,8 @@ assert.equal(state().phase,'shop','Lock opens confirmation modal');
 assert.equal(doc.getElementById('challengeMessageModal').open,true);
 doc.getElementById('challengeMessageConfirm').onclick();
 assert.equal(state().phase,'locked');
+assert.match(app.innerHTML,/LORELEI · OPPONENT XI/,'Opponent revealed after lock');
+assert.equal((app.innerHTML.match(/data-opponent-id="\d+"/g)||[]).length,11,'All 11 opponent Pokémon appear after lock');
 assert.match(app.innerHTML,/challenge-versus-rating/,'Ratings appear after locking the XI');
 assert.doesNotMatch(app.innerHTML,/data-slot-card="0" class="slot active /,'GK remains unselected after lineup lock');
 assert.deepEqual(statsFor('Mega Charizard X'),expected(megaStats),'locked squad preserves Mega-adjusted pitch values');
