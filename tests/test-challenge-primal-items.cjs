@@ -34,7 +34,7 @@ const choose=name=>{
  assert(button&&!button.disabled,'Selectable item '+name);button.onclick();
 };
 const equip=(name,index)=>{
- choose(name);controls.shopTarget.value=String(index);controls.equipShopItem.onclick();
+ choose(name);doc.getElementById('shopTarget').value=String(index);controls.equipShopItem.onclick();
 };
 assert.match(app.innerHTML,/sprites\/items\/leftovers\.png/,'Common shop items have image sprites');
 assert.match(app.innerHTML,/sprites\/items\/blue-orb\.png/,'Blue Orb icon');
@@ -52,7 +52,7 @@ choose('Blue Orb');
 assert.match(app.innerHTML,/Primal Reversion/,'Primal item is labeled as a Primal form, not Mega');
 const kyogreTargets=app.innerHTML.match(/<select id="shopTarget"[^>]*>([\s\S]*?)<\/select>/)?.[1]||'';
 assert.deepEqual([...kyogreTargets.matchAll(/<option value="(\d+)"/g)].map(m=>Number(m[1])),[0],'Blue Orb exclusive to Kyogre');
-controls.shopTarget.value='1';controls.equipShopItem.onclick();
+doc.getElementById('shopTarget').value='1';controls.equipShopItem.onclick();
 assert.equal(state().items[1],null,'Blue Orb rejects Groudon');
 assert.match(controls.shopFeedback.textContent,/not compatible/);
 equip('Blue Orb',0);
