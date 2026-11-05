@@ -140,12 +140,32 @@ function render(){if(window.FXI_VIEWER)window.FXI_VIEWER.unmount();document.quer
   if(!selector||!document.getElementById('tacticalPitch'))return;
   const chosen=selector.value;
   if(chosen==='quick'){window.FXI_VIEWER.mountQuick(pr,watched=>simWeek(watched));return}
+  if(chosen==='soccerjs'){
+   window.FXI_VIEWER.unmount();
+   try{
+    window.FXI_PHASE10_WATCH.open({
+     preview:pr,result:pr.result,source:'Franchise · Season '+pr.season+' Week '+(pr.week+1),
+     onRecord:({result})=>simWeek({...pr,result}),
+     onClose:({recorded})=>{
+      if(!recorded&&document.getElementById('viewerMode')===selector){
+       selector.value='quick';window.FXI_VIEWER.mountQuick(pr,watched=>simWeek(watched));
+      }
+     }
+    });
+   }catch(err){const el=document.getElementById('engineInstallStatus');if(el)el.textContent='Phase 10 test unavailable: '+err.message;selector.value='quick';window.FXI_VIEWER.mountQuick(pr,watched=>simWeek(watched))}
+   return;
+  }
   window.FXI_VIEWER.unmount();
   const ready=window.FXI_TM&&await window.FXI_TM.installed();
   if(!document.getElementById('tacticalPitch')||selector.value!==chosen)return;
   if(ready)window.FXI_VIEWER.mountEngine(pr,watched=>simWeek(watched));else window.FXI_VIEWER.missing();
  };
- if(selector){selector.addEventListener('change',mountSelected);mountSelected()}
+ if(selector){
+  if(new URLSearchParams(location.search).get('phase10')==='soccerjs'&&window.FXI_PHASE10_WATCH){
+   const opt=document.createElement('option');opt.value='soccerjs';opt.textContent='Soccer-JS · Phase 10 test';selector.append(opt);
+  }
+  selector.addEventListener('change',mountSelected);mountSelected()
+ }
  }}
 function exportSave(){if(!st)return notify('No franchise to export.');const blob=new Blob([JSON.stringify(st,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`PokeFC-v08-${st.seed.replace(/[^a-z0-9_-]+/gi,'-')}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function importSave(file){if(!file)return;file.text().then(txt=>{const data=JSON.parse(txt);if(data.version!==8||data.teams?.length!==32||!Array.isArray(data.fixtures)||data.fixtures.length!==22||!data.players||!Array.isArray(data.results))throw Error('Not a compatible v0.6 save.');st=data;tacticalPreview=null;save();view=st.phase==='draft'?'draft':'dashboard';render()}).catch(e=>alert('Import failed: '+e.message))}
