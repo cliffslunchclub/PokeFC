@@ -657,3 +657,28 @@
 .challenge-drag-tip span{flex:1 1 250px;font-size:10px;line-height:1.5;color:#c3d9da}
 .challenge-drag-ghost.challenge-drag-sprite{display:block;box-sizing:content-box;width:64px;height:64px;max-width:none;object-fit:contain;image-rendering:pixelated;overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none;filter:drop-shadow(0 5px 7px #000a);padding:0;margin:0}
 @media(max-width:560px){.challenge-drag-tip{padding:8px 10px;gap:4px}.challenge-drag-tip strong{font-size:9px}.challenge-drag-tip span{font-size:9px}}
+
+/* Item sprites and reliable mouse/touch item drag sources. */
+.shop-item-main{display:flex;align-items:flex-start;gap:7px;min-width:0}
+.shop-item-main .shop-item-head{flex:1;min-width:0}
+.item-sprite{width:29px;height:29px;flex:0 0 29px;object-fit:contain;image-rendering:pixelated}
+.shop-item-card .item-sprite{pointer-events:none}
+.shop-selected-item{display:flex;align-items:center;gap:7px}
+.shop-selected-item h3{margin:0}
+.shop-selected-item .item-sprite{width:30px;height:30px;flex-basis:30px}
+.shop-equipped-item{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px}
+.shop-equipped-item .item-sprite{width:22px;height:22px;flex-basis:22px}
+.challenge-pitch .held-item-badge{display:inline-flex;align-items:center;justify-content:center;gap:3px;vertical-align:middle}
+.challenge-pitch .held-item-badge .item-sprite{width:15px;height:15px;flex:0 0 15px}
+.challenge-pitch .held-item-badge>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.challenge-item-shop .shop-item-card:not(:disabled){touch-action:pan-y;cursor:grab}
+.challenge-item-shop .shop-item-card:not(:disabled):active{cursor:grabbing}
+.challenge-pitch .slot button[data-slot]:disabled{pointer-events:none!important}
+.challenge-drag-ghost.challenge-drag-item.challenge-drag-sprite{width:40px;height:40px}
+@media(max-width:560px){
+ .shop-item-main{gap:4px}
+ .shop-item-main .item-sprite{width:23px;height:23px;flex-basis:23px}
+ .shop-item-head b{font-size:10px}
+ .shop-equipped-item .item-sprite{width:18px;height:18px;flex-basis:18px}
+ .challenge-pitch .held-item-badge .item-sprite{width:12px;height:12px;flex-basis:12px}
+}
