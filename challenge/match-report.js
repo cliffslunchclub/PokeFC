@@ -92,7 +92,7 @@
   }).filter(Boolean).sort((a,b)=>(a.minute??999)-(b.minute??999));
   const logged=[0,0];for(const e of goals)logged[e.side]++;
   const complete=logged.every((count,i)=>count===score[i]);
-  const fields=['shots','shotsOnTarget','passes','completedPasses','possession','tackles','saves'];
+  const fields=['shots','shotsOnTarget','passes','completedPasses','possession','tackleAttempts','tackles','saves'];
   const stats={};for(const field of fields)stats[field]=[0,1].map(i=>scalar(num(result?.stats?.[i]?.[field])));
   // Individual shots on goal come directly from each match engine player's box
   // (Quick Sim supplies these values). Never allocate team totals by guesswork.
@@ -101,8 +101,17 @@
    return count!=null&&Number.isInteger(count)&&count>=0?
     {side,id:safe(player.id),player:safe(player.name),count}:null;
   }).filter(Boolean));
+  // Tackles won/attempted are present in the actual Quick Sim player box.
+  // Legacy matches without a player box remain unknown, never estimated.
+  const playerTackles=teams.flatMap((team,side)=>(team.lineup||[]).map(player=>{
+   const entry=result?.box?.[safe(player.id)];
+   const attempts=num(entry?.tackleAttempts),won=num(entry?.tackles);
+   return attempts!=null&&won!=null&&Number.isInteger(attempts)&&Number.isInteger(won)&&
+    attempts>=0&&won>=0&&won<=attempts?
+    {side,id:safe(player.id),player:safe(player.name),attempts,won}:null;
+  }).filter(Boolean));
   return {
-   version:3,score,goals,stats,playerShotsOnTarget,timeline,
+   version:3,score,goals,stats,playerShotsOnTarget,playerTackles,timeline,
    status:complete?'complete':goals.length?'partial':'unavailable',
    note:complete?'':(events.length?'Some scorer or minute details were not supplied by the match engine.':'Scorer and minute details were not recorded for this match.'),
    origin:safe(result?.origin||'quick-sim'),
