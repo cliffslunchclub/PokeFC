@@ -7,11 +7,11 @@
   <meta name="description" content="PokéFC: Build your free Pokémon football XI, play Challenges, or manage a 32-gym Franchise.">
   <title>PokéFC · Free XI Builder</title>
 <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=2">
-  <link rel="stylesheet" href="./builder.css?v=3">
+  <link rel="stylesheet" href="./builder.css?v=4">
   <link rel="stylesheet" href="./site.css?v=3">
   <link rel="stylesheet" href="./newtro.css?v=1">
   <script src="./national-species.js?v=1" defer></script>
-  <script src="./builder.js?v=3" defer></script>
+  <script src="./builder.js?v=4" defer></script>
 </head>
 <body>
   <header class="pfc-header">
@@ -50,7 +50,7 @@
       <div class="setup-bar">
         <label>Club name <input id="clubName" maxlength="38" value="Indigo Athletic" aria-label="Club name"></label>
         <label>Formation <select id="formation" aria-label="Formation"><option>4-3-3</option><option>4-2-3-1</option><option>4-4-2</option><option>3-5-2</option><option>5-3-2</option></select></label>
-        <label>Sprites <select id="spriteStyle" aria-label="Sprite style"><option value="pixel">Pixel</option><option value="art">Official artwork</option></select></label><div class="setup-actions"><a class="btn btn-accent" href="./play/">Take XI to Quick Play ↗</a><button id="randomize" class="btn">Random XI</button><button id="clear" class="btn btn-danger">Clear XI</button><button id="share" class="btn btn-accent">Copy XI</button></div>
+        <label>Sprites <select id="spriteStyle" aria-label="Sprite style"><option value="pixel">Pixel</option><option value="art">Official artwork</option></select></label><div class="setup-actions"><a class="btn btn-accent" href="./play/">Take XI to Quick Play ↗</a><button id="loadGen1" class="btn" type="button">Best Gen I XI</button><button id="randomize" class="btn">Random XI</button><button id="clear" class="btn btn-danger">Clear XI</button><button id="share" class="btn btn-accent">Copy XI</button></div>
       </div>
       <div class="workbench">
         <section class="field-panel" aria-label="Starting XI football pitch">
@@ -65,16 +65,27 @@
           <div class="panel-heading"><div><span class="eyebrow">PLAYER SCOUTING</span><h3 id="scoutTitle">Goalkeeper</h3></div><span id="selectedRole" class="role-tag">GK</span></div>
           <div id="currentPick" class="current-pick">Choose a Pokémon from the list below.</div>
           <div class="filters"><label class="search-label">Search Pokémon <input type="search" id="search" placeholder="Name or Pokédex number..." autocomplete="off"></label>
-          <label class="type-label">Generation <select id="genFilter" aria-label="Generation"><option value="">All 9</option><option value="1">Gen I</option><option value="2">Gen II</option><option value="3">Gen III</option><option value="4">Gen IV</option><option value="5">Gen V</option><option value="6">Gen VI</option><option value="7">Gen VII</option><option value="8">Gen VIII</option><option value="9">Gen IX</option></select></label>
+          <label class="type-label">Generation <select id="genFilter" aria-label="Generation"><option value="1" selected>Gen I</option><option value="2">Gen II</option><option value="3">Gen III</option><option value="4">Gen IV</option><option value="5">Gen V</option><option value="6">Gen VI</option><option value="7">Gen VII</option><option value="8">Gen VIII</option><option value="9">Gen IX</option><option value="">All 9 Generations</option></select></label>
           <label class="type-label">Type <select id="typeFilter"><option value="">All types</option></select></label></div>
           <div class="prospect-bar"><span id="resultsCount">1,025 available</span><a class="ratings-link" href="./ratings/">How A–F grades work ↗</a></div>
-          <div id="prospects" class="prospects" aria-live="polite"></div>
-          <button id="more" class="btn btn-wide" hidden>Show more Pokémon</button>
+          <div id="prospects" class="prospects" aria-live="polite" aria-label="Pokémon scouting results" tabindex="0"></div>
+          <button id="more" class="btn btn-wide" type="button" hidden>Show 10 more Pokémon</button>
         </section>
       </div>
       <p class="disclaimer">Free Builder is unrestricted and unranked. Grades indicate broad positional fit; underlying scoring details are intentionally not displayed while our gameplay model is being refined. Default species forms are included; regional and cosmetic forms are not yet selectable. Your saved XI remains on this device.</p>
     </section>
   </main>
+  <dialog id="builderConfirm" class="builder-confirm-dialog" aria-labelledby="builderConfirmTitle" aria-describedby="builderConfirmText">
+    <div class="builder-confirm-bar"><span>POKÉFC · TEAM BUILDER</span><span aria-hidden="true">●</span></div>
+    <div class="builder-confirm-body">
+      <h2 id="builderConfirmTitle">CONFIRM ACTION</h2>
+      <p id="builderConfirmText"></p>
+      <div class="builder-confirm-actions">
+        <button id="builderConfirmCancel" class="btn" type="button">CANCEL</button>
+        <button id="builderConfirmOk" class="btn btn-accent" type="button">CONFIRM</button>
+      </div>
+    </div>
+  </dialog>
   <footer class="site-footer shell"><span>PokéFC · An unofficial fan-made football project</span><span>Not affiliated with Nintendo, Game Freak or The Pokémon Company.</span></footer>
 </body>
 </html>

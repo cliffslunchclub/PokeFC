@@ -50,3 +50,86 @@
 .prospect-bar .ratings-link{font-size:11px}
 .current-pick{line-height:1.55}
 @media(max-width:650px){.grading-guide{font-size:11px}.pitch-slot .ovr{font-size:12px;line-height:18px;min-width:20px}.prospect .overall b{font-size:24px}}
+
+
+/* Home Builder · Gen I launch refresh: ten initial scouts, then bounded scrolling.
+   ID specificity and !important intentionally override the last-loaded newtro.css
+   desktop flex rule so 'Show more' never stretches the overall page indefinitely. */
+.workbench .scout-panel #prospects {
+  flex:0 0 auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.workbench .scout-panel #prospects[data-expanded="true"] {
+  max-height:min(650px,72dvh)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  scrollbar-width:thin;
+  scrollbar-color:#e53935 #21242a;
+}
+.workbench .scout-panel #prospects::-webkit-scrollbar{width:10px}
+.workbench .scout-panel #prospects::-webkit-scrollbar-track{background:#21242a}
+.workbench .scout-panel #prospects::-webkit-scrollbar-thumb{background:#c53b38;border:2px solid #21242a;border-radius:6px}
+.scout-panel #more{margin-top:11px}
+.scout-panel #more[hidden]{display:none}
+
+/* Branded confirmation, matching Challenges' native in-page dialogs. */
+.builder-confirm-dialog {
+  box-sizing:border-box;
+  width:min(440px,calc(100vw - 28px));
+  max-height:calc(100dvh - 32px);
+  padding:0;
+  margin:auto;
+  overflow:hidden;
+  border:1px solid #646870;
+  border-radius:12px;
+  background:#17191e;
+  color:#f7f7f5;
+  box-shadow:0 24px 80px #000c;
+}
+.builder-confirm-dialog:not([open]){display:none}
+.builder-confirm-dialog::backdrop{background:rgba(0,0,0,.8)}
+.builder-confirm-dialog .builder-confirm-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  min-height:52px;
+  padding:11px 16px;
+  background:linear-gradient(90deg,#e53935 0 4px,#24262c 4px 100%);
+  border-bottom:1px solid #4a4d54;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.12em;
+  color:#fff;
+}
+.builder-confirm-dialog .builder-confirm-bar span:last-child{color:#ff7772;font-size:20px}
+.builder-confirm-dialog .builder-confirm-body{padding:22px 22px 20px}
+.builder-confirm-dialog h2{font-size:22px;font-weight:950;letter-spacing:-.04em;line-height:1.15;margin:0 0 10px;color:#fff}
+.builder-confirm-dialog p{margin:0 0 22px;color:#bbc0c9;font-size:13px;line-height:1.65}
+.builder-confirm-dialog .builder-confirm-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px}
+.builder-confirm-dialog .builder-confirm-actions .btn{
+  flex:1 1 120px;
+  min-height:42px;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:950;
+}
+.builder-confirm-dialog .builder-confirm-actions #builderConfirmCancel{
+  border:1px solid #62646d;
+  background:#2b2e35;
+  color:#fff;
+}
+.builder-confirm-dialog .builder-confirm-actions #builderConfirmOk{
+  border:1px solid #f3635d;
+  background:#e53935;
+  color:#fff;
+}
+.builder-confirm-dialog .builder-confirm-actions #builderConfirmOk:hover:not(:disabled){background:#ff514d}
+@media(max-width:650px){
+  .workbench .scout-panel #prospects[data-expanded="true"]{max-height:min(560px,60dvh)!important}
+  .builder-confirm-dialog .builder-confirm-body{padding:18px}
+}
+@media(prefers-reduced-motion:reduce){.builder-confirm-dialog .btn{transition:none}}

@@ -29,7 +29,11 @@ function grade(n){
 function gradeFor(s,role){return s?grade(rating(s,role)):'—'}
 function escapeHtml(t){return String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 const $=id=>document.getElementById(id);
-const empty=()=>({version:1,name:'Indigo Athletic',formation:'4-3-3',lineup:Array(11).fill(null),selected:0,spriteStyle:'pixel'});
+// Highest combined Gen I positional fit under the existing builder rating weights.
+// Unique species, 4-3-3: GK, LB, CB, CB, RB, CM, CM, CM, LW, ST, RW.
+// Only a first-visit showcase; saved lineups and deliberate clears are preserved.
+const GEN1_SHOWCASE_XI=[144,91,76,151,112,135,65,145,149,150,142];
+const empty=()=>({version:1,name:'Indigo Athletic',formation:'4-3-3',lineup:GEN1_SHOWCASE_XI.map(id=>BY.has(id)?id:null),selected:0,spriteStyle:'pixel'});
 function normalize(value){
  const s=empty();
  if(!value||value.version!==1||!FORMATIONS[value.formation]||!Array.isArray(value.lineup)||value.lineup.length!==11)return s;
@@ -63,7 +67,8 @@ function renderPitch(){
      '<span class="slot-plus">+</span><span class="name">OPEN</span>')+'</button>';
  }).join('');
 }
-let limit=36;
+const PAGE_SIZE=10;
+let limit=PAGE_SIZE;
 function renderProspects(){
  const role=FORMATIONS[state.formation][state.selected][0],current=BY.get(state.lineup[state.selected]),q=normalizeSearch($('search').value.trim()),type=$('typeFilter').value,gen=$('genFilter').value;
  $('scoutTitle').textContent=ROLES[role];$('selectedRole').textContent=role;
@@ -82,7 +87,9 @@ function renderProspects(){
     '<span class="overall"><b class="grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</b><small>'+role+' FIT</small></span>'+
     '<span class="select-marker">'+(here?'✓':chosen?'●':'+')+'</span></button>';
  }).join('') || '<p class="empty-results">No Pokémon matched. Try a different search or type.</p>';
+ $('prospects').dataset.expanded=limit>PAGE_SIZE?'true':'false';
  $('more').hidden=opts.length<=limit;
+ $('more').textContent='Show 10 more Pokémon';
 }
 function render(){renderPitch();renderProspects()}
 function pickSpecies(id){
@@ -113,14 +120,64 @@ function wire(){
  $('spriteStyle').addEventListener('change',e=>{state.spriteStyle=e.target.value==='art'?'art':'pixel';save();render()});
  $('clubName').addEventListener('input',e=>{state.name=e.target.value.slice(0,38);$('lineupName').textContent=state.name||'Your XI';save()});
  $('formation').addEventListener('change',e=>{if(!FORMATIONS[e.target.value])return;state.formation=e.target.value;save();render()});
- $('randomize').addEventListener('click',()=>{if(state.lineup.some(Boolean)&&!confirm('Replace the current lineup with random Pokémon?'))return;randomize()});
- $('clear').addEventListener('click',()=>{if(!state.lineup.some(Boolean))return;if(!confirm('Clear all 11 positions?'))return;state.lineup=Array(11).fill(null);state.selected=0;save();render()});
+ const dialog=$('builderConfirm'),title=$('builderConfirmTitle'),message=$('builderConfirmText'),confirmButton=$('builderConfirmOk');
+ let pendingAction=null;
+ function closeConfirmation(){
+  pendingAction=null;
+  if(dialog.close)dialog.close();
+  else dialog.removeAttribute('open');
+ }
+ function askConfirmation(heading,body,actionLabel,onConfirm){
+  pendingAction=onConfirm;
+  title.textContent=heading;
+  message.textContent=body;
+  confirmButton.textContent=actionLabel;
+  if(dialog.showModal)dialog.showModal();
+  else dialog.setAttribute('open','');
+ }
+ $('builderConfirmCancel').addEventListener('click',closeConfirmation);
+ confirmButton.addEventListener('click',()=>{
+  const action=pendingAction;
+  closeConfirmation();
+  if(action)action();
+ });
+ dialog.addEventListener('cancel',()=>{pendingAction=null});
+ dialog.addEventListener('close',()=>{pendingAction=null});
+ $('loadGen1').addEventListener('click',()=>{
+  const load=()=>{
+   state.formation='4-3-3';
+   state.lineup=GEN1_SHOWCASE_XI.slice();
+   state.selected=0;
+   save();render();
+  };
+  if(!state.lineup.some(Boolean)){load();return}
+  askConfirmation('LOAD BEST GEN I XI?',
+   'Use the highest combined Gen I positional fits in a 4-3-3? Your current team will be replaced.',
+   'LOAD GEN I XI',load);
+ });
+ $('randomize').addEventListener('click',()=>{
+  if(!state.lineup.some(Boolean)){randomize();return}
+  askConfirmation('RANDOMIZE YOUR XI?',
+   'Replace all 11 current picks with random Pokémon from the National Pokédex? Your existing lineup will be overwritten.',
+   'RANDOMIZE XI',randomize);
+ });
+ $('clear').addEventListener('click',()=>{
+  if(!state.lineup.some(Boolean))return;
+  askConfirmation('CLEAR YOUR XI?',
+   'Remove all 11 Pokémon from your formation? You can rebuild your team afterward.',
+   'CLEAR ALL 11',()=>{
+    state.lineup=Array(11).fill(null);
+    state.selected=0;
+    save();render();
+   });
+ });
  $('share').addEventListener('click',copyXI);
  $('pitchSlots').addEventListener('click',e=>{const b=e.target.closest('[data-slot]');if(!b)return;state.selected=Number(b.dataset.slot);save();render()});
  $('prospects').addEventListener('click',e=>{const b=e.target.closest('[data-species]');if(!b||b.disabled)return;pickSpecies(Number(b.dataset.species))});
  $('currentPick').addEventListener('click',e=>{if(e.target.id!=='removePick')return;state.lineup[state.selected]=null;save();render()});
- for(const id of ['search','typeFilter','genFilter'])$(id).addEventListener(id==='search'?'input':'change',()=>{limit=36;renderProspects()});
- $('more').addEventListener('click',()=>{limit+=36;renderProspects()});
+ $('genFilter').value='1';
+ for(const id of ['search','typeFilter','genFilter'])$(id).addEventListener(id==='search'?'input':'change',()=>{limit=PAGE_SIZE;renderProspects()});
+ $('more').addEventListener('click',()=>{limit+=PAGE_SIZE;renderProspects()});
 }
 if(!S.length){$('prospects').innerHTML='<p class="empty-results">Pokémon data is unavailable. Reload the page.</p>';return}
 wire();render();save();
