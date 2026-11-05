@@ -136,6 +136,14 @@ function matchEffectiveStats(s,item){
 function offeredItems(s){
  return [...ITEMS,...(EVOLVABLE.has(s.id)?[EVIOLITE]:[]),...(SPECIAL.megas[s.id]||[]).map(m=>[m.stone,700,{}])];
 }
+const SHOP_STAT_FILTERS=[['hp','HP'],['attack','ATK'],['defense','DEF'],['spAttack','SpA'],['spDefense','SpD'],['speed','SPE']];
+function itemBoostsStat(item,stat){
+ if(Number(item?.[2]?.[stat])>0)return true;
+ return st.roster.some(id=>{
+  const pokemon=BY.get(id),form=megaForm(pokemon,item?.[0]);
+  return Boolean(form&&Number(form.stats?.[stat])>Number(pokemon.baseStats?.[stat]));
+ });
+}
 function shopCatalog(){
  const stones=st.roster.flatMap(id=>(SPECIAL.megas[id]||[]).map(m=>[m.stone,700,{}]));
  return [...ITEMS,EVIOLITE,...stones.filter((it,i,a)=>a.findIndex(v=>v[0]===it[0])===i)];
@@ -167,7 +175,8 @@ function equipShopItem(name,index){
  return {ok:true,total};
 }
 function shopMarkup(used){
- const catalog=shopCatalog();
+ const fullCatalog=shopCatalog();
+ const catalog=shopStatFilters.size?fullCatalog.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):fullCatalog;
  const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
  if(!current)selectedShopItem=catalog[0]?.[0]||null;
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';
@@ -181,14 +190,18 @@ function shopMarkup(used){
  }).filter(Boolean).join('');
  return '<section class="panel challenge-item-shop" aria-label="Equipment shop">'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">STEP 02 · EQUIPMENT</span><h2>ITEM SHOP</h2></div><span class="formation-tag">₽'+(1000-used)+' LEFT</span></div>'+
-  '<p>Drag an item card or its DRAG grip directly onto a Pokémon on the pitch, or use the Pokémon dropdown (forwards first, GK last). Item compatibility, refunds, and budget rules still apply.</p>'+
+  '<p>Drag an item or its DRAG grip onto a Pokémon, or use the dropdown (forwards first). Opponent XI remains hidden until your Pokémon and items are locked. Item compatibility, refunds, and budget rules still apply.</p>'+
   '<div class="shop-budget"><div class="shop-budget-track"><span style="width:'+Math.min(100,Math.max(0,used/10))+'%"></span></div><small>₽'+used+' / ₽1,000 SPENT</small></div>'+
+  '<div class="shop-stat-filter" role="group" aria-label="Filter items by boosted stats">'+
+   '<div class="shop-stat-filter-head"><strong>FILTER BY STAT BOOST</strong><span>'+catalog.length+' / '+fullCatalog.length+' ITEMS</span></div>'+
+   '<div class="shop-stat-buttons">'+SHOP_STAT_FILTERS.map(([key,label])=>'<button type="button" data-shop-stat="'+key+'" class="shop-stat-button'+(shopStatFilters.has(key)?' active':'')+'" aria-pressed="'+shopStatFilters.has(key)+'">+'+label+'</button>').join('')+'</div>'+
+   '<small>Choose one or more boosts (matches any). Tap a selected filter again to clear it.</small></div>'+
   '<div id="shopCatalog" class="shop-item-catalog" role="group" aria-label="Available items">'+catalog.map(it=>{
    const n=it[0],holder=st.items.indexOf(n),targets=itemTargets(n),active=n===selectedShopItem;
    return '<button type="button" data-shop-pick="'+esc(n)+'" '+(!targets.length?'disabled':'')+' class="shop-item-card '+(active?'active':'')+'" aria-pressed="'+active+'">'+
     '<span class="shop-item-main">'+itemSprite(n)+'<span class="shop-item-head"><b>'+esc(n)+'</b><strong>₽'+it[1]+'</strong></span></span><span class="challenge-drag-grip item-grip" data-drag-grip="item" data-drag-value="'+esc(n)+'" title="Drag onto Pokémon">⠿ DRAG</span><small>'+esc(itemEffect(it))+'</small>'+
     '<span class="shop-item-status">'+(holder>=0?'✓ EQUIPPED · '+esc(BY.get(st.roster[holder]).name):targets.length?'CHOOSE ITEM':'NOT ELIGIBLE')+'</span></button>';
-  }).join('')+'</div>'+
+  }).join('')+(catalog.length?'':'<p class="shop-filter-empty">No items boost the selected stats.</p>')+'</div>'+
   '<div class="shop-assign-panel"><div class="shop-selected-item">'+itemSprite(name)+'<h3>'+esc(name)+'</h3></div><p>'+esc(item?itemEffect(item):'Choose an item above')+'</p>'+
    '<label for="shopTarget">Assign to Pokémon</label><select id="shopTarget" '+(!eligible.length?'disabled':'')+'>'+options+'</select>'+
    '<button type="button" id="equipShopItem" class="primary" '+(!eligible.length?'disabled':'')+'>'+(held>=0?'MOVE / REASSIGN ITEM':'EQUIP ITEM')+'</button>'+
@@ -219,7 +232,7 @@ function reroll(which){if(which==='type'&&!st.rerollType||which==='gen'&&!st.rer
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
-let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="";
+let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set();
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -663,7 +676,7 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
  body+='</section>';
 }
 if(st.phase==='shop')body+=shopMarkup(used);
-if(['shop','locked','result','finished'].includes(st.phase)){
+if(gauntletStarted){
  const opponent=BOSSES[st.round];
  if(opponent&&Array.isArray(opponent.roster)&&opponent.roster.length===11){
   const enemyFormation=FORMS[opponent.formation]?opponent.formation:'4-3-3';
@@ -841,6 +854,14 @@ app.querySelectorAll('[data-slot]').forEach(b=>{
 });
 draftPickButtons.forEach(b=>b.onclick=()=>draftPokemon(Number(b.dataset.pick),st.selected));
 if(st.phase==='shop'){
+ app.querySelectorAll('[data-shop-stat]').forEach(button=>button.onclick=()=>{
+  const stat=button.dataset.shopStat;
+  if(!SHOP_STAT_FILTERS.some(([key])=>key===stat))return;
+  if(shopStatFilters.has(stat))shopStatFilters.delete(stat);
+  else shopStatFilters.add(stat);
+  selectedShopItem=null;shopMessage='';shopScrollTop=0;
+  render();
+ });
  const restore=document.getElementById('shopCatalog');
  if(restore)restore.scrollTop=shopScrollTop;
  app.querySelectorAll('[data-shop-pick]').forEach(b=>b.onclick=()=>{
@@ -882,7 +903,7 @@ if((st.phase==='draft'||st.phase==='shop')&&st.moves>0&&filled>0){
 if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{
  if(st.roster.some(x=>!x)||used>1000)return;
  showChallengeMessage('LOCK FINAL XI?','Your XI, formation, tactics and held items will be locked for all six Gauntlet matches.',{confirmLabel:'LOCK MY XI',onConfirm:()=>{
-  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;
+  st.phase='locked';selectedShopItem=null;shopMessage='';shopScrollTop=0;shopStatFilters.clear();
   st.locked=JSON.parse(JSON.stringify({roster:st.roster,items:st.items,formation:st.formation,tactic:st.tactic,score:teamScore()}));
   save();render();
  }});
@@ -942,7 +963,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;shopStatFilters.clear();Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
