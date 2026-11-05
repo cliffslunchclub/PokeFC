@@ -1041,3 +1041,81 @@
  .challenge-shop-drag-handle{display:none!important}
  .challenge-shop-mobile-label{display:block;font-size:11px;font-weight:1000;letter-spacing:.06em;color:#eaf8dc}
 }
+
+
+/* Goal-first match ledger: the primary goal list opens by default, secondary
+   recorded events stay collapsed unless explicitly expanded. */
+.pfc-timeline-groups{display:grid;gap:8px;margin:9px 0 12px}
+.pfc-timeline-group{border:1px solid #416a73;border-radius:8px;background:#122b3b;overflow:hidden}
+.pfc-timeline-group>summary{display:flex;justify-content:space-between;align-items:center;gap:9px;cursor:pointer;list-style:none;padding:12px 13px;font-size:11px;font-weight:950;color:#e1f5e9;letter-spacing:.04em}
+.pfc-timeline-group>summary::-webkit-details-marker{display:none}
+.pfc-timeline-group>summary:before{content:"▸";color:#ebcf88;flex:none;font-size:12px}
+.pfc-timeline-group[open]>summary:before{content:"▾"}
+.pfc-timeline-group>summary>span{flex:1}
+.pfc-timeline-group>summary>strong{font-size:10px;white-space:nowrap;color:#e7d596}
+.pfc-timeline-goals>summary{background:#214539}
+.pfc-timeline-other>summary{background:#213b4b}
+.pfc-timeline-group-body{padding:4px 10px 10px}
+.pfc-timeline-group-body .pfc-event-timeline{margin:5px 0!important}
+.pfc-timeline-group-body .match-event-empty{margin:5px 0!important}
+.pfc-timeline-group>summary:focus-visible{outline:2px solid #ffe6a2;outline-offset:-2px}
+
+/* The terminal recap is a two-step dialog, not two dialogs stacked on
+   top of each other. All match details appear before the tournament summary. */
+.challenge-run-step[hidden]{display:none!important}
+.challenge-run-dialog .challenge-match-result-content{padding:20px 22px 12px}
+.challenge-run-dialog .challenge-match-result-actions{position:sticky;bottom:0}
+.challenge-overview-back{padding:13px 22px 0}
+.challenge-overview-back button{background:#244355!important;border:1px solid #5e7f8c!important;color:#eff9f4!important;font-size:11px!important;font-weight:950!important;padding:8px 13px!important}
+.challenge-last-match>button{font-size:11px!important;font-weight:950!important;margin-top:9px}
+@media(max-width:560px){
+ .challenge-run-dialog .challenge-match-result-content{padding:14px 11px 8px}
+ .challenge-overview-back{padding:11px 11px 0}
+}
+
+/* One scrolling surface per desktop floating window: the dialog/drawer
+   scrolls, never an additional list nested inside it. Keep a visible native
+   scrollbar track and gutter without hiding overflow behind small inner panes. */
+@media(min-width:761px){
+ .challenge-frame .challenge-dialog.challenge-draft-panel[open]{
+  overflow-y:scroll!important;overflow-x:hidden!important;
+  scrollbar-gutter:stable;overscroll-behavior:contain
+ }
+ .challenge-draft-panel .challenge-pick-grid{
+  max-height:none!important;overflow:visible!important;
+  margin-bottom:18px
+ }
+}
+.challenge-shop-drawer:not([hidden]){
+ overflow-y:scroll!important;overflow-x:hidden!important;
+ scrollbar-gutter:stable;overscroll-behavior:contain
+}
+.challenge-shop-drawer .shop-item-catalog{
+ max-height:none!important;overflow:visible!important;
+ scrollbar-gutter:auto
+}
+.challenge-draft-panel .challenge-pick-grid,
+.challenge-shop-drawer,
+.challenge-frame .challenge-dialog.challenge-draft-panel{
+ scrollbar-width:thin;scrollbar-color:#90bd9f #193342
+}
+.challenge-draft-panel .challenge-pick-grid::-webkit-scrollbar,
+.challenge-shop-drawer::-webkit-scrollbar,
+.challenge-frame .challenge-dialog.challenge-draft-panel::-webkit-scrollbar{width:10px}
+.challenge-draft-panel .challenge-pick-grid::-webkit-scrollbar-track,
+.challenge-shop-drawer::-webkit-scrollbar-track,
+.challenge-frame .challenge-dialog.challenge-draft-panel::-webkit-scrollbar-track{background:#193342;border-radius:7px}
+.challenge-draft-panel .challenge-pick-grid::-webkit-scrollbar-thumb,
+.challenge-shop-drawer::-webkit-scrollbar-thumb,
+.challenge-frame .challenge-dialog.challenge-draft-panel::-webkit-scrollbar-thumb{
+ background:#90bd9f;border:2px solid #193342;border-radius:7px
+}
+.challenge-draft-panel .challenge-pick-grid .pick,
+.challenge-shop-drawer .shop-item-card{content-visibility:auto;contain-intrinsic-size:auto 92px}
+@media(max-width:760px){
+ .challenge-draft-panel .challenge-pick-grid{
+  overflow-y:scroll!important;scrollbar-gutter:stable!important;
+  -webkit-overflow-scrolling:touch
+ }
+ .challenge-shop-drawer .shop-item-catalog{max-height:none!important;overflow:visible!important}
+}
