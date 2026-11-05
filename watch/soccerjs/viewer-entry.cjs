@@ -36,7 +36,7 @@ function verify(m){
   if(!side.lineup.some(p=>p.id===e.player))throw Error('Invalid goal scorer');
 }
 function scoreAt(t){
- const s=[0,0];for(const g of match.events)if(g.minute<=t)s[g.team===match.home.id?0:1]++;
+ const s=[0,0];for(const g of match.events)if(g.type==='goal'&&g.minute<=t)s[g.team===match.home.id?0:1]++;
  return s;
 }
 function cameraFit(canvas,field,ball){
@@ -94,10 +94,15 @@ function render(t){
   'illustrative-carry':'Ball carry','illustrative-pass':'Passing sequence',
   'illustrative-dribble':'Attacking dribble','illustrative-challenge':'Defensive challenge',
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
-  'official-goal':'OFFICIAL QUICK SIM GOAL'
+  'official-goal':'OFFICIAL QUICK SIM GOAL',
+  'official-corner':'OFFICIAL CORNER',
+  'official-foul':'OFFICIAL FOUL',
+  'official-free-kick':'OFFICIAL FREE KICK',
+  'official-penalty-kick':'OFFICIAL PENALTY',
+  'illustrative-set-piece-buildup':'Set piece setup'
  };
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
-  (script.action==='official-goal'?' · official result':' · illustrative movement');
+  (script.officialEvent?' · official PSE event':' · illustrative movement');
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
  if(embedded&&(t===90||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s});
@@ -130,6 +135,7 @@ async function boot(){
    match=await response.json();
   }
   verify(match);
+  if(match.setPieceRules==='v1')$('notice').textContent='Official PSE set-piece incident times are replayed here. Ball movement and player positioning remain illustrative; results, goals, awards and penalty outcomes come only from PSE.';
   Settings.app={canvas:$('pitch'),camX:0,camY:0};
   Settings.HEADLESS=false;Settings.showFPS=false;Settings.showTime=false;
   Settings.soundsMuted=true;Settings.camera.scale=8.6;
@@ -151,7 +157,7 @@ async function boot(){
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
    throw Error('Original Soccer-JS sprite generation failed');
   const list=$('goals');list.replaceChildren();
-  for(const e of match.events){
+  for(const e of match.events.filter(e=>e.type==='goal')){
    const side=e.team===match.home.id?match.home:match.away;
    const row=document.createElement('div'),scorer=side.lineup.find(p=>p.id===e.player);
    const helper=side.lineup.find(p=>p.id===e.assist);
@@ -159,8 +165,12 @@ async function boot(){
      (helper?' (assist '+helper.name+')':'');
    list.append(row);
   }
-  $('stats').textContent='Shots '+match.stats[0].shots+'–'+match.stats[1].shots+
-   ' · On target '+match.stats[0].shotsOnTarget+'–'+match.stats[1].shotsOnTarget;
+  $('stats').textContent='FINAL TOTALS · Shots '+match.stats[0].shots+'–'+match.stats[1].shots+
+    ' · On target '+match.stats[0].shotsOnTarget+'–'+match.stats[1].shotsOnTarget+
+    ' · Keeper saves '+match.stats[0].saves+'–'+match.stats[1].saves+
+    (match.setPieceRules==='v1'?' · Corners '+match.stats[0].corners+'–'+match.stats[1].corners+
+     ' · Free kicks '+match.stats[0].freeKicks+'–'+match.stats[1].freeKicks+
+     ' · Penalties '+match.stats[0].penaltyKicks+'–'+match.stats[1].penaltyKicks:'');
   $('play').onclick=()=>{if(minute>=90)minute=0;stopAt=90;last=null;playing=true;};
   $('playFive').onclick=()=>{if(minute>=90)minute=0;stopAt=Math.min(90,(Math.floor(minute/5)+1)*5);last=null;playing=true;};
   $('pause').onclick=()=>seek(minute);
