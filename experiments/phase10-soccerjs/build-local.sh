@@ -9,6 +9,7 @@ git clone --filter=blob:none --no-checkout https://github.com/haeretici/soccer-j
 git -C "$TMP/upstream" checkout --detach 38970e0dade0865078c9e84bc1ecfd72aaa02fde
 (cd "$TMP/upstream" && npm install --no-audit --no-fund)
 cp "$HERE/viewer-entry.cjs" "$TMP/upstream/phase10-viewer-entry.cjs"
+cp "$HERE/phase10-motion.cjs" "$TMP/upstream/phase10-motion.cjs"
 mkdir -p "$HERE/dist"
 "$TMP/upstream/node_modules/.bin/esbuild" "$TMP/upstream/phase10-viewer-entry.cjs" \
   --bundle --platform=browser --format=iife --target=es2020 \
