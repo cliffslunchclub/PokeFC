@@ -47,10 +47,11 @@ function playbackRate(t,events,speed){
  }
  return normal*factor;
 }
-function motionFrame(fixture,t,field){
+function motionFrame(fixture,t,field,opts={}){
  if(!fixture||!fixture.home||!fixture.away||!Array.isArray(fixture.events))
   throw Error('Motion requires official fixture');
- if(!Number.isFinite(t)||t<0||t>90)throw Error('Invalid replay minute');
+ const duration=fixture.durationMinutes===120?120:90;
+ if(!Number.isFinite(t)||t<0||t>duration)throw Error('Invalid replay minute');
  if(!field||!Number.isFinite(field.width)||!Number.isFinite(field.height))throw Error('Invalid soccer pitch');
  const teams=[fixture.home,fixture.away],actors=[];
  for(let side=0;side<2;side++)for(let i=0;i<11;i++){
@@ -60,6 +61,31 @@ function motionFrame(fixture,t,field){
    frame:Math.floor(t*3.5+i)%3===0?1:0,orientation:side===0?2:6});
  }
  let ball={x:field.width*.5,y:field.height*.5,z:.22};
+ // Separate PSE penalty shootout. Match score stays the official 120-minute
+ // score; the panel owns independent penalty conversions.
+ if(t>=duration&&fixture.shootout&&Number.isInteger(opts.kickIndex)&&opts.kickIndex>0){
+  const kicks=fixture.shootout.attempts,kick=kicks[opts.kickIndex-1];
+  if(!kick)throw Error('Invalid shootout kick index');
+  const side=kick.side==='home'?0:1,roster=teams[side];
+  const takerIndex=roster.lineup.findIndex(p=>String(p.id)===String(kick.kickerId));
+  if(takerIndex<0)throw Error('Shootout taker not on starting XI');
+  const keeperIndex=teams[1-side].lineup.findIndex(p=>String(p.id)===String(kick.keeperId));
+  if(keeperIndex<0)throw Error('Shootout keeper not on starting XI');
+  const taker=actors[side*11+takerIndex],keeper=actors[(1-side)*11+keeperIndex];
+  const shooting={x:origin(side,.84,field),y:field.height*.5};
+  const net={x:origin(side,.985,field),y:field.height*.5};
+  taker.x=shooting.x;taker.y=shooting.y;taker.frame=3;
+  keeper.x=origin(side,.972,field);keeper.y=field.height*.5;
+  const finishY=kick.outcome==='off-target'?field.height*.21:
+   kick.outcome==='saved'?field.height*.48:field.height*.5;
+  keeper.frame=kick.outcome==='saved'?8:1;
+  keeper.y=kick.outcome==='saved'?field.height*.48:field.height*.58;
+  ball={x:net.x,y:finishY,z:kick.outcome==='off-target'?1.2:.3};
+  return {actors,ball,action:'official-shootout-'+kick.outcome,
+   label:'PENALTY '+opts.kickIndex+'/'+kicks.length+' · '+
+    (roster.lineup[takerIndex].name||'Pokémon')+' · '+kick.outcome.toUpperCase(),
+   officialEvent:kick,illustrative:false};
+ }
  const goals=fixture.events.filter(e=>e.type==='goal');
  const event=goals.find(g=>t>=g.minute-.7&&t<=g.minute+.22);
  if(event){
