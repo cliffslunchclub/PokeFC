@@ -132,6 +132,13 @@ const shop=launch('shop');
 assert.match(shop.app.innerHTML,/class="challenge-run-layout stage-shop shop-open"/);
 assert.match(shop.app.innerHTML,/id="challengeShopDrawer"/);
 assert.match(shop.app.innerHTML,/id="toggleShopDrawer"/);
+assert.match(css,/\.challenge-shop-drawer \.shop-item-catalog\{[\s\S]*?max-height:none!important;overflow:visible!important/,
+ 'Item catalog has no nested scrolling area');
+assert.match(css,/\.challenge-shop-drawer:not\(\[hidden\]\)\{[\s\S]*?overflow-y:scroll!important/,
+ 'Visible Item Shop uses one native scrollbar');
+assert.match(css,/@media\(min-width:761px\)\{[\s\S]*?\.challenge-draft-panel \.challenge-pick-grid\{[\s\S]*?max-height:none!important;overflow:visible!important/,
+ 'Desktop draft picker uses one scroll surface, not nested Pokémon list');
+
 assert.match(shop.app.innerHTML,/id="challengeShopDragHandle"/);
 const grip=shop.nodes.get('challengeShopDragHandle');
 assert(grip.listeners.has('pointerdown'),'Desktop Item Shop attaches actual drag handlers');
@@ -150,7 +157,10 @@ const tap=index=>{
  assert(btn?.onclick&&!btn.disabled,'Equipping via pitch click is enabled at '+index);
  btn.onclick();
 };
+shop.nodes.get('challengeShopDrawer').scrollTop=140;
 choose('Leftovers');
+assert.equal(shop.nodes.get('challengeShopDrawer').scrollTop,140,
+ 'Selecting items preserves Item Shop window scroll position after a rerender');
 assert.equal(shop.nodes.get('challengeShopDrawer').style.properties.get('left'),'512px',
  'Shop position is preserved after selecting an item and rerendering');
 assert.equal(shop.nodes.get('challengeShopDrawer').style.properties.get('top'),'127px',
