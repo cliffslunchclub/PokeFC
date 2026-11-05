@@ -85,6 +85,12 @@ function runCase(pool,legends){
  assert.equal(simulations,6,'Six matches finished');
  assert.equal(get().phase,'finished');
  assert.equal(document.getElementById('runCompleteModal').open,true,'Finish opens modal');
+ assert.equal(document.getElementById('runFinishMatchStep').hidden,false,'Final boss match displayed before recap');
+ assert.equal(document.getElementById('runFinishOverviewStep').hidden,true,'Overview starts minimized');
+ document.getElementById('continueTournamentOverview').onclick();
+ assert.equal(document.getElementById('runFinishOverviewStep').hidden,false,'Advance to overview in same modal');
+ document.getElementById('backToFinalMatch').onclick();
+ assert.equal(document.getElementById('runFinishMatchStep').hidden,false,'Can return to final match in same modal');
  document.getElementById('closeRunModal').onclick();
  assert.equal(document.getElementById('runCompleteModal').open,false,'Close dismisses recap');
  document.getElementById('openRunModal').onclick();
