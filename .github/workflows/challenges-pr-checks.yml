@@ -5,6 +5,15 @@ on:
     branches: [main]
     paths:
       - "challenge/**"
+      - "newtro.css"
+      - "favicon.svg"
+      - "site.css"
+      - "index.html"
+      - "play/index.html"
+      - "franchise/index.html"
+      - "ratings/index.html"
+      - "tests/test-newtro-ui.cjs"
+      - "tests/test-branding.cjs"
       - "tests/test-challenge-*.cjs"
       - "scripts/build-siteground.sh"
       - ".github/workflows/challenges-pr-checks.yml"
@@ -18,6 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Poké Ball branding and UI contracts
+        run: |
+          node tests/test-branding.cjs
+          node tests/test-newtro-ui.cjs
       - name: Check Challenge JavaScript
         run: |
           node --check challenge/picker-window.js

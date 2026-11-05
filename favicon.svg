@@ -1,18 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="PokéFC soccer ball">
-  <title>PokéFC soccer ball</title>
-  <rect width="64" height="64" rx="13" fill="#0a1625"/>
-  <circle cx="32" cy="32" r="26" fill="#8cfdba"/>
-  <circle cx="32" cy="32" r="22.6" fill="#f6faf7" stroke="#173143" stroke-width="1.8"/>
-  <g fill="#142b3d">
-    <path d="M32 20.5 42.5 28.1 38.5 40.5H25.5L21.5 28.1Z"/>
-    <path d="M18.3 14.7 25.8 11.3 31.9 16.8 28.4 19.4 20.2 23.7 15.2 20.8Z"/>
-    <path d="M45.7 14.7 48.8 20.8 43.8 23.7 35.6 19.4 32.1 16.8 38.2 11.3Z"/>
-    <path d="M9.9 29.8 14.6 26.8 19.6 30.5 21.5 40.1 17.1 45.5 11.5 40.8Z"/>
-    <path d="M54.1 29.8 52.5 40.8 46.9 45.5 42.5 40.1 44.4 30.5 49.4 26.8Z"/>
-    <path d="M24.4 45.5 28 43.8H36L39.6 45.5 39.3 52.6 32 55 24.7 52.6Z"/>
-  </g>
-  <g fill="none" stroke="#183145" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21.5 28.1 19.6 30.5M42.5 28.1 44.4 30.5M25.5 40.5 24.4 45.5M38.5 40.5 39.6 45.5"/>
-    <path d="M32 20.5V16.8M16.9 45.5 24.7 52.6M47.1 45.5 39.3 52.6"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="PokéFC Poké Ball emblem">
+  <title>PokéFC — Poké Ball</title>
+  <rect width="64" height="64" rx="13" fill="#0b0d10"/>
+  <circle cx="32" cy="32" r="26.5" fill="#f7f7f5" stroke="#0b0d10" stroke-width="2"/>
+  <path d="M8 32a24 24 0 0 1 48 0Z" fill="#e53935"/>
+  <path d="M8.3 29.3h47.4v5.4H8.3Z" fill="#0b0d10"/>
+  <circle cx="32" cy="32" r="10.9" fill="#0b0d10"/>
+  <circle cx="32" cy="32" r="7.1" fill="#fff" stroke="#0b0d10" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="3.7" fill="#e6e8e9"/>
+  <path d="M15 18c5-6.5 11-9.5 19-9.6" stroke="#fff" stroke-opacity=".34" stroke-width="2.4" stroke-linecap="round" fill="none"/>
 </svg>

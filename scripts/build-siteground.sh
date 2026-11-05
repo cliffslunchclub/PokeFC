@@ -14,7 +14,7 @@ mkdir -p dist/ratings dist/challenge dist/play/tacticmesh/vendor dist/franchise/
 cp .htaccess dist/.htaccess
 
 # National free builder and shared Quick Sim library.
-cp index.html builder.css builder.js site.css favicon.svg national-species.js \
+cp index.html builder.css builder.js site.css newtro.css favicon.svg national-species.js \
    quick-sim.js calibration-profile.js dist/
 
 # Ratings explainer is linked from the Free Builder, not a fourth game mode.
@@ -43,6 +43,12 @@ for mode in play franchise; do
      "dist/$mode/tacticmesh/vendor/"
 done
 
+# The public Watch bridge is loaded by Play/Franchise even when the native
+# Soccer-JS renderer bundle is excluded. It is safe to ship independently and
+# must be present for local resource validation and legacy Watch fallback.
+mkdir -p dist/watch/soccerjs
+cp watch/soccerjs/watch-bridge.js dist/watch/soccerjs/
+
 # Optional, explicit development-only Soccer-JS packaging. Normal production
 # deployment is unchanged unless the environment flag is set to 1. Build native
 # Soccer-JS assets locally first; NEVER ship the experiments or Quick Sim source.
@@ -59,7 +65,6 @@ if [[ "${PFC_INCLUDE_SOCCERJS:-0}" == "1" ]]; then
      watch/soccerjs/dist/viewer.bundle.js watch/soccerjs/dist/SOCCER-JS-LICENSE.txt \
      dist/watch/soccerjs/dist/
   cp -R watch/soccerjs/dist/assets watch/soccerjs/dist/presets dist/watch/soccerjs/dist/
-  cp watch/soccerjs/watch-bridge.js dist/watch/soccerjs/
   test ! -e dist/watch/soccerjs/dist/fixture.json
   test -s dist/watch/soccerjs/dist/viewer.bundle.js
   echo "Included opt-in Soccer-JS 2.5D assets for a controlled development deploy."
@@ -96,10 +101,12 @@ for page in pages:
     for word in ["QUICK PLAY","CHALLENGES","FRANCHISE"]:
         if word not in h:raise SystemExit(f"Missing global nav entry {word}: {page}")
     expected='../' if page.parent!=root else './'
-    if f'href="{expected}favicon.svg?v=1"' not in h:
+    if f'href="{expected}favicon.svg?v=2"' not in h:
         raise SystemExit(f"Missing shared favicon link: {page}")
-    if f'src="{expected}favicon.svg?v=1"' not in h:
-        raise SystemExit(f"Missing shared soccer-ball brand icon: {page}")
+    if f'src="{expected}favicon.svg?v=2"' not in h:
+        raise SystemExit(f"Missing shared Poké Ball brand icon: {page}")
+    if f'href="{expected}newtro.css?v=1"' not in h:
+        raise SystemExit(f"Missing final newtro theme: {page}")
     for mode in ["play","challenge","franchise"]:
         if f'href="{expected}{mode}/"' not in h:raise SystemExit(f"Missing game mode link: {page}: {mode}")
 for mode in ["franchise","play"]:
@@ -110,7 +117,7 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["favicon.svg","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["watch/soccerjs/watch-bridge.js","favicon.svg","newtro.css","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
