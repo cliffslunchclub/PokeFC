@@ -24,7 +24,7 @@ for(const [formation,expectedStriker] of cases){
  for(const f of ['national-species.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js'])
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),context,{filename:f,timeout:15000});
  vm.runInContext(js,context,{filename:'challenge-inline',timeout:15000});
- controls.form.value=formation;controls.start.onclick();
+ doc.getElementById('form').value=formation;doc.getElementById('start').onclick();
  const st=()=>JSON.parse(saved);
  assert.equal(st().phase,'draft');
  assert.equal(st().selected,expectedStriker,formation+' picks ST first');
