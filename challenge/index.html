@@ -347,7 +347,7 @@ function leaderboardMarkup(){
   '<button class="leaderboard-category '+(c.id===selected.id?'active':'')+'" id="lb-'+c.id+'" type="button" aria-pressed="'+(c.id===selected.id?'true':'false')+'">'+esc(c.label)+'</button>').join('');
  const listing=rows.length?rows.map((run,i)=>{
    const players=(run.roster||[]).map(id=>BY.get(id)?.name||'Unknown').join(' · ');
-   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(m.boss)+' '+esc(m.score.join('–')+penaltyScore(m))+'</summary>'+matchReportHtml(m)+'</details>').join('');
+   const matches=(run.matches||[]).map(m=>'<details class="lb-match-details"><summary>'+esc(versusLabel(m.boss))+' · '+esc(resultLabel(m.outcome,true))+' · '+esc(m.score.join('–')+penaltyScore(m))+'</summary>'+matchReportHtml(m)+'</details>').join('');
    return '<div class="leaderboard-row">'+
     '<span class="lb-rank">#'+(i+1)+'</span><div class="lb-identity"><strong>'+(run.champion?'🏆 CHAMPION RUN':'INDIGO RUN')+'</strong><small>'+
     esc(run.formation||'4-3-3')+' · '+esc(String(run.finishedAt||'').slice(0,10))+'</small></div>'+
@@ -389,6 +389,13 @@ function runStats(){
  return {matches,wins,lost,champion,line,formation,score:Number.isFinite(score)?score:teamScore(),
   category:(st.pool===4?'CLASSIC · GEN I–IV':'NATIONAL · GEN I–IX')+' / LEGENDS '+(st.legends?'ON':'OFF')};
 }
+function resultLabel(outcome,compact=false){
+ if(outcome==='Victory')return compact?'WIN':'VICTORY';
+ if(outcome==='Defeat')return compact?'LOSS':'DEFEAT';
+ if(outcome==='Draw')return 'DRAW';
+ return 'RESULT';
+}
+function versusLabel(boss){return 'VS '+String(boss||'OPPONENT').toUpperCase()}
 function runShareText(){
  const r=runStats();
  const roster=r.line.map((id,i)=>FORMS[r.formation][i]+' '+displayPokemon(BY.get(id),(st.locked?.items||st.items)[i]).name).join(', ');
@@ -398,7 +405,7 @@ function runShareText(){
   r.category,
   'TEAM SCORE: '+r.score.toFixed(1)+' · FORMATION: '+r.formation,
   'RECORD: '+r.wins+'W–'+r.lost+'L · MATCHES: '+r.matches.length+'/6',
-  'RESULTS: '+r.matches.map(m=>m.boss+' '+m.score.join('–')+penaltyScore(m)+' ('+m.outcome+')').join(' | '),
+  'RESULTS: '+r.matches.map(m=>versusLabel(m.boss)+' · '+resultLabel(m.outcome,true)+' · '+m.score.join('–')+penaltyScore(m)).join(' | '),
   'FINAL XI: '+roster,
   'HELD ITEMS: '+(equipment.length?equipment.join(', '):'None'),
   'Try the challenge: https://pfc.cliffslunchclub.com/challenge/',
@@ -423,9 +430,9 @@ function shootoutMarkup(match){
   '<details class="shootout-kicks"><summary>VIEW PENALTY KICKS · '+attempts.length+' ATTEMPTS</summary>'+rows+'</details>'+
   '<small>Provisional seeded Quick Sim shootout. Attempts are modeled separately from match goals; full extra-time and penalty physics are not yet available.</small></section>';
 }
-function penaltyScore(match){
+function penaltyScore(match,verbose=false){
  const p=match?.shootout;
- return p?' (P '+p.home+'–'+p.away+')':'';
+ return p?' ('+(verbose?'PENALTIES ':'P ')+p.home+'–'+p.away+')':'';
 }
 function lineupPerformance(ids,formation,items=[],boss=null){
  const positions=FORMS[formation]||FORMS['4-3-3'];
@@ -520,8 +527,8 @@ function matchReportHtml(match){
 function matchHistoryHtml(history){
  if(!history?.length)return '';
  return '<div class="gauntlet-history"><h3>PREVIOUS MATCH REPORTS</h3>'+
-  history.map((m,i)=>'<details class="gauntlet-history-game"><summary><span>0'+(i+1)+' · '+esc(m.boss||'Opponent')+'</span>'+
-  '<strong>'+esc((m.score||[0,0]).join(' – ')+penaltyScore(m))+'</strong><small>'+esc(m.outcome||'—')+'</small></summary>'+
+  history.map((m,i)=>'<details class="gauntlet-history-game"><summary><span>0'+(i+1)+' · '+esc(versusLabel(m.boss))+'</span>'+
+  '<strong>'+esc((m.score||[0,0]).join(' – ')+penaltyScore(m))+'</strong><small>'+esc(resultLabel(m.outcome,true))+'</small></summary>'+
   matchReportHtml(m)+'</details>').join('')+'</div>';
 }
 function completedRunCard(){
