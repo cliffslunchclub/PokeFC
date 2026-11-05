@@ -9,7 +9,7 @@ const TF={
   stepMatch:()=>{calls++;match.tick+=600;match.clock.elapsedSeconds=calls*45;match.events.push({type:'goal',time:60,teamId:'engine-home',scorerId:'fake1'});return{status:calls>=3?'completed':'running'}},
   continueAfterHalfTime:()=>true
  },
- productReports:{fromMatch:()=>({complete:true,status:'completed',score:{home:1,away:0},teams:[{id:'0',stats:{goals:1,shots:8}},{id:'1',stats:{goals:0,shots:5}}],players:[{id:'fake1',sourceId:'p1',minutes:90,stats:{goals:1},rating:{value:8}}],events:[{type:'goal',time:60,minute:'1',teamId:'0',scorerId:'fake1'}],engineBuild:'mock'})}
+ productReports:{fromMatch:()=>({complete:true,status:'completed',score:{home:1,away:0},teams:[{id:'0',stats:{goals:1,shots:8}},{id:'1',stats:{goals:0,shots:5}}],players:[{id:'fake1',sourceId:'p1',minutes:90,stats:{goals:1},rating:{value:8}}],events:[{type:'goal',time:60,minute:'1',teamId:'0',scorerId:'fake1'},{type:'card',time:90,minute:'2',teamId:'1',playerId:'fake1',card:'yellow'}],engineBuild:'mock'})}
 };
 const context={self:{TF},TF,Date:{now:()=>calls*1100+1000},setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout:()=>{},postMessage:data=>messages.push(data),importScripts:(...files)=>assert.equal(files.length,11),console};
 vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/../tm-worker.js','utf8'),context);
@@ -19,5 +19,6 @@ context.onmessage({data:{type:'finish'}});
 let n=0;while(timers.length&&n++<5){timers.shift()()};
 assert.equal(messages.at(-1).type,'done');assert.equal(messages.at(-1).report.score.home,1);
 assert.ok(messages.some(x=>x.type==='snapshot'&&x.events?.some(e=>e.type==='goal')),'genuine event streamed');
+assert.ok(messages.at(-1).report.events.some(e=>e.type==='card'),'Full-time report retains actually recorded card events');
 assert.ok(messages.some(x=>x.type==='performance'&&x.metrics.ticksPerSecond>0),'actual physics throughput reported');
 assert.equal(calls,3);console.log('PASS worker protocol: local module imports, engine snapshots, event streaming, full-time report');
