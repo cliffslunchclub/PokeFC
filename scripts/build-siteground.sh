@@ -22,7 +22,7 @@ cp ratings/index.html dist/ratings/
 
 # Challenge uses National species, special-item data, and Play opponent table.
 cp challenge/index.html challenge/challenge.css challenge/special-items-data.js \
-   challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js dist/challenge/
+   challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/picker-window.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js dist/challenge/
 
 # Exhibition: its own watched-match worker and TacticMesh bridge; all resources
 # are relative to /play/ so Franchise and Play can independently start workers.
