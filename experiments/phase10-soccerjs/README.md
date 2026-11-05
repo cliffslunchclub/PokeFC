@@ -12,6 +12,35 @@ This folder stages source from the PUBLIC `pokefc-simulation` technical proof on
 - A separate public test showed an externally directed 120-minute timeline can feed native Soccer-JS entities without simulating new goals.
 - The **private local exporter** now reproduces the exact public 2–1 fixture (score, individual goals/minutes, shot totals, full box score) from the same Quick Sim seed, without publishing engine source. That was checked without GitHub Actions.
 
+## Experimental Watch → Quick Sim mode hooks (new)
+
+Private staging now includes an opt-in, same-origin iframe bridge in `watch-bridge.js`. It supplies a **precomputed and immutable Quick Sim result** to the Soccer-JS renderer, then records that exact result when the user chooses **Sim to End → Record official result**.
+
+- **Franchise:** Open `/franchise/?phase10=soccerjs`, select **Soccer-JS · Phase 10 test** in the Tactical Viewer. It uses `getTacticalPreview().result` and calls `simWeek()` only on explicit recording. The other 15 fixtures still follow the existing Quick Sim path.
+- **Challenges:** From a locked Gauntlet team, use the existing **Watch Match** link to `/play/?challenge=1`. There is a new **Soccer-JS · Phase 10 test** button beside Quick Sim and TacticMesh. This uses the existing locked Challenge roster and `saveChallengeResult()` only after explicit recording.
+- **Exhibition:** Open `/play/?phase10=soccerjs` to expose that same experimental button.
+- **Cancel:** Closing the watch overlay before recording does not advance a week or resolve a challenge.
+- **Handoff:** Pressing **Sim to End** reveals the existing 90-minute Quick Sim result. There is **no second simulation** and no change to official scorers/assists/stats. This is one-way replay handoff, not mid-match tactical re-simulation.
+- **Current limits:** No cross-origin framing, match-event editing, 120-minute watched knockout gameplay or production deployment.
+
+### Local mode integration trial
+
+After running the local builder below, start the web server **from the private repo root**:
+
+```sh
+node experiments/phase10-soccerjs/test-handoff.cjs
+bash experiments/phase10-soccerjs/build-local.sh
+python3 -m http.server 8765 --directory .
+```
+
+Then open `http://localhost:8765/franchise/?phase10=soccerjs` (create/load a franchise and choose Tactical) or `http://localhost:8765/play/?phase10=soccerjs`. For Challenges, navigate to `/challenge/`, lock an XI and use its Watch link.
+
+**Cost policy:** No private Actions CI runs; the iframe browser end-to-end test runs in the public repo:
+https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/41968855684
+That run verified the original sprite assets, official 1–0 at 54', Sim to End 2–1, one result saved, and cancel without saving.
+
+**Do not merge these opt-in HTML hooks into production until the experimental viewer assets are packaged in a deployment-safe location** and the actual Franchise/Challenges UIs pass complete browser playtests. The current production allowlist deliberately excludes `experiments/`.
+
 ## NOT yet implemented
 
 - Dynamically triggering Watch from Franchise/Challenges with their current match state.
@@ -56,4 +85,4 @@ After re-exporting, rerun `build-local.sh` to refresh `dist/fixture.json`.
 - Knockout-period contract: https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/41963569180
 - Native renderer external-state proof: https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/41963234553
 
-**Next milestone:** Call the exporter with a saved Franchise/Challenges match, direct a real five-minute sequence with the Match Director, and prove the score and player events agree when skipping or resuming.
+**Next milestone:** Complete full browser playtests inside Franchise and the locked Challenge gauntlet, then create natural possession/shot/goalkeeper animation sequences and implement the eventual production Watch ↔ Quick Sim match-state contract.
