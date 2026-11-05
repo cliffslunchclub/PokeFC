@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=29">
+<link rel="stylesheet" href="./challenge.css?v=30">
 <link rel="stylesheet" href="../newtro.css?v=1">
 </head>
 <body>
@@ -917,7 +917,7 @@ if(st.phase==='result'){
   '<div class="challenge-dialog-bar"><span>MATCH '+(st.round+1)+' / 6 · OFFICIAL RESULT</span>'+
   '<button type="button" id="closeMatchResultModal" aria-label="Close match result">✕ CLOSE</button></div>'+
   '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">MATCH '+(st.round+1)+' · '+esc(versusLabel(st.result?.boss))+'</span>'+
-  '<h2 id="challengeMatchResultTitle">'+esc(resultLabel(st.result?.outcome))+'</h2>'+
+  '<h2 id="challengeMatchResultTitle" class="challenge-result-verdict '+(st.result?.outcome==='Victory'?'win':'loss')+'">'+esc(resultLabel(st.result?.outcome))+'</h2>'+
   '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – '))+'</h1></div>'+
   matchReportHtml(st.result)+'</div>'+
   '<footer class="challenge-match-result-actions"><button type="button" id="closeMatchResultFooter">BACK TO MY XI</button>'+
@@ -934,8 +934,8 @@ if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><d
  '<div class="challenge-dialog-bar"><span id="runRecapModalTitle">POKÉFC · MATCH RESULT</span><button type="button" id="closeRunModal" aria-label="Close results">✕ CLOSE</button></div>'+
  '<div id="runFinishMatchStep" class="challenge-run-step">'+
  '<div class="challenge-match-result-content"><span class="challenge-dialog-kicker">FINAL MATCH · '+esc(versusLabel(st.result?.boss))+'</span>'+
- '<h2 id="finalMatchHeading">'+esc(resultLabel(st.result?.outcome))+'</h2>'+
- '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – ')+penaltyScore(st.result,true))+'</h1></div>'+
+ '<h2 id="finalMatchHeading" class="challenge-result-verdict '+(st.result?.outcome==='Victory'?'win':'loss')+'">'+esc(resultLabel(st.result?.outcome))+'</h2>'+
+ '<div class="challenge-final-score"><h1>'+esc((st.result?.score||[0,0]).join(' – '))+'</h1>'+(st.result?.shootout?'<p class="challenge-shootout-caption">PENALTIES '+esc(st.result.shootout.home+'–'+st.result.shootout.away)+'</p>':'')+'</div>'+
  matchReportHtml(st.result)+'</div>'+
  '<footer class="challenge-match-result-actions"><button type="button" id="finishCloseMatch">BACK TO PITCH</button>'+
  '<button type="button" id="continueTournamentOverview" class="primary">CONTINUE TO TOURNAMENT OVERVIEW →</button></footer></div>'+
