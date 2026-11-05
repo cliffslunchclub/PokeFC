@@ -85,10 +85,12 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(mounts,1);
  assert.equal(active?.ended,false);
  assert.equal(el('viewerSoccerRecord').disabled,true);
+ assert.equal(el('viewerMode').disabled,true,'Cannot change engines mid-replay');
  assert.equal(JSON.stringify(game.state()),before,'Opening Watch must not mutate career save');
  assert.equal(active.record(),false,'Cannot record prior to official full time');
  el('viewerComplete').onclick();
  assert.equal(el('viewerSoccerRecord').disabled,false,'Official final result unlocks recording');
+ assert.equal(el('viewerMode').disabled,true,'Sim to End must not unlock a new Watch engine');
  assert.equal(game.state().week,0,'Sim to End does not save or advance a week');
  el('viewerSoccerRecord').onclick();
  const saved=game.state();
