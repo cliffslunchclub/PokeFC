@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#080f1b">
-<meta name="description" content="Play exhibition Pokémon soccer against 32 Gym Leaders and Elite Four. Quick Sim or watch the TacticMesh match engine.">
+<meta name="description" content="Play exhibition Pokémon soccer using Quick Sim or the Soccer-JS 2.5D Pokémon match viewer.">
 <title>PokéFC · Quick Play</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1">
 <link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=1">
@@ -20,7 +20,7 @@
 </header>
 <main class="pfc-shell">
 <section class="play-intro"><span id="playIntroLabel" class="pfc-eyebrow">QUICK PLAY · EXHIBITION · NO LEAGUE SAVE</span><h1 id="playIntroHeading" class="pfc-mode-title">QUICK PLAY.</h1>
-<p id="playIntroText" class="pfc-mode-intro">Bring your Free Builder XI. Face any of 32 gyms across four regions, or challenge the Elite Four and Champions. Watch a genuine TacticMesh match or get an instant Quick Sim result.</p></section>
+<p id="playIntroText" class="pfc-mode-intro">Bring your Free Builder XI. Face any of 32 gyms across four regions, or challenge the Elite Four and Champions. Watch a Pokémon match with Soccer-JS 2.5D, use Quick Sim instantly, or choose the legacy TacticMesh fallback.</p></section>
 <div class="play-layout">
  <section class="play-panel setup-panel" aria-labelledby="setupTitle">
   <div class="play-panel-title"><span class="section-number">01</span><h2 id="setupTitle">MATCH SETUP</h2><span class="tiny-label">HOME XI</span></div>
@@ -38,7 +38,7 @@
   </select>
   <div class="play-actions">
    <button id="quick" class="play-btn primary" type="button">⚡ QUICK SIM</button>
-   <button id="watch" class="play-btn watch" type="button">▶ WATCH MATCH</button>
+   <button id="watch" class="play-btn watch" type="button">▶ WATCH MATCH · SOCCER-JS</button>
   </div>
   <p class="pfc-footnote">Exhibition only. Your Free Builder lineup stays saved and unchanged. Gym squads are generated from Pokémon matching each leader's type.</p>
  </section>
@@ -47,7 +47,7 @@
   <div class="scoreboard"><div><span class="team-side">HOME</span><strong id="homeName">YOUR XI</strong></div><div class="score-mid"><span id="matchClock">PRE-MATCH</span><div id="score">– : –</div><span id="matchState">Select an opponent</span></div><div class="away-name"><span class="team-side">AWAY</span><strong id="awayName">GYM LEADERS</strong></div></div>
   <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas></div>
   <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
-  <p id="engineStatus" class="engine-status" role="status">Choose Quick Sim for an instant result or Watch for real TacticMesh ball and player movement.</p>
+  <p id="engineStatus" class="engine-status" role="status">Quick Sim decides the official result. Soccer-JS is the primary Pokémon match viewer; TacticMesh remains a legacy fallback.</p>
   <div id="matchResult" class="match-result"><div class="empty-state"><span>⚽</span><strong>YOUR NEXT FIXTURE</strong><p>Build your eleven, select a gym, then kick off.</p></div></div>
   <a id="returnChallenge" class="play-btn watch return-challenge" href="../challenge/" hidden>RETURN TO CHALLENGES ↗</a>
  </section>
