@@ -1,0 +1,36 @@
+name: PSE 120-minute Watch and shootout
+on:
+  pull_request:
+    branches: [main, feature/pse-shared-knockout-rules]
+    paths:
+      - "watch/soccerjs/**"
+      - "play/play.js"
+      - "tests/test-pse-120-watch.cjs"
+      - ".github/workflows/pse-120-watch-pr-checks.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  knockout-watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check code syntax
+        run: |
+          node --check play/play.js
+          node --check pse-knockout.js
+          node --check watch/soccerjs/watch-bridge.js
+          node --check watch/soccerjs/phase10-motion.cjs
+          node --check watch/soccerjs/viewer-entry.cjs
+      - name: Validate 120-minute Watch, shootout and legacy replay compatibility
+        run: |
+          node tests/test-pse-120-watch.cjs
+          node watch/soccerjs/test-inline-bridge.cjs
+          node watch/soccerjs/test-isometric-motion.cjs
+          node tests/test-pse-knockout.cjs
+          node tests/test-pse-knockout-modes.cjs
+          node tests/test-challenge-pse-watch.cjs
+          node tests/test-challenge-soccerjs-watch.cjs
+          node tests/test-franchise-soccerjs-watch.cjs
+          node tests/test-play.cjs
+          node tests/test-challenge-match-report.cjs
