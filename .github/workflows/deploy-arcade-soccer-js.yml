@@ -1,0 +1,110 @@
+name: PokeFC Arcade Test — Soccer-JS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-arcade-soccer-js.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pfc-arcade-test-siteground
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test upstream Soccer-JS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pinned MIT-licensed upstream
+        uses: actions/checkout@v4
+        with:
+          repository: haeretici/soccer-js
+          ref: 38970e0dade0865078c9e84bc1ecfd72aaa02fde
+          path: upstream
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install and build
+        working-directory: upstream
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Test manual control and browser bundle
+        working-directory: upstream
+        run: |
+          npm run test:manual-control
+          npm run test:bundle
+
+      - name: Package subpath-safe static browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p arcade-dist
+          cp -R upstream/index.html upstream/html upstream/build upstream/assets upstream/presets upstream/LICENSE arcade-dist/
+          test -s arcade-dist/index.html
+          test -s arcade-dist/html/index.html
+          test -s arcade-dist/build/app.bundle.js
+          test -s arcade-dist/build/app.css
+          test -s arcade-dist/LICENSE
+          test ! -e arcade-dist/.git
+          echo "Soccer-JS browser build ready for /arcade-test/"
+
+      - name: Upload static build
+        uses: actions/upload-artifact@v4
+        with:
+          name: soccer-js-arcade-test
+          path: arcade-dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Publish isolated /arcade-test/ path on PFC
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download validated browser build
+        uses: actions/download-artifact@v4
+        with:
+          name: soccer-js-arcade-test
+          path: arcade-dist/
+
+      - name: Check deployment credentials
+        id: ftp
+        shell: bash
+        env:
+          HOST: ${{ secrets.SG_FTP_HOST }}
+          USERNAME: ${{ secrets.SG_FTP_USER }}
+          PASSWORD: ${{ secrets.SG_FTP_PASSWORD }}
+        run: |
+          if [[ -n "$HOST" && -n "$USERNAME" && -n "$PASSWORD" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Missing existing SiteGround FTPS repository secrets."
+            exit 1
+          fi
+
+      - name: Publish Soccer-JS only to arcade-test/
+        if: steps.ftp.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.SG_FTP_HOST }}
+          username: ${{ secrets.SG_FTP_USER }}
+          password: ${{ secrets.SG_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          security: strict
+          local-dir: ./arcade-dist/
+          server-dir: ./public_html/arcade-test/
+          dangerous-clean-slate: false
+          state-name: .ftp-deploy-sync-state-arcade-test.json
+          log-level: standard
