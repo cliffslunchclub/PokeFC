@@ -234,6 +234,25 @@ function saveChallengeResult(result){
  $('returnChallenge').hidden=false;
  return record;
 }
+function officialStatHtml(result){
+ const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Saves','saves'],
+  ['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
+ const table=rows.map(([label,key])=>'<div class="stat-row"><span>'+
+  esc(result.stats?.[0]?.[key]??'—')+(key==='possession'?'%':'')+
+  '</span><small>'+esc(label)+'</small><span>'+
+  esc(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+
+  '</span></div>').join('');
+ const players=(preview?[preview.home,preview.away]:[]).flatMap((team,side)=>
+  team.lineup.map(p=>({side,name:p.name||p.species||p.id,
+   count:Number(result.box?.[p.id]?.shotsOnTarget||0)})));
+ const shots=players.filter(x=>Number.isInteger(x.count)&&x.count>0)
+  .sort((a,b)=>a.side-b.side||b.count-a.count||String(a.name).localeCompare(String(b.name)));
+ const detail=shots.map(x=>'<div class="stat-row"><span>'+
+  (x.side?'AWAY':'HOME')+'</span><small>'+esc(x.name)+'</small><span>'+x.count+' SOT</span></div>').join('');
+ return '<div class="stat-table">'+table+'</div><h4>POKÉMON SHOTS ON TARGET</h4>'+
+  (detail?'<div class="stat-table">'+detail+'</div>':
+   '<p class="result-meta">No individual shots on target recorded.</p>');
+}
 function showResult(result){
  currentResult=result;
  const challengeRecord=saveChallengeResult(result);
@@ -241,11 +260,11 @@ function showResult(result){
  $('matchClock').textContent='FULL TIME';
  $('matchState').textContent=challengeRecord?challengeRecord.outcome.toUpperCase():result.score[0]>result.score[1]?'HOME WIN':result.score[0]<result.score[1]?'AWAY WIN':'DRAW';
  $('modeTag').textContent=result.origin==='tacticmesh'?'WATCHED':result.origin==='hybrid'?'WATCH → SIM':'QUICK SIM';
- const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
- const statRows=rows.map(([label,key])=>'<div class="stat-row"><span>'+ (result.stats?.[0]?.[key]??'—') +(key==='possession'?'%':'')+'</span><small>'+label+'</small><span>'+(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+'</span></div>').join('');
- $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?'<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+
-  '<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div>'+
-  '<div class="stat-table">'+statRows+'</div>';
+ $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?
+  '<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+
+  '<div class="result-title"><strong>'+($('matchState').textContent)+
+  '</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div>'+
+  officialStatHtml(result);
  // One feed serves live commentary and official full-time history.
  // Events still retain their WATCHED/QUICK continuation origin in the match data.
  renderLiveTimeline(result.events||[],result.origin,true);
@@ -283,10 +302,11 @@ function watchSoccerPreview(){
   preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
   // A single immutable official Quick Sim result is locked before the first 2.5D frame.
   const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
-  $('soccerProjection').value='isometric';$('soccerCamera').value='wide';
+  let lastShownMinute=-1;
+  $('soccerProjection').value='orthographic';$('soccerCamera').value='follow';
   $('soccerWatchActions').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
   $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D';
-  $('matchClock').textContent="0' / 90'";$('matchState').textContent='Preparing isometric match viewer';
+  $('matchClock').textContent="0' / 90'";$('matchState').textContent='Preparing Broadcast match viewer';
   $('engineStatus').textContent='Loading 2.5D Soccer-JS graphics; official Quick Sim outcome already locked.';
   stateBusy(true);
   const viewport=document.querySelector('.field-shell');
@@ -294,16 +314,36 @@ function watchSoccerPreview(){
   soccerSession=window.FXI_PHASE10_WATCH.mountInline({
    preview,result:official,container:viewport,
    onReady:(session)=>{
-    session.setProjection('isometric');session.setCamera('wide');
-    session.play(Number($('watchSpeed').value)||4);
+    session.setProjection('orthographic');session.setCamera('follow');
+    session.play(Number($('watchSpeed').value)||1);
     $('pause').disabled=false;$('resume').disabled=true;$('simRemaining').disabled=false;
-    $('matchState').textContent='WATCHING · ISOMETRIC';
+    $('matchState').textContent='WATCHING · BROADCAST';
     $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
    },
    onProgress:({minute,score,finished})=>{
     $('score').textContent=score.join(' : ');
     $('matchClock').textContent=finished?'FULL TIME':Math.floor(minute)+"' / 90'";
+    const displayMinute=Math.floor(minute);
+    if(displayMinute!==lastShownMinute&&!finished){
+     lastShownMinute=displayMinute;
+     const recorded=(official.events||[]).filter(e=>Number(e.minute)<=minute);
+     const onTarget=[0,0];
+     for(const e of recorded){
+      const side=String(e.team)===String(preview.home.id)?0:1;
+      if(e.type==='goal')onTarget[side]++;
+      else if(e.type==='save')onTarget[1-side]++;
+     }
+     $('matchResult').innerHTML='<div class="result-title"><strong>SHOTS ON TARGET SO FAR</strong>'+
+      '<span class="result-meta">'+onTarget.join(' – ')+'</span></div>'+
+      '<p class="result-meta">Official goals and goalkeeper saves shown as they occur. Full match statistics appear at full time.</p>';
+     renderLiveTimeline(recorded,'quick-sim');
+    }
     if(finished){
+     $('matchResult').innerHTML='<div class="result-title"><strong>FULL TIME · NOT YET RECORDED</strong>'+
+      '<span class="result-meta">'+official.score.join(' – ')+'</span></div>'+
+      officialStatHtml(official)+
+      '<p class="result-meta">Click Record Official Result to save this outcome. Sim to End never saves automatically.</p>';
+     renderLiveTimeline(official.events||[],'quick-sim',true);
      $('matchState').textContent='FULL TIME · READY TO RECORD';
      $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
      $('soccerRecord').disabled=false;
@@ -407,7 +447,7 @@ function start(){
   loadSoccerBridge();
  }
  $('pause').addEventListener('click',()=>{if(soccerSession)soccerSession.pause();else controller?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
- $('resume').addEventListener('click',()=>{if(soccerSession)soccerSession.play(Number($('watchSpeed').value)||4);else controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='WATCHING'});
+ $('resume').addEventListener('click',()=>{if(soccerSession)soccerSession.play(Number($('watchSpeed').value)||1);else controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='WATCHING'});
  $('simRemaining').addEventListener('click',()=>{
   if(soccerSession){
    if(soccerSession.simToEnd()){$('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;}
@@ -417,7 +457,7 @@ function start(){
   $('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;
   $('engineStatus').textContent='Validating live TacticMesh handoff…';controller.handoff();
  });
- $('watchSpeed').addEventListener('change',e=>{if(soccerSession)soccerSession.setSpeed(Number(e.target.value)||4);else controller?.speed(Number(e.target.value)||4)});
+ $('watchSpeed').addEventListener('change',e=>{if(soccerSession)soccerSession.setSpeed(Number(e.target.value)||1);else controller?.speed(Number(e.target.value)||4)});
  window.addEventListener('pageshow',updateXI);
  fillOpponents();updateXI();drawPitch();
 }
