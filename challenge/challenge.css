@@ -815,7 +815,7 @@
 .challenge-frame #app:has(.slot-machine-spinning) .challenge-draft-reels #genR{pointer-events:none;opacity:.45}
 /* Pokémon picker is a genuine non-modal dialog, keeping pitch targets and
    existing mouse/touch drag interactions usable outside the popover. */
-.challenge-frame .challenge-dialog.challenge-draft-panel{position:fixed!important;z-index:1100!important;top:90px!important;right:max(16px,calc((100vw - 1240px)/2))!important;left:auto!important;bottom:auto!important;margin:0!important;width:min(555px,calc(100vw - 32px))!important;max-width:555px!important;max-height:calc(100dvh - 112px)!important;padding:0!important;background:#14293c!important;border:1px solid #83b19a!important;box-shadow:0 22px 75px #000b,0 0 0 1px #d7f5b93d!important}
+.challenge-frame .challenge-dialog.challenge-draft-panel{position:fixed!important;z-index:1100!important;top:90px!important;right:max(16px,calc((100vw - 1240px)/2))!important;left:auto!important;bottom:auto!important;margin:0!important;width:min(500px,calc(100vw - 32px))!important;max-width:500px!important;max-height:min(79dvh,720px)!important;padding:0!important;background:#14293c!important;border:1px solid #83b19a!important;box-shadow:0 22px 75px #000b,0 0 0 1px #d7f5b93d!important}
 .challenge-draft-panel .challenge-section-heading{padding:13px 16px 0;margin:0}
 .challenge-draft-panel .challenge-section-heading h2{font-size:17px!important;margin:0}
 .challenge-draft-modal-help{margin:3px 16px 9px!important;font-size:11px!important;line-height:1.45!important;color:#b9d3d7!important}
@@ -965,7 +965,7 @@
 .challenge-draft-panel .challenge-draft-reels .controls-inline button{flex:1;min-height:37px;padding:7px 8px!important;font-size:10px!important}
 .challenge-draft-panel .challenge-draft-reels>p:first-of-type{display:none}
 .challenge-draft-panel .challenge-draft-reels .reroll-unique-note{margin:6px 0 0!important;text-align:center}
-.challenge-draft-panel .challenge-pick-grid{max-height:min(35dvh,390px)}
+.challenge-draft-panel .challenge-pick-grid{max-height:min(30dvh,330px)}
 .challenge-draft-panel .challenge-draft-modal-help{font-size:10px!important;line-height:1.35!important;margin:5px 16px 6px!important}
 .challenge-frame .challenge-dialog.challenge-draft-panel[open]{overscroll-behavior:contain}
 /* For small screens, one self-contained draft sheet replaces the separate
