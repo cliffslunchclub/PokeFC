@@ -74,7 +74,11 @@
       const helper=next()<P.assistProbability?choice(next,attackers.filter(p=>p.id!==shooter.id),p=>n(p.main.shortPassing)+n(p.main.vision)):null;
       if(helper)box[helper.id].assists++;
       const when=minute+next();events.push({minute:when,minuteLabel:String(Math.floor(when)+1),type:'goal',team:team.id,player:shooter.id,assist:helper?.id||null,origin:'quick-sim'});
-     }else{stats[1-side].saves++;const keeper=teams[1-side].lineup.find(p=>p.pos==='GK');if(keeper)box[keeper.id].saves++}
+     }else{stats[1-side].saves++;const keeper=teams[1-side].lineup.find(p=>p.pos==='GK');if(keeper){box[keeper.id].saves++;
+      // This was a real simulated save, not a chance inferred from final stats.
+      // Timestamp it within the simulation minute without extra RNG calls.
+      events.push({minute:minute+.5,minuteLabel:String(minute+1),type:'save',team:teams[1-side].id,player:keeper.id,shooter:shooter.id,origin:'quick-sim'});
+     }}
     }
     const passed=poisson(next,Math.max(.05,(P.passesBase+P.passesPossessionSlope*poss[side])/90));t.passes+=passed;t.completedPasses+=binomial(next,passed,P.passAccuracy);
     for(const player of challengers){

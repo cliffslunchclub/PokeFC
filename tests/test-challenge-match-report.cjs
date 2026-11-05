@@ -24,6 +24,11 @@ const result={
 let r=report.fromResult(result,fixture);
 assert.equal(r.status,'complete');
 assert.equal(r.goals.length,3);
+assert.equal(r.version,3,'Timeline-capable save format');
+assert.equal(r.timeline.length,3,'All existing goal events appear in the chronological timeline');
+assert.deepEqual(Array.from(r.timeline.map(e=>e.minuteLabel)),['12','67','88']);
+assert.match(report.renderTimeline(r.timeline),/GOAL/);
+assert.match(report.renderTimeline(r.timeline),/Assist: Pikachu/);
 assert.deepEqual(Array.from(r.goals.map(x=>x.minuteLabel)),['12','67','88']);
 assert.deepEqual(Array.from(r.goals.map(x=>x.player)),['Charizard','Lapras','Pikachu']);
 assert.equal(r.goals[0].assist,'Pikachu');
@@ -46,6 +51,8 @@ const unavailable=report.fromResult({score:[2,1],stats:[{shots:9},{shots:7}],ori
 assert.equal(unavailable.status,'unavailable');
 assert.equal(unavailable.goals.length,0,'Never invent a scorer or time for old saves');
 assert.equal(unavailable.playerShotsOnTarget.length,0,'No player SOG invented from team shots');
+assert.equal(unavailable.timeline.length,0,'No individual events fabricated from summary stats');
+assert.doesNotMatch(report.renderTimeline(unavailable.timeline),/GOAL|SAVE|FOUL/,'Missing event log stays empty');
 assert.equal(unavailable.stats.possession[0],null,'Missing possession must not become 0%');
 const mismatch=report.fromResult({...result,events:result.events.slice(0,1)},fixture);
 assert.equal(mismatch.status,'partial');
@@ -56,4 +63,23 @@ assert.equal(clean.goals.length,0);
 const anonymous=report.fromResult({score:[1,0],events:[{type:'goal',minute:33.4,team:'challenger',player:'no-longer-present'}]},fixture);
 assert.equal(anonymous.goals[0].player,'Scorer unavailable');
 assert.equal(anonymous.goals[0].minuteLabel,'34');
-console.log('PASS Challenge goal ledger: scorer/assist/minutes, both sides, match stats, hybrid source, legacy unavailable and no fabricated events');
+const allEvents=report.timelineFromEvents([
+ {type:'substitution',team:'challenger',minute:71.2,playerOff:'c10-25',playerOn:'c4-233',origin:'tacticmesh'},
+ {type:'save',team:'challenger',minute:36.2,player:'c4-233',shooter:'boss9-131',origin:'quick-continuation'},
+ {type:'goal',team:'e4-lorelei',minute:12.4,player:'boss9-131',origin:'tacticmesh'},
+ {type:'card',team:'challenger',minute:44.4,player:'c9-6',card:'yellow',origin:'tacticmesh'},
+ {type:'foul',team:'e4-lorelei',minute:25.1,player:'boss3-80',origin:'tacticmesh'},
+ {type:'half-time',minute:45,origin:'tacticmesh'},
+ {type:'major-chance',team:'challenger',minute:46,player:'c9-6'}, // Unsupported/unrecorded interpretation is rejected.
+ {type:'goal',team:'alien-team',minute:48,player:'c9-6'}
+],fixture,'tacticmesh');
+assert.deepEqual(Array.from(allEvents.map(e=>e.type)),['goal','foul','save','card','half-time','substitution'],
+ 'Every supported recorded event is chronological and unsupported/unknown events are omitted');
+const html=report.renderTimeline(allEvents);
+for(const label of ['GOAL','FOUL','SAVE','YELLOW CARD','HALF-TIME','SUBSTITUTION','SIM TO END','WATCHED','Lapras','Porygon2'])
+ assert(html.includes(label),'Timeline includes '+label);
+assert(html.indexOf('GOAL')<html.indexOf('FOUL')&&html.indexOf('FOUL')<html.indexOf('SAVE'),'Chronological timeline displayed');
+const escaped=report.renderTimeline([{type:'foul',side:0,minuteLabel:'3',player:'<script>alert(1)</script>',origin:'tacticmesh'}]);
+assert(!escaped.includes('<script>'),'Player names HTML-escaped');
+assert(escaped.includes('&lt;script&gt;'),'Escaped player name remains readable');
+console.log('PASS Challenge event ledger: goals, saves, fouls, cards, substitutions, origin, chronology, escaped text, no fabricated events');

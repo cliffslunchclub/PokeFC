@@ -5,7 +5,7 @@
 <meta name="description" content="Play exhibition Pokémon soccer against 32 Gym Leaders and Elite Four. Quick Sim or watch the TacticMesh match engine.">
 <title>PokéFC · Quick Play</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1">
-<link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=1">
+<link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=2">
 </head><body>
 <header class="pfc-header">
   <div class="pfc-shell pfc-head-row">
@@ -48,6 +48,11 @@
   <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas></div>
   <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
   <p id="engineStatus" class="engine-status" role="status">Choose Quick Sim for an instant result or Watch for real TacticMesh ball and player movement.</p>
+  <section class="play-live-events" aria-label="Live match event commentary">
+   <div class="play-live-head"><h3>LIVE MATCH EVENTS</h3><span id="liveEventCount">0 RECORDED</span></div>
+   <div id="liveEventFeed" class="play-live-feed" aria-live="polite" aria-relevant="additions text"><p class="match-event-empty">Genuine watched events will appear here as they occur. Quick Sim events are shown after the match.</p></div>
+   <p class="play-event-disclaimer">Goals, cards, fouls and substitutions appear only when recorded. Saves appear where the simulation records the goalkeeper and shooter; unreported chances are never invented.</p>
+  </section>
   <div id="matchResult" class="match-result"><div class="empty-state"><span>⚽</span><strong>YOUR NEXT FIXTURE</strong><p>Build your eleven, select a gym, then kick off.</p></div></div>
   <a id="returnChallenge" class="play-btn watch return-challenge" href="../challenge/" hidden>RETURN TO CHALLENGES ↗</a>
  </section>
@@ -55,8 +60,8 @@
 </main>
 <footer class="pfc-shell pfc-page-footer">PokéFC · Independent fan project · Pokémon characters belong to their respective owners. Match models are developmental and uncalibrated.</footer>
 <script src="../national-species.js?v=1"></script>
-<script src="../calibration-profile.js"></script><script src="../quick-sim.js"></script>
-<script src="./opponents.js?v=1"></script><script src="../challenge/special-items-data.js"></script><script src="../challenge/leaderboard.js?v=1"></script><script src="../challenge/match-report.js?v=1"></script>
-<script src="./hybrid-sim.js"></script><script src="./tm-engine-bridge.js"></script>
-<script src="./play.js?v=1"></script>
+<script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script>
+<script src="./opponents.js?v=1"></script><script src="../challenge/special-items-data.js"></script><script src="../challenge/leaderboard.js?v=1"></script><script src="../challenge/match-report.js?v=3"></script>
+<script src="./hybrid-sim.js"></script><script src="./tm-engine-bridge.js?v=2"></script>
+<script src="./play.js?v=2"></script>
 </body></html>

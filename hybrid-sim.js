@@ -93,7 +93,13 @@
       events.push({type:'goal',minute,minuteLabel:String(Math.floor(minute)+1),team:team.id,player:shooter.id,assist:assister?.id||null,origin:'quick-continuation'});
      }else{
       enemy.saves++;
-      if(keeper)box[keeper.id].saves++;
+      if(keeper){
+       box[keeper.id].saves++;
+       // Only recorded continuation saves, not guessed watched-match stops.
+       const minute=Math.min(90,start+duration*.5);
+       events.push({type:'save',minute,minuteLabel:String(Math.floor(minute)+1),
+        team:oppTeam.id,player:keeper.id,shooter:shooter.id,origin:'quick-continuation'});
+      }
      }
     }
     const passRate=bound((P.passesBase+tPossession[side]*P.passesPossessionSlope)/90*duration,.1,15);

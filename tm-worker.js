@@ -15,6 +15,8 @@ function events(){const newEvents=cursor.read(handle.match.events||[]),m=handle.
  team:m.teams.find(t=>t.id===e.teamId)?.sourceId??null,
  player:m.playersById[e.scorerId||e.playerId||e.offenderId]?.sourceId||null,
  assist:m.playersById[e.assistId]?.sourceId||null,
+ playerOff:m.playersById[e.playerOffId]?.sourceId||null,
+ playerOn:m.playersById[e.playerOnId]?.sourceId||null,
  card:e.card||null
  }));}
 // Handoff is an atomic worker message: the pump is stopped before extracting
@@ -60,7 +62,7 @@ function end(){active=false;finishing=false;const r=TF.productReports.fromMatch(
  const report={complete:r.complete,status:r.status,score:r.score,
   teams:r.teams.map(t=>({id:t.id,stats:t.stats})),
   players:r.players.map(p=>({id:p.id,sourceId:p.sourceId,minutes:p.minutes,stats:p.stats,rating:p.rating})),
-  events:r.events.filter(e=>e.type==='goal'),engineBuild:r.engineBuild,ratingModelVersion:r.ratingModelVersion};
+  events:r.events.filter(e=>['goal','card','substitution','foul'].includes(e.type)),engineBuild:r.engineBuild,ratingModelVersion:r.ratingModelVersion};
  emit('done',{report,snapshot:snapshot()})}
 function pump(){timeout=null;if(!active||!handle)return;
  try{

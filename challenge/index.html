@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=16">
+<link rel="stylesheet" href="./challenge.css?v=17">
 </head>
 <body>
 <header class="pfc-header">
@@ -70,8 +70,8 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
  </div>
 </dialog>
 </div>
-<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=2"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=2"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=2"></script><script src="../play/opponents.js"></script><script>
+<script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script><script src="./special-items-data.js?v=2"></script>
+<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=2"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=3"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -484,11 +484,16 @@ function matchReportHtml(match){
    '<span class="goal-club">'+(side==='home'?'YOUR XI':'OPPONENT')+'</span><div class="goal-info">'+
    '<strong>⚽ '+player+'</strong>'+assist+'</div><span class="goal-origin">'+eventOrigin+'</span></li>';
  }).join(''):'<li class="match-no-goals">'+(Number(score[0])===0&&Number(score[1])===0?'No goals in regulation.':'Goal scorer and minute details were not recorded for this match.')+'</li>';
+ const savedTimeline=Array.isArray(report?.timeline)&&report.timeline.length?report.timeline:
+  goals.map(goal=>({...goal,type:'goal'})); // Legacy runs retain their real scorer ledger.
+ const timelineHtml=MATCH_REPORT?.renderTimeline?.(savedTimeline,{
+  empty:'No individual events were recorded for this match.'
+ })||'<ol class="match-goal-feed">'+goalFeed+'</ol>';
  const incomplete=report?.status&&report.status!=='complete'?'<p class="match-report-warning">'+esc(report.note||'Not all goal events were recorded.')+'</p>':!report&&score.some(x=>Number(x)>0)?'<p class="match-report-warning">This earlier game was saved before detailed goal logs were supported.</p>':'';
  return '<div class="gauntlet-match-report">'+
   awardMarkup(match)+
   '<div class="match-report-heading"><span class="pfc-eyebrow">'+esc(source)+'</span><strong>YOUR XI&nbsp; '+scoreText+'&nbsp; '+esc(match.boss||'OPPONENT')+'</strong></div>'+
-  '<h4>GOALS &amp; MATCH MINUTES</h4><ol class="match-goal-feed">'+goalFeed+'</ol>'+incomplete+
+  '<h4>MATCH EVENT TIMELINE</h4>'+timelineHtml+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
   individualShotsHtml(match)+

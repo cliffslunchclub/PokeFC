@@ -62,12 +62,21 @@ function translate(report,preview){if(!report||!report.complete||report.status!=
   shotsOnTarget:s.shotsOnTarget==null?null:Number(s.shotsOnTarget),goals:score[i],
   saves:Number(s.shotStops)||0,passes:Number(s.passes)||0,completedPasses:Number(s.completedPasses)||0,
   possession:s.possessionPercent==null?null:Number(s.possessionPercent),tackleAttempts:Math.max(Number(s.tackleAttempts)||0,Number(s.tackles)||0),tackles:Number(s.tackles)||0};});
- const events=(report.events||[]).filter(e=>e.type==='goal').map(e=>({
+ // Goal team IDs remain strict; incomplete metadata on a secondary event
+ // must not cause a valid completed match result to be discarded.
+ const events=(report.events||[]).filter(e=>
+  ['goal','card','foul','substitution'].includes(e.type)&&
+  (e.type==='goal'||String(e.teamId)===String(preview.home.id)||String(e.teamId)===String(preview.away.id))
+ ).map(e=>({
   minute:Math.max(0,Number(e.time||0)/60),minuteLabel:String(e.minute||Math.floor(Number(e.time||0)/60)),
-  type:'goal',team:clubFor(e.teamId),player:idFor.get(String(e.scorerId))||null,
-  assist:idFor.get(String(e.assistId))||null
+  type:e.type,team:clubFor(e.teamId),
+  player:idFor.get(String(e.scorerId||e.playerId||e.offenderId))||null,
+  assist:idFor.get(String(e.assistId))||null,
+  playerOff:idFor.get(String(e.playerOffId))||null,
+  playerOn:idFor.get(String(e.playerOnId))||null,
+  card:e.card||null,origin:'tacticmesh'
  }));
- const scored=[0,0];events.forEach(e=>{scored[String(e.team)===String(preview.home.id)?0:1]++});
+ const scored=[0,0];events.filter(e=>e.type==='goal').forEach(e=>{scored[String(e.team)===String(preview.home.id)?0:1]++});
  if(scored[0]!==score[0]||scored[1]!==score[1])throw Error('Goal events do not match authoritative TacticMesh final score');
  return {home:preview.home.id,away:preview.away.id,score,stats:teamStats,events,box,origin:'tacticmesh',
   engineBuild:report.engineBuild,ratingModelVersion:report.ratingModelVersion};

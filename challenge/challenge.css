@@ -748,3 +748,26 @@
 @media(max-width:620px){.shop-auto-equip{grid-template-columns:1fr;padding:10px}.shop-auto-equip button{width:100%}.individual-shot-row{grid-template-columns:52px minmax(0,1fr) 54px;gap:5px;padding:7px}.individual-shot-row span{font-size:8px}}
 /* Scouting rerolls use never-before-seen type/region combinations. */
 .reroll-unique-note{margin:5px 0 12px!important;font-size:10px!important;line-height:1.5!important;color:#bdd9cc!important;letter-spacing:.01em}
+
+/* Recorded match events, shared by live Play and the Challenge run recaps. */
+.pfc-event-timeline{padding:0!important;margin:8px 0!important;list-style:none!important;display:grid;gap:6px}
+.pfc-event-entry{display:grid;grid-template-columns:41px 25px minmax(0,1fr) auto;gap:7px;align-items:center;background:#172e3d;border:1px solid #426073;border-left:3px solid #698fa0;border-radius:7px;padding:8px 10px}
+.pfc-event-entry.home{border-left-color:#a3e8b9}
+.pfc-event-entry.away{border-left-color:#f0c888}
+.pfc-event-entry.neutral{border-left-color:#88a7c7}
+.pfc-event-entry.goal{background:#22433e}
+.pfc-event-entry.card{background:#413828}
+.pfc-event-entry.save{background:#1e384e}
+.pfc-event-minute{font-size:13px;font-weight:950;color:#f2d79a;font-variant-numeric:tabular-nums}
+.pfc-event-icon{font-size:17px;text-align:center;line-height:1}
+.pfc-event-content{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pfc-event-content strong{font-size:11px;font-weight:950;color:#f4f7ef;letter-spacing:.035em}
+.pfc-event-content span{font-size:11px;color:#e0eaf3;overflow-wrap:anywhere}
+.pfc-event-content small{font-size:9px;color:#afcbd2;font-weight:800;letter-spacing:.045em}
+.pfc-event-origin{font-size:9px;white-space:nowrap;color:#bbd9cc;letter-spacing:.05em;font-weight:850}
+.match-event-empty{margin:8px 0!important;padding:10px 12px;border:1px dashed #547185;border-radius:7px;color:#b8cddd!important;font-size:11px!important;line-height:1.5}
+@media(max-width:570px){
+ .pfc-event-entry{grid-template-columns:35px 22px minmax(0,1fr);gap:6px;padding:7px}
+ .pfc-event-minute{font-size:12px}
+ .pfc-event-origin{grid-column:3;justify-self:start;font-size:8px}
+}
