@@ -486,11 +486,10 @@ function matchReportHtml(match){
   const side=Number(goal.side)===0?'home':'away';
   const player=esc(goal.player||'Scorer unavailable');
   const assist=goal.assist?'<small>Assist: '+esc(goal.assist)+'</small>':'';
-  const eventOrigin=goal.origin==='tacticmesh'?'WATCHED':goal.origin==='quick-continuation'?'SIM TO END':'QUICK SIM';
   const minute=String(goal.minuteLabel||'?').replace(/[^0-9+?]/g,'')||'?';
   return '<li class="match-goal-event '+side+'"><span class="goal-minute">'+minute+'′</span>'+
    '<span class="goal-club">'+(side==='home'?'YOUR XI':'OPPONENT')+'</span><div class="goal-info">'+
-   '<strong>⚽ '+player+'</strong>'+assist+'</div><span class="goal-origin">'+eventOrigin+'</span></li>';
+   '<strong>⚽ '+player+'</strong>'+assist+'</div></li>';
  }).join(''):'<li class="match-no-goals">'+(Number(score[0])===0&&Number(score[1])===0?'No goals in regulation.':'Goal scorer and minute details were not recorded for this match.')+'</li>';
  const savedTimeline=Array.isArray(report?.timeline)&&report.timeline.length?report.timeline:
   goals.map(goal=>({...goal,type:'goal'})); // Legacy runs retain their real scorer ledger.
