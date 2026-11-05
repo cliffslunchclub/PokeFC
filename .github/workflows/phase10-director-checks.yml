@@ -1,0 +1,36 @@
+name: PokéFC Phase 10 — Match Director chunk 1
+
+on:
+  push:
+    branches:
+      - experiment/phase10-match-director
+    paths:
+      - "match-director/**"
+      - "tests/test-phase10-director.cjs"
+      - "scripts/demo-phase10.cjs"
+      - ".github/workflows/phase10-director-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  director-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Match Director, test, and demo syntax
+        run: |
+          node --check match-director/timeline.js
+          node --check tests/test-phase10-director.cjs
+          node --check scripts/demo-phase10.cjs
+      - name: Verify existing Quick Sim scoring is untouched
+        run: node tests/test-quick-seed-compat.cjs
+      - name: Test Phase 10 shot timeline across 220 seeded matches
+        run: node tests/test-phase10-director.cjs
+      - name: Produce reproducible five-minute demo
+        run: node scripts/demo-phase10.cjs
