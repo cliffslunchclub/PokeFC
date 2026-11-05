@@ -102,10 +102,16 @@ const draft=launch('draft');
 assert.match(draft.app.innerHTML,/class="challenge-run-layout stage-draft"/);
 assert.match(draft.app.innerHTML,/id="challengeDraftModal"/);
 assert.match(draft.app.innerHTML,/id="draftSearch"/);
-assert.match(draft.app.innerHTML,/data-reel="pool"><span class="slot-reel-label">DRAFT STATUS<\/span>/,
- 'Three-reel draft status replaces numeric Pokémon pool');
-assert.doesNotMatch(draft.app.innerHTML,/POKÉMON POOL|\d+ ELIGIBLE|\d+ MATCHING POKÉMON/,
- 'Scouting UI no longer exposes pool counts');
+assert.equal((draft.app.innerHTML.match(/data-reel="(?:region|type)"/g)||[]).length,2,
+ 'Region and Type are the only two scouting reels');
+assert.doesNotMatch(draft.app.innerHTML,/data-reel="pool"|DRAFT STATUS|READY<\/span>/,
+ 'Removed third status reel and READY label');
+assert.doesNotMatch(draft.app.innerHTML,/POKÉMON POOL|\d+ ELIGIBLE|\d+ MATCHING POKÉMON|HOENN · FIGHTING · ready to draft/,
+ 'Scouting UI omits pool counts and the old visible outcome sentence');
+assert.match(css,/\.slot-machine-reels\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,
+ 'Scouting reels use two equal columns');
+assert.match(css,/\.challenge-reel-screenreader\{position:absolute!important/,
+ 'Status announcements remain accessible but visually hidden');
 
 const pickerAt=draft.app.innerHTML.indexOf('id="challengeDraftModal"');
 const machineAt=draft.app.innerHTML.indexOf('id="challengeSlotMachine"');

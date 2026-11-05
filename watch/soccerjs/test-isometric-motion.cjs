@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const {motionFrame}=require('./phase10-motion.cjs');
+const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const fixture=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'fixture.json'),'utf8'));
 const initial=JSON.stringify(fixture);
 const field={width:106,height:68};
@@ -34,5 +34,23 @@ for(const goal of fixture.events){
  const side=teamIds.indexOf(goal.team),idx=([fixture.home,fixture.away][side]).lineup.findIndex(p=>p.id===goal.player);
  assert(at.actors[side*11+idx].frame===3,'Shooter not in shot pose');
 }
+// PR #30 compatible improvements: validate official final shot ledger,
+// not fictitious live on-target counts, and slow near official goal times.
+const summary=shotSummary(fixture.stats);
+assert.match(summary,/FULL-TIME TOTALS \(not live\)/);
+assert.match(summary,/Shots 14–16/);
+assert.match(summary,/On target 9–7/);
+assert.match(summary,/Keeper saves 6–7/);
+assert.throws(()=>shotSummary([{...fixture.stats[0],shotsOnTarget:99},fixture.stats[1]]),/reconcile/);
+assert.throws(()=>shotSummary([{...fixture.stats[0],saves:100},fixture.stats[1]]),/reconcile/);
+const goal=fixture.events.find(e=>e.type==='goal');
+assert(goal);
+const steady=playbackRate(0,fixture.events,1);
+assert.equal(steady,.32,'Current default 1x must remain at its deployed clock rate');
+assert.equal(playbackRate(0,fixture.events,4),1.28,'4x must preserve current user-facing speed');
+assert(playbackRate(goal.minute-.3,fixture.events,1)<steady,'Goal approach should slow down');
+assert(playbackRate(goal.minute+.1,fixture.events,1)<steady,'After the goal should slow down');
+assert.equal(playbackRate(0,[{type:'save',minute:0}],1),.32,'A save should not be mistaken for a goal');
+assert.equal(playbackRate(15,[],2),.64,'An empty goal ledger retains normal rate');
 assert.equal(JSON.stringify(fixture),initial,'Source match mutated by visuals');
 console.log('PASS Phase10 isometric motion: '+runs+' identical five-minute frames, passes, contests, dribbles, all 3 official scorers, no source change');

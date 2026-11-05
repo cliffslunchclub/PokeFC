@@ -22,13 +22,13 @@ vm.runInContext(fs.readFileSync(path.join(root,'challenge/slot-reels.js'),'utf8'
 const api=win.PFC_CHALLENGE_SLOT_REELS;
 assert(api);
 function nodes(){
- const labels=['region','type','pool'];
+ const labels=['region','type'];
  const reels=labels.map(()=>{const classes=new Set();return{classes,classList:{
   toggle(k,on){on?classes.add(k):classes.delete(k)},add:k=>classes.add(k),remove:k=>classes.delete(k)}}});
  const values=Object.fromEntries(labels.map((x,i)=>[x,{textContent:'?',closest:()=>reels[i]}]));
  const skip={hidden:true,onclick:null},live={textContent:''},classes=new Set();
  const els={
-  '[data-reel-value="region"]':values.region,'[data-reel-value="type"]':values.type,'[data-reel-value="pool"]':values.pool,
+  '[data-reel-value="region"]':values.region,'[data-reel-value="type"]':values.type,
   '[data-reel-skip]':skip,'[data-reel-live]':live
  };
  const element={querySelector:q=>els[q],querySelectorAll:q=>q==='.slot-reel'?reels:[],
@@ -40,17 +40,18 @@ let done=0;const a=nodes();
 api.mount(a.element,final,{animate:true,pool:4,onDone:()=>done++});
 assert.equal(a.skip.hidden,false);
 assert.equal(a.classes.has('slot-machine-spinning'),true);
-assert.notEqual(a.values.pool.textContent,'READY','Draft status reel starts cycling without exposing a pool count');
+assert.equal(a.element.querySelector('[data-reel-value="pool"]'),undefined,'Only two reels are present');
 advance(900);
 assert.equal(a.values.region.textContent,'SINNOH','region reel settles first');
 advance(350);
 assert.equal(a.values.type.textContent,'WATER','type reel settles second');
-advance(600);
-assert.equal(a.values.pool.textContent,'READY','Final reel announces readiness, not Pokémon pool size');
+advance(75);
+assert.equal(done,1,'Candidate reveal completes shortly after second reel, with no third reel delay');
+assert.equal(a.classes.has('slot-machine-spinning'),false,'Spinner completes after region and type');
 assert.equal(a.classes.has('slot-machine-spinning'),false);
 assert.equal(a.skip.hidden,true);
 assert.equal(done,1);
-assert.match(a.live.textContent,/ready to draft/);
+assert.match(a.live.textContent,/Scouting complete/);
 assert.doesNotMatch(a.live.textContent,/\d+ eligible Pokémon/,'No pool quantity is exposed in reel status');
 assert.equal(tasks.size,0,'no timers left after finished animation');
 const b=nodes();let skipped=0;
@@ -60,7 +61,7 @@ b.skip.onclick();
 assert.equal(skipped,1);
 assert.equal(b.values.region.textContent,'PALDEA');
 assert.equal(b.values.type.textContent,'FIRE');
-assert.equal(b.values.pool.textContent,'READY','Skipping shows ready status without pool size');
+assert.equal(b.element.querySelector('[data-reel-value="pool"]'),undefined,'No third status reel after skip');
 assert.equal(tasks.size,0,'skipping clears all intervals');
 const c=nodes();let cancelled=0;
 api.mount(c.element,final,{animate:true,pool:4,onDone:()=>cancelled++});
@@ -77,4 +78,4 @@ assert.equal(tasks.size,0);
 let noReelsDone=0;
 api.mount({querySelector(){return null}},final,{animate:true,onDone:()=>noReelsDone++});
 assert.equal(noReelsDone,1,'Incomplete reel UI still triggers reveal callback');
-console.log('PASS Challenge slot reels: staggered settle, player skip, cancel, reduced motion, exact pre-rolled outcome');
+console.log('PASS Challenge two-reel scouting: staggered settle, skip, cancel, reduced motion and exact pre-rolled outcome');
