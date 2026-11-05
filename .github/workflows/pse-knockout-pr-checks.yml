@@ -23,6 +23,7 @@ jobs:
           node --check pse-knockout.js
           node --check career.js
           node tests/test-pse-knockout.cjs
+          node tests/test-pse-knockout-modes.cjs
       - name: Existing challenge and franchise compatibility
         run: |
           node tests/test-challenge-penalties.cjs
