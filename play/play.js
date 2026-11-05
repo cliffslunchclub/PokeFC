@@ -220,7 +220,7 @@ function stateBusy(isBusy){
  updateXI();
  $('region').disabled=isBusy||CHALLENGE_MODE;$('opponent').disabled=isBusy||CHALLENGE_MODE;$('tactic').disabled=isBusy||CHALLENGE_MODE;
  $('fillXI').disabled=isBusy||CHALLENGE_MODE;
- if($('watchSoccerPhase10'))$('watchSoccerPhase10').disabled=isBusy||!getXI()?.lineup?.every(Boolean);
+ if($('watchTacticMesh'))$('watchTacticMesh').disabled=isBusy||!getXI()?.lineup?.every(Boolean);
 }
 function stopWatch(){
  if(controller){controller.close();controller=null}
@@ -304,12 +304,12 @@ function start(){
  $('opponent').addEventListener('change',selectOpponent);
  $('fillXI').addEventListener('click',autoFill);
  $('quick').addEventListener('click',quickSim);
- $('watch').addEventListener('click',watchMatch);
+ $('watch').addEventListener('click',watchSoccerPhase10);
  // Existing Challenge WATCH link opens this page with ?challenge=1.
- if((CHALLENGE_MODE||new URLSearchParams(location.search).get('phase10')==='soccerjs')&&window.FXI_PHASE10_WATCH){
-  const button=document.createElement('button');button.id='watchSoccerPhase10';button.type='button';
-  button.className='play-btn watch';button.textContent='▶ SOCCER-JS · PHASE 10 TEST';
-  $('watch').after(button);button.addEventListener('click',watchSoccerPhase10);
+ if(window.FXI_TM){
+  const button=document.createElement('button');button.id='watchTacticMesh';button.type='button';
+  button.className='play-btn watch';button.textContent='↩ TacticMesh (legacy fallback)';
+  $('watch').after(button);button.addEventListener('click',watchMatch);
  }
  $('pause').addEventListener('click',()=>{controller?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
  $('resume').addEventListener('click',()=>{controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='LIVE'});
