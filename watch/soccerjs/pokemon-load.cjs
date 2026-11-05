@@ -1,8 +1,15 @@
 'use strict';
+// Public PokeAPI sprites are loaded directly; no local /pokemon/ files are
+// distributed by the allowlisted SiteGround 2.5D runtime build.
+// Avoid a predictable 404 for every player at kickoff.
 const URLROOT='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
 function sources(id){
- const local=id<=649?'./pokemon/bw/'+id+'.png':'./pokemon/default/'+id+'.png';
- return [...new Set([local,id<=649?URLROOT+'versions/generation-v/black-white/'+id+'.png':URLROOT+id+'.png',URLROOT+id+'.png'])];
+ const dex=Number(id);
+ if(!Number.isInteger(dex)||dex<1||dex>1025)return [];
+ const preferred=dex<=649
+  ? URLROOT+'versions/generation-v/black-white/'+dex+'.png'
+  : URLROOT+dex+'.png';
+ return [...new Set([preferred,URLROOT+dex+'.png'])];
 }
 function oneImage(id,create=()=>new Image()){
  const urls=sources(id);let index=0;
