@@ -14,7 +14,7 @@ for(const p of ['national-species.js','calibration-profile.js','quick-sim.js','c
 }
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert(html.includes('class="challenge-hero"'));
-assert(html.includes('href="./challenge.css?v=13"'));
+assert(html.includes('href="./challenge.css?v=14"'));
 assert(css.includes('.challenge-pitch')&&css.includes('.challenge-pick-grid'));
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),ctx,{filename:'challenge-inline',timeout:15000});
 assert(app.innerHTML.includes('challenge-hub'),'Setup uses dashboard grid');
@@ -28,7 +28,7 @@ controls.get('start').onclick();
 const state=()=>JSON.parse(saves.get('pokefc-challenge-alpha-1'));
 assert.equal(state().phase,'draft');
 assert.equal(state().pool,9);
-assert.equal(state().selected,8,'Fresh 4-3-3 draft starts at LW, not GK');
+assert.equal(state().selected,9,'Fresh 4-3-3 draft now starts at ST, with GK last');
 assert.equal(state().legends,true);
 assert(app.innerHTML.includes('challenge-scorebug'),'Draft scorebug');
 assert(app.innerHTML.includes('challenge-run-layout'),'Pitch and picker columns');

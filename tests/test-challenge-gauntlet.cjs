@@ -72,6 +72,11 @@ for(let i=0;i<6;i++){
  assert.equal(state().phase,'locked');
  assert.equal(state().round,i);
  assertOpponentPitch(opponentSource[i],'locked');
+ assert.match(app.innerHTML,/aria-label="Gauntlet match controls"/,'Match controls are in Indigo Gauntlet strip');
+ assert.match(app.innerHTML,/href="\.\.\/play\/\?challenge=1"/,'Watch Match keeps Challenge Play destination');
+ assert(app.innerHTML.indexOf('id="play"')<app.innerHTML.indexOf('challenge-run-layout'),'Quick Sim is above both pitches');
+ assert.equal((app.innerHTML.match(/id="play"/g)||[]).length,1,'Only one Quick Sim');
+ assert.equal((app.innerHTML.match(/class="challenge-watch-link"/g)||[]).length,1,'Only one Watch Match');
  assert.match(app.innerHTML,/class="panel challenge-road-strip"/,'Full-width Gauntlet road appears after XI lock');
  assert(app.innerHTML.indexOf('challenge-road-strip')<app.innerHTML.indexOf('challenge-run-layout'),'Progress renders before the two pitches');
  assert.equal((app.innerHTML.match(/<h2>ROAD TO CHAMPION/g)||[]).length,1,'No duplicate sidebar progress');
@@ -114,7 +119,12 @@ for(let i=0;i<6;i++){
  assert.match(app.innerHTML,/Jolteon/);
  assert.deepEqual(Array.from(state().locked.roster),ids,'Final XI remains unchanged');
  assert.equal(state().locked.items[0],'Eviolite','Items cannot be changed after lock');
- if(i<5){assert.equal(state().phase,'result');elems.next.onclick();}else assert.equal(state().phase,'finished');
+ if(i<5){
+  assert.equal(state().phase,'result');
+  assert(app.innerHTML.indexOf('id="next"')<app.innerHTML.indexOf('challenge-run-layout'),'Advance button is in Indigo Gauntlet');
+  assert.equal((app.innerHTML.match(/id="next"/g)||[]).length,1,'Only one advance action');
+  elems.next.onclick();
+ }else assert.equal(state().phase,'finished');
 }
 assert.equal(state().history.length,6);
 assert.match(app.innerHTML,/CHALLENGE CHAMPION/);
