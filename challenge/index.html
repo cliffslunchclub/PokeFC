@@ -888,6 +888,14 @@ body+='</div></div>'+
  '<button type="button" id="closePokemonDetailModal" aria-label="Close Pokémon profile">✕ CLOSE</button></div>'+
  '<div id="pokemonDetailContent" class="pokemon-detail-content"></div></dialog>'+
  '<section class="panel challenge-reset-panel"><button id="reset">ABANDON RUN / START OVER</button> <small>Autosaved on this device · Unranked alpha</small></section>';app.innerHTML=body;
+const mountDraftWindow=()=>{
+ draftWindowCleanup?.();draftWindowCleanup=null;
+ const picker=document.getElementById('challengeDraftModal');
+ const grip=document.getElementById('challengeDraftDragHandle');
+ if(picker?.open&&grip)draftWindowCleanup=PICKER_WINDOW?.mount?.(picker,grip,{
+  currentPosition:()=>draftWindowPosition,onMove:position=>{draftWindowPosition=position}
+ })||null;
+};
 const detailDialog=document.getElementById('challengePokemonDetailModal');
 const closePokemonDetail=()=>closeDialog(detailDialog);
 const openPokemonDetail=index=>{
@@ -920,8 +928,8 @@ if(st.phase==='result'){
 }
 if(isDraft){
  const picker=document.getElementById('challengeDraftModal');
- const openPicker=()=>{draftPickerOpen=true;openFloatingDialog(picker)};
- const closePicker=()=>{draftPickerOpen=false;closeDialog(picker)};
+ const openPicker=()=>{draftPickerOpen=true;openFloatingDialog(picker);mountDraftWindow()};
+ const closePicker=()=>{draftPickerOpen=false;draftWindowCleanup?.();draftWindowCleanup=null;closeDialog(picker)};
  document.getElementById('openDraftPicker').onclick=openPicker;
  document.getElementById('closeDraftPicker').onclick=closePicker;
  if(picker){
@@ -997,6 +1005,7 @@ function displayDraftPosition(index,commit){
  if(st.phase!=='draft'||!Number.isInteger(index)||index<0||index>=st.roster.length||st.roster[index])return;
  const changed=st.selected!==index;
  if(commit&&changed){st.selected=index;save()}
+ if(commit){const select=document.getElementById('draftPositionSelect');if(select)select.value=String(index)}
  const currentRole=FORMS[st.formation][index],group=roleGroup(currentRole);
  app.querySelectorAll('[data-slot-card]').forEach(card=>{
   if(!card.classList)return;
@@ -1016,7 +1025,7 @@ function displayDraftPosition(index,commit){
   }
   showingRole=group;
  }
- if(commit){draftPickerOpen=true;openFloatingDialog(document.getElementById('challengeDraftModal'))}
+ if(commit){draftPickerOpen=true;openFloatingDialog(document.getElementById('challengeDraftModal'));mountDraftWindow()}
  if(!commit||!changed)return;
  const grid=document.getElementById('challengePickGrid');
  if(!grid||!grid.children||typeof grid.appendChild!=='function')return;
@@ -1067,6 +1076,8 @@ function displayDraftPosition(index,commit){
  }
  grid.scrollTop=0;
 }
+const positionSelect=document.getElementById('draftPositionSelect');
+if(st.phase==='draft'&&positionSelect)positionSelect.onchange=()=>displayDraftPosition(Number(positionSelect.value),true);
 app.querySelectorAll('[data-slot-card]').forEach(card=>{
  const index=Number(card.dataset.slotCard);
  card.onmouseenter=()=>displayDraftPosition(index,false);
