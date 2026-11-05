@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1426">
+  <meta name="description" content="PokéFC Phase 10 free public Quick Sim Match Director preview. Watch a deterministic animated match excerpt and skip without changing the official result.">
+  <title>PokéFC | Phase 10 Free Playtest</title>
+  <link rel="stylesheet" href="./styles.css?v=1">
+  <script defer src="./quick-sim.js?v=1"></script>
+  <script defer src="./timeline.js?v=1"></script>
+  <script defer src="./app.js?v=1"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../"><span class="brandball">⚽</span><span>POKÉ<span class="yellow">FC</span></span></a>
+    <span class="edition">MATCH DIRECTOR <span>·</span> PUBLIC ALPHA</span>
+    <a class="back" href="../">← Main Game</a>
+  </header>
+  <main class="layout">
+    <section class="intro">
+      <div class="eyebrow">PHASE 10 · FREE BROWSER TEST</div>
+      <h1>Watch the match.<br><span>Never change the result.</span></h1>
+      <p>Quick Sim decides the official score. The Match Director plays back a lightweight, illustrated sequence with the same goals, players and shot totals. No account, download or payment required.</p>
+    </section>
+    <section class="notice" aria-label="Preview limitations"><strong>Early animation prototype:</strong> Player movement, passes and non-goal shot timing are illustrative. This is <strong>not yet the full TacticMesh animation engine</strong>, interactive FIFA-style control or a live match simulator. Only Quick Sim outcomes are official.</section>
+    <section class="scoreboard" aria-label="Official match score">
+      <div class="club home"><span class="crest homecrest">P</span><span class="clubname">PEWTER CITY</span><small>HOME</small></div>
+      <div class="scorecenter"><div id="score" class="score" aria-live="polite">0 <span>:</span> 0</div><div class="clock" id="clock">00:00</div><div class="clocktag" id="status">READY TO WATCH</div></div>
+      <div class="club away"><span class="crest awaycrest">C</span><span class="clubname">CERULEAN CITY</span><small>AWAY</small></div>
+    </section>
+    <div class="columns">
+      <section class="fieldcard">
+        <div class="sectiontop"><div><h2>TACTICAL VIEW</h2><small>22 players · deterministic illustration</small></div><span class="live-pill"><span class="live-dot"></span> LIVE PREVIEW</span></div>
+        <div class="canvas-wrap"><canvas id="pitch" width="1100" height="680" role="img" aria-label="Animated soccer pitch with two eleven-player teams and the ball"></canvas><div id="eventToast" class="toast" role="status" aria-live="polite" hidden></div></div>
+        <div class="controls">
+          <button id="watchBtn" class="primary" type="button">▶ Watch 5 min</button>
+          <button id="pauseBtn" class="control" type="button" disabled>⏸ Pause</button>
+          <button id="restartBtn" class="control" type="button">↺ Replay</button>
+          <button id="skipBtn" class="control" type="button">⏭ Skip to end</button>
+          <label class="speed">Speed <select id="speedSelect" aria-label="Playback speed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+        </div>
+        <div class="seek"><div class="seekline"><span id="rangeLabel">MINUTES 0–5</span><span id="progressLabel">0% watched</span></div><input id="windowSlider" type="range" min="0" max="85" value="0" step="5" aria-label="Choose five-minute match window"><div class="seekbuttons"><button id="prevBtn" type="button">← Earlier 5 min</button><button id="nextBtn" type="button">Later 5 min →</button></div></div>
+        <div class="seedbox"><label for="seed">Match seed</label><input id="seed" type="text" value="phase10-public-01" maxlength="40" autocomplete="off" spellcheck="false"><button id="newMatchBtn" type="button">Generate new match</button></div>
+      </section>
+      <aside class="rightcolumn">
+        <section class="panel">
+          <div class="sectiontop"><h2>OFFICIAL MATCH STATS</h2><span class="tag">QUICK SIM</span></div>
+          <div class="statsheader"><span>PEWTER</span><span>VS</span><span>CERULEAN</span></div>
+          <div id="statsRows" class="statsrows"></div>
+          <p class="smallmuted">Full-time statistics are generated once. Watching, pausing and skipping never regenerate them.</p>
+        </section>
+        <section class="panel">
+          <div class="sectiontop"><h2>MATCH TIMELINE</h2><span class="tag" id="eventCount">0 shots</span></div>
+          <div id="eventLog" class="eventlog" aria-live="polite"></div>
+          <p class="smallmuted">Goal times, scorer IDs and assists are official. Other shot times are deterministic reconstruction slots.</p>
+        </section>
+      </aside>
+    </div>
+    <section class="verify" id="verification"><div class="verifyicon">✓</div><div><strong>Result integrity check</strong><p id="verifyText">Preparing match…</p></div></section>
+    <footer class="footer"><span>PokéFC · Phase 10 Public Alpha</span><span>Free testing · No accounts · No data saved · Not production gameplay</span></footer>
+  </main>
+</body>
+</html>
