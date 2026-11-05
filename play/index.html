@@ -47,6 +47,23 @@
   <div class="scoreboard"><div><span class="team-side">HOME</span><strong id="homeName">YOUR XI</strong></div><div class="score-mid"><span id="matchClock">PRE-MATCH</span><div id="score">– : –</div><span id="matchState">Select an opponent</span></div><div class="away-name"><span class="team-side">AWAY</span><strong id="awayName">GYM LEADERS</strong></div></div>
   <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas></div>
   <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
+  <div id="soccerWatchActions" class="soccerjs-actions" hidden aria-label="Soccer-JS match playback controls">
+    <button id="soccerRecord" class="play-btn primary" type="button" disabled>✓ RECORD OFFICIAL RESULT</button>
+    <button id="soccerCancel" class="play-btn subtle" type="button">✕ CANCEL WATCH</button>
+    <label for="soccerProjection">Camera view
+      <select id="soccerProjection" class="play-select compact">
+        <option value="isometric" selected>2.5D Isometric</option>
+        <option value="orthographic">Broadcast</option>
+        <option value="topdown">Top-down</option>
+      </select>
+    </label>
+    <label for="soccerCamera">Framing
+      <select id="soccerCamera" class="play-select compact">
+        <option value="wide" selected>Wide field</option>
+        <option value="follow">Follow ball</option>
+      </select>
+    </label>
+  </div>
   <p id="engineStatus" class="engine-status" role="status">Choose Quick Sim for an instant result or Watch for real TacticMesh ball and player movement.</p>
   <section class="play-live-events" aria-label="Live match event commentary">
    <div class="play-live-head"><h3>LIVE MATCH EVENTS</h3><span id="liveEventCount">0 RECORDED</span></div>
