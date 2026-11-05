@@ -4,6 +4,10 @@ This backlog tracks deferred gameplay/UI work in the main PokéFC repository. Ke
 
 ## Completed
 
+- [x] **Challenge final-match-first recap**: finish opens one dialog at the last match's outcome, scorers and statistics; Continue reveals the tournament overview, with Back to Final Match and direct entry buttons after dismissal.
+- [x] **Match timeline grouping**: goals start expanded, while saves, fouls, cards, substitutions and period markers live in a collapsed secondary section; both groups remain in the same official event feed, and event origins stay saved.
+- [x] **Picker and shop scroll cleanup**: remove nested desktop scrolling, reserve scrollbar gutters, preserve Item Shop scroll through rerenders, disable costly modal blur and apply offscreen rendering for long grids. Mobile preserves its dedicated scrollable Pokémon list. Native scrollbar visibility still follows OS preferences.
+
 - [x] **Unified Match Timeline**: one Play event panel updates from watched events, converts to the full recorded log at full time (Quick Sim, watched, hybrid), and does not repeat the same events in the result statistics section. Suppress individual WATCHED/SIM TO END/QUICK SIM tags in Play and Challenges while preserving genuine event origins and handoff metadata in stored reports.
 
 - [x] Challenge draft: **reorder eligible Pokémon by S → A → B → C → D tier when a new empty position is clicked**; alphabetize within tiers rather than expose the hidden OVR ranking.
