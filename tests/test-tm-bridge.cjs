@@ -26,5 +26,7 @@ assert.equal(game.events.find(e=>e.type==='foul').player,'p400','Authentic fouli
 assert.equal(game.events.find(e=>e.type==='card').card,'yellow');
 assert.equal(game.events.find(e=>e.type==='substitution').playerOff,'p200');
 assert.equal(game.events.find(e=>e.type==='substitution').playerOn,'p201');
+const noisy=fx.translate({...report,events:[...report.events,{type:'foul',teamId:'unknown',time:100}]},data);
+assert.equal(noisy.events.length,4,'Secondary event with unknown team is ignored without losing authoritative match result');
 let bad=false;try{fx.translate({...report,score:{home:2,away:0}},data)}catch{bad=true};assert.ok(bad,'must reject mismatched goal archive');
 console.log('PASS TacticMesh adapter: 46 validated attributes, 22 players, constant size, stable seed, authentic-goal mapping, no fabricated unsupported metrics');
