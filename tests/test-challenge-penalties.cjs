@@ -52,11 +52,17 @@ for(const [sequence,winner] of [[[.01,.99],'home'],[[.99,.01],'away']]){
  assert.match(played.app.innerHTML,/MISS/);
  if(winner==='away'){
   assert.equal(played.state.phase,'finished','Penalty shootout loss ends Gauntlet');
-  assert.match(played.app.innerHTML,/class="panel challenge-last-match"/,'Loss retains full final match report in page');
-  assert.match(played.app.innerHTML,/MATCH EVENT TIMELINE/,'Lost match shows detailed goals');
+  assert.match(played.app.innerHTML,/id="runFinishMatchStep"/,'Lost match gets a dedicated first step in the results modal');
+  assert.match(played.app.innerHTML,/MATCH TIMELINE/,'Lost match shows detailed goal timeline');
   assert.match(played.app.innerHTML,/MATCH STATISTICS/,'Lost match shows statistics');
   assert.match(played.app.innerHTML,/<dialog id="runCompleteModal"/,'Run recap is modal');
   assert.equal(played.elements.runCompleteModal.open,true,'Recap opens automatically');
+  assert.equal(played.elements.runFinishMatchStep.hidden,false,'Loss opens the match detail screen first');
+  assert.equal(played.elements.runFinishOverviewStep.hidden,true,'Tournament overview is secondary');
+  played.elements.continueTournamentOverview.onclick();
+  assert.equal(played.elements.runFinishOverviewStep.hidden,false,'Continue switches to the tournament overview');
+  played.elements.backToFinalMatch.onclick();
+  assert.equal(played.elements.runFinishMatchStep.hidden,false,'Back returns to loss report');
   assert.match(played.app.innerHTML,/run-match lost" open/,'Final loss report expands by default in run modal');
  }else assert.equal(played.state.phase,'result','Penalty win continues Gauntlet');
 }
