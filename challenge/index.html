@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=19">
+<link rel="stylesheet" href="./challenge.css?v=20">
 </head>
 <body>
 <header class="pfc-header">
@@ -71,7 +71,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=2"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=3"></script><script src="../play/opponents.js"></script><script>
+<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=2"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=1"></script><script src="./picker-window.js?v=1"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=3"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -282,10 +282,11 @@ function reroll(which){
  pendingRollAnimation=true;return true;
 }
 const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
+const PICKER_WINDOW=window.PFC_CHALLENGE_PICKER_WINDOW;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
-let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false;
+let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null;
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -611,6 +612,7 @@ function pokemonDetailMarkup(index){
   '</section>';
 }
 function render(){const app=document.getElementById('app');
+ draftWindowCleanup?.();draftWindowCleanup=null;
  window.PFC_CHALLENGE_DND?.cancel?.();
  let awardsAdded=false;
  for(const match of st.history||[]){
@@ -657,7 +659,7 @@ function render(){const app=document.getElementById('app');
  document.getElementById('classicMode').onclick=()=>{poolSelect.value='4';sync()};
  document.getElementById('nationalMode').onclick=()=>{poolSelect.value='9';sync()};
  poolSelect.onchange=sync;
- document.getElementById('start').onclick=()=>{draftPickerOpen=true;shopDrawerOpen=true;st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
+ document.getElementById('start').onclick=()=>{draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 const draftTierCache=new Map();
 const rankTier={S:0,A:1,B:2,C:3,D:4};
@@ -723,7 +725,7 @@ if(gauntletStarted){
   '<div class="challenge-dialog-bar"><span id="challengeHistoryTitle">PREVIOUS MATCH REPORTS</span><button type="button" id="closeHistoryModal" aria-label="Close match history">✕ CLOSE</button></div>'+
   '<div class="challenge-history-content">'+matchHistoryHtml(st.history)+'</div></dialog>';
 }
-if(isDraft)body+='<section class="panel challenge-draft-reels" aria-label="Scouting roll">'+
+const draftRollMarkup=isDraft?'<section class="panel challenge-draft-reels" aria-label="Scouting roll">'+
  '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
  '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
  '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
@@ -733,7 +735,7 @@ if(isDraft)body+='<section class="panel challenge-draft-reels" aria-label="Scout
  '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
- '</section>';
+ '</section>':'';
 body+='<div class="challenge-run-layout stage-'+esc(st.phase)+(isShop&&shopDrawerOpen?' shop-open':'')+'">'+
  '<div class="challenge-stage-toolbar" aria-label="Challenge gameplay tools">'+
  (isDraft?'<div><strong>DRAFT ROOM · '+(filled+1)+' / 11</strong><small>Select an open position, then draft a Pokémon in the floating picker.</small></div>'+
@@ -789,9 +791,13 @@ if(st.phase==='draft'){
  const opts=eligible().sort((a,b)=>draftCompare(a,b,slots[st.selected]));
  const legendaryCount=st.roster.filter(id=>BY.get(id)?.legendary).length;
  body+='<dialog id="challengeDraftModal" class="challenge-dialog challenge-draft-panel" aria-modal="false" aria-labelledby="challengeDraftTitle">'+
-  '<div class="challenge-dialog-bar"><span>POKÉFC · SCOUTING</span><button type="button" id="closeDraftPicker" aria-label="Close Pokémon picker">✕ CLOSE</button></div>'+
+  '<div class="challenge-dialog-bar"><button type="button" id="challengeDraftDragHandle" class="challenge-draft-drag-handle" aria-label="Move Pokémon picker with the mouse or arrow keys" title="Drag to move · Arrow keys to nudge">⠿ MOVE PICKER</button><span class="challenge-mobile-picker-label">POKÉMON DRAFT</span><button type="button" id="closeDraftPicker" aria-label="Close Pokémon picker">✕ CLOSE</button></div>'+
   '<div class="challenge-section-heading"><div><span class="pfc-eyebrow">DRAFT ROOM · ROUND '+(filled+1)+' / 11</span><h2 id="challengeDraftTitle">CHOOSE YOUR POKÉMON</h2></div><span class="formation-tag" id="selectedDraftPosition">'+slots[st.selected]+' POSITION</span></div>'+
-  '<p class="challenge-draft-modal-help">Pick a Pokémon for your selected position, or drag it onto an empty pitch slot. One Pokémon per species.</p>'+
+  '<p class="challenge-draft-modal-help">Select a pitch position or choose it below, then draft a Pokémon. On desktop, you can drag picks onto empty slots.</p>'+
+  '<label class="challenge-draft-position" for="draftPositionSelect"><span>YOUR POSITION · '+(filled+1)+' / 11 DRAFTED</span><select id="draftPositionSelect" aria-label="Choose an empty position">'+
+  slots.map((pos,i)=>!st.roster[i]?'<option value="'+i+'" '+(i===st.selected?'selected':'')+'>'+esc(pos)+' · SLOT '+(i+1)+'</option>':'').join('')+
+  '</select></label>'+
+  draftRollMarkup+
   '<label class="challenge-draft-search" for="draftSearch"><span>SEARCH ELIGIBLE POKÉMON</span><input id="draftSearch" type="search" placeholder="Name, number or type" autocomplete="off" aria-controls="challengePickGrid"></label>'+
   '<p class="draft-search-count" id="draftSearchCount">'+opts.length+' MATCHING POKÉMON</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
@@ -1221,7 +1227,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
@@ -1271,7 +1277,7 @@ if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  window.PFC_CHALLENGE_DND.mount(app,{canDrag,canDrop,onDrop});
 }
 
-document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;save();render()}})}
+document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
  const key='pokefc-challenge-personal-records-v1';
