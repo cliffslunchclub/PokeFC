@@ -30,7 +30,11 @@ function motionFrame(fixture,t,field){
    frame:Math.floor(t*7+i)%3===0?1:0,orientation:side===0?2:6});
  }
  let ball={x:field.width*.5,y:field.height*.5,z:.22};
- const goals=fixture.events.filter(e=>e.type==='goal');
+ // An officially awarded penalty can use its own set-piece sequence instead of
+ // replaying a generic open-play goal buildup over the same timestamp.
+ const goals=fixture.events.filter(e=>e.type==='goal'&&
+  !(e.setPiece==='penalty'&&fixture.setPieceRules==='v1'&&fixture.events.some(
+   p=>p.type==='penalty-kick'&&p.team===e.team&&p.player===e.player&&p.minute===e.minute)));
  const event=goals.find(g=>t>=g.minute-.42&&t<=g.minute+.16);
  if(event){
   const side=event.team===teams[0].id?0:1,roster=teams[side];
@@ -66,6 +70,39 @@ function motionFrame(fixture,t,field){
    label:t>=event.minute?'GOAL! '+roster.lineup[scorer].name:
      'Attack: '+roster.lineup[scorer].name,
    officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
+ }
+ // Set-piece poses are driven exclusively by actual PSE v1 incident timestamps.
+ // The ball trajectory remains illustrative; the award/outcome itself is official.
+ const pieces=fixture.setPieceRules==='v1'?fixture.events.filter(e=>
+  ['corner','foul','free-kick','penalty-kick'].includes(e.type)&&
+  t>=e.minute-.24&&t<=e.minute+.13):[];
+ const priority={'penalty-kick':4,corner:3,'free-kick':2,foul:1};
+ const piece=pieces.sort((a,b)=>(priority[b.type]-priority[a.type])||
+  Math.abs(t-a.minute)-Math.abs(t-b.minute))[0];
+ if(piece){
+  const side=piece.team===teams[0].id?0:1,roster=teams[side];
+  const index=roster.lineup.findIndex(p=>String(p.id)===String(piece.player));
+  if(index<0)throw Error('Official set-piece actor absent');
+  const taker=actors[side*11+index],keeper=actors[(1-side)*11];
+  const isCorner=piece.type==='corner',isPenalty=piece.type==='penalty-kick';
+  const x=isCorner?.975:isPenalty?.82:piece.type==='free-kick'?.65:.53;
+  const source={x:origin(side,x,field),
+   y:isCorner?field.height*.08:isPenalty?field.height*.5:field.height*.43};
+  taker.x=source.x;taker.y=source.y;taker.frame=3;
+  if(isPenalty){keeper.x=origin(side,.975,field);keeper.y=field.height*.5;}
+  const u=ease((t-(piece.minute-.24))/.35);
+  const target={x:origin(side,isCorner?.82:isPenalty?.98:.78,field),
+   y:isCorner?field.height*.48:field.height*.5};
+  ball={x:lerp(source.x,target.x,u),y:lerp(source.y,target.y,u),
+   z:.2+(isCorner?1.5:.5)*Math.sin(Math.PI*u)};
+  const happened=t>=piece.minute;
+  const eventName={corner:'CORNER',foul:'FOUL','free-kick':'FREE KICK',
+   'penalty-kick':'PENALTY KICK'}[piece.type];
+  return {actors,ball,
+   action:happened?'official-'+piece.type:'illustrative-set-piece-buildup',
+   label:(happened?eventName:'Set piece setup')+' · '+roster.lineup[index].name+
+    (isPenalty&&happened?' · '+String(piece.outcome||'').toUpperCase():''),
+   officialEvent:happened?piece:null,illustrative:!happened};
  }
  // Continuous deterministic build-up. Each new cycle is a fresh illustrative
  // passage, NOT a recorded or statistically authoritative possession sequence.
