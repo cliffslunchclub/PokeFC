@@ -42,5 +42,10 @@ jobs:
           node tests/test-tm-handoff.cjs
           node tests/test-hybrid.cjs
           node tests/test-play.cjs
-      - name: Validate build packaging
-        run: bash scripts/build-siteground.sh
+      - name: Validate build packaging when native Soccer-JS assets are available
+        run: |
+          if [[ -s watch/soccerjs/dist/viewer.bundle.js ]]; then
+            PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
+          else
+            echo "Native Soccer-JS bundle is not part of checkout; deployment workflow builds and validates the full SiteGround package."
+          fi
