@@ -1,0 +1,33 @@
+name: PSE Watch presentation PR checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "watch/soccerjs/**"
+      - "play/play.js"
+      - ".github/workflows/watch-presentation-pr-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watch-presentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check Watch and Quick Play
+        run: |
+          node --check watch/soccerjs/phase10-motion.cjs
+          node --check watch/soccerjs/viewer-entry.cjs
+          node --check play/play.js
+      - name: Verify deterministic Watch motion and full-time statistics
+        run: node watch/soccerjs/test-isometric-motion.cjs
+      - name: Verify Quick Sim seeded compatibility
+        run: node tests/test-quick-seed-compat.cjs
+      - name: Verify Quick Play match and Watch handoff
+        run: |
+          node tests/test-play.cjs
+          node tests/test-phase10-quickplay-lifecycle.cjs
+          node watch/soccerjs/test-inline-bridge.cjs
