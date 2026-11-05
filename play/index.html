@@ -5,7 +5,7 @@
 <meta name="description" content="Play Pokémon soccer against 32 Gym Leaders and Elite Four. Instant Quick Sim or watch native Soccer-JS 2.5D Pokémon matches.">
 <title>PokéFC · Quick Play</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2">
-<link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=5">
+<link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=6">
 <link rel="stylesheet" href="../newtro.css?v=1">
 </head><body>
 <header class="pfc-header">
@@ -46,8 +46,8 @@
  <section class="play-panel match-panel" aria-label="Match screen">
   <div class="play-panel-title"><span class="section-number">02</span><h2>LIVE MATCH CENTER</h2><span id="modeTag" class="tiny-label">READY</span></div>
   <div class="scoreboard"><div><span class="team-side">HOME</span><strong id="homeName">YOUR XI</strong></div><div class="score-mid"><span id="matchClock">PRE-MATCH</span><div id="score">– : –</div><span id="matchState">Select an opponent</span></div><div class="away-name"><span class="team-side">AWAY</span><strong id="awayName">GYM LEADERS</strong></div></div>
-  <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas></div>
-  <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
+  <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas><button type="button" class="pfc-fullscreen-btn" id="watchFullscreen" data-pfc-fullscreen aria-pressed="false" aria-label="Toggle soccer field fullscreen" hidden>⛶ FULLSCREEN</button></div>
+  <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="1" selected>1× · Real time</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
   <div id="soccerWatchActions" class="soccerjs-actions" hidden aria-label="Soccer-JS match playback controls">
     <button id="soccerRecord" class="play-btn primary" type="button" disabled>✓ RECORD OFFICIAL RESULT</button>
     <button id="soccerCancel" class="play-btn subtle" type="button">✕ CANCEL WATCH</button>
@@ -81,5 +81,5 @@
 <script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script>
 <script src="./opponents.js?v=1"></script><script src="../challenge/special-items-data.js"></script><script src="../challenge/leaderboard.js?v=1"></script><script src="../challenge/match-report.js?v=6"></script>
 <script src="./hybrid-sim.js"></script><script src="./tm-engine-bridge.js?v=2"></script>
-<script src="./play.js?v=7"></script>
+<script src="./play.js?v=9"></script>
 </body></html>

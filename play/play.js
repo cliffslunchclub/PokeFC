@@ -278,6 +278,7 @@ function stateBusy(isBusy){
 }
 function stopWatch(){
  if(soccerSession){soccerSession.destroy();soccerSession=null}
+ $('watchFullscreen').hidden=true;
  if(SOCCERJS_PREVIEW){
   document.querySelector('.field-shell')?.classList.remove('soccerjs-active');
   $('soccerWatchActions').hidden=true;$('soccerRecord').disabled=true;
@@ -316,6 +317,7 @@ function watchSoccerPreview(){
    preview,result:official,container:viewport,
    onReady:(session)=>{
     session.setProjection('orthographic');session.setCamera('follow');
+     $('watchFullscreen').hidden=false;
     session.play(Number($('watchSpeed').value)||1);
     $('pause').disabled=false;$('resume').disabled=true;$('simRemaining').disabled=false;
     $('matchState').textContent='WATCHING · BROADCAST';
@@ -380,7 +382,7 @@ function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
  $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
- script.src='../watch/soccerjs/watch-bridge.js';
+ script.src='../watch/soccerjs/watch-bridge.js?v=5';
  script.onload=()=>{
   SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
   updateXI();
@@ -443,6 +445,13 @@ function start(){
  if(SOCCERJS_PREVIEW){
   $('soccerRecord').addEventListener('click',()=>{try{soccerSession?.record()}catch(e){$('engineStatus').textContent='Recording failed: '+e.message}});
   $('soccerCancel').addEventListener('click',()=>soccerSession?.cancel());
+   $('watchFullscreen').addEventListener('click',()=>{
+    if(!soccerSession||!window.FXI_PHASE10_WATCH?.toggleFullscreen)return;
+    const pitch=document.querySelector('.field-shell');
+    void window.FXI_PHASE10_WATCH.toggleFullscreen(pitch).catch(error=>{
+     $('engineStatus').textContent='Fullscreen unavailable: '+String(error?.message||error);
+    });
+   });
   $('soccerProjection').addEventListener('change',e=>soccerSession?.setProjection(e.target.value));
   $('soccerCamera').addEventListener('change',e=>soccerSession?.setCamera(e.target.value));
   loadSoccerBridge();
