@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=28">
+<link rel="stylesheet" href="./challenge.css?v=29">
 <link rel="stylesheet" href="../newtro.css?v=1">
 </head>
 <body>
@@ -72,7 +72,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=3"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=6"></script><script src="../play/opponents.js"></script><script>
+<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=6"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -770,10 +770,10 @@ if(gauntletStarted){
 const draftRollMarkup=isDraft?'<section class="panel challenge-draft-reels" aria-label="Scouting roll">'+
  '<div id="challengeSlotMachine" class="challenge-draw challenge-slot-machine" aria-label="Scouting draw reels"><div class="slot-machine-head"><span>◉ DRAFT REELS · ROUND '+(filled+1)+'</span><span class="slot-machine-status">SCOUTING DRAW</span></div>'+ 
  '<div class="slot-machine-reels"><div class="slot-reel" data-reel="region"><span class="slot-reel-label">REGION</span><div class="slot-window"><span data-reel-value="region">'+esc((SLOT?.regions||[])[(st.roll?.gen||1)-1]||'—')+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div>'+ 
- '<div class="slot-reel" data-reel="pool"><span class="slot-reel-label">DRAFT STATUS</span><div class="slot-window"><span data-reel-value="pool">'+(pendingRollAnimation?'SCOUTING':'READY')+'</span></div></div></div>'+ 
+ '<div class="slot-reel" data-reel="type"><span class="slot-reel-label">TYPE</span><div class="slot-window"><span data-reel-value="type">'+esc((st.roll?.type||'—').toUpperCase())+'</span></div></div></div>'+ 
  '<div class="slot-payline" aria-hidden="true"><i></i><b>◆</b><i></i></div>'+ 
- '<div class="slot-machine-bottom"><span data-reel-live role="status" aria-live="polite">'+(pendingRollAnimation?'Drawing Pokémon scouting options…':'Choose a Pokémon for your selected position.')+'</span><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
+ '<span data-reel-live class="challenge-reel-screenreader" role="status" aria-live="polite"></span>'+
+ '<div class="slot-machine-bottom"><button type="button" data-reel-skip hidden>SKIP ANIMATION →</button></div></div>'+
  '<p>Hover or click a position to scout its fit. Drag a Pokémon from the list to an empty spot, or use DRAFT. You have one move or swap before locking.</p>'+
  '<div class="controls-inline"><button id="typeR" '+(!st.rerollType||!rerollOptions('type').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ TYPE · '+st.rerollType+'</button><button id="genR" '+(!st.rerollGen||!rerollOptions('gen').length?'disabled':'')+' title="Reroll to a new, never-before-seen type and generation combination">↻ GENERATION · '+st.rerollGen+'</button></div>'+
  '<p class="reroll-unique-note">Rerolls never repeat an earlier type and region combination. Unavailable rerolls are disabled without using your credit.</p>'+
