@@ -1056,7 +1056,7 @@ if(st.phase==='draft'){
  };
  if(SLOT){
   SLOT.mount(document.getElementById('challengeSlotMachine'),{
-   gen:st.roll?.gen,type:st.roll?.type,count:eligible().length
+   gen:st.roll?.gen,type:st.roll?.type
   },{animate:wasTriggered,pool:st.pool,onDone:revealDraftCandidates});
  }else revealDraftCandidates();
 }else{SLOT?.cancel();slotAnimationBusy=false;pendingRollAnimation=false}
