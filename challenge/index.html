@@ -286,7 +286,7 @@ const PICKER_WINDOW=window.PFC_CHALLENGE_PICKER_WINDOW;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
-let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null;
+let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null,shopWindowPosition=null,shopWindowCleanup=null;
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -613,6 +613,7 @@ function pokemonDetailMarkup(index){
 }
 function render(){const app=document.getElementById('app');
  draftWindowCleanup?.();draftWindowCleanup=null;
+ shopWindowCleanup?.();shopWindowCleanup=null;
  window.PFC_CHALLENGE_DND?.cancel?.();
  let awardsAdded=false;
  for(const match of st.history||[]){
@@ -659,7 +660,7 @@ function render(){const app=document.getElementById('app');
  document.getElementById('classicMode').onclick=()=>{poolSelect.value='4';sync()};
  document.getElementById('nationalMode').onclick=()=>{poolSelect.value='9';sync()};
  poolSelect.onchange=sync;
- document.getElementById('start').onclick=()=>{draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
+ document.getElementById('start').onclick=()=>{draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;st.pool=+poolSelect.value;st.legends=document.getElementById('leg').value==='on';st.formation=document.getElementById('form').value;st.round=0;st.history=[];st.rollHistory=[];st.phase='draft';st.selected=nextDraftSlot();roll();save();render()};return}
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 const draftTierCache=new Map();
 const rankTier={S:0,A:1,B:2,C:3,D:4};
@@ -816,7 +817,7 @@ if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0))
  body+='</div></details>';
 }
 if(st.phase==='shop')body+='<aside id="challengeShopDrawer" class="challenge-shop-drawer" aria-label="Floating item shop" '+(!shopDrawerOpen?'hidden':'')+'>'+
- '<div class="challenge-shop-drawer-bar"><strong>ITEM SHOP · EQUIP YOUR XI</strong><button type="button" id="closeShopDrawer" aria-label="Hide item shop">✕ HIDE SHOP</button></div>'+
+ '<div class="challenge-shop-drawer-bar"><button type="button" id="challengeShopDragHandle" class="challenge-shop-drag-handle" aria-label="Move Item Shop window with mouse or arrow keys" title="Drag to move · Arrow keys to nudge">⠿ ITEM SHOP · MOVE</button><strong class="challenge-shop-mobile-label">ITEM SHOP · EQUIP YOUR XI</strong><button type="button" id="closeShopDrawer" aria-label="Hide item shop">✕ HIDE SHOP</button></div>'+
  shopMarkup(used)+'</aside>';
 if(gauntletStarted){
  const opponent=BOSSES[st.round];
@@ -896,6 +897,14 @@ const mountDraftWindow=()=>{
   currentPosition:()=>draftWindowPosition,onMove:position=>{draftWindowPosition=position}
  })||null;
 };
+const mountShopWindow=()=>{
+ shopWindowCleanup?.();shopWindowCleanup=null;
+ const drawer=document.getElementById('challengeShopDrawer');
+ const grip=document.getElementById('challengeShopDragHandle');
+ if(shopDrawerOpen&&drawer&&!drawer.hidden&&grip)shopWindowCleanup=PICKER_WINDOW?.mount?.(drawer,grip,{
+  currentPosition:()=>shopWindowPosition,onMove:position=>{shopWindowPosition=position}
+ })||null;
+};
 const detailDialog=document.getElementById('challengePokemonDetailModal');
 const closePokemonDetail=()=>closeDialog(detailDialog);
 const openPokemonDetail=index=>{
@@ -953,6 +962,7 @@ if(isDraft){
  };
 }
 if(isShop){
+ mountShopWindow();
  const toggle=()=>{
   const catalog=document.getElementById('shopCatalog');
   shopScrollTop=catalog?.scrollTop||shopScrollTop;
@@ -1238,7 +1248,7 @@ if(st.phase==='finished'){
  };
  document.getElementById('quickRestart').onclick=()=>{
   const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+  st=initial();runRecapDismissed=false;matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
@@ -1288,7 +1298,7 @@ if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  window.PFC_CHALLENGE_DND.mount(app,{canDrag,canDrop,onDrop});
 }
 
-document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;save();render()}})}
+document.getElementById('reset').onclick=()=>showChallengeMessage('ABANDON CHALLENGE?','Your current run will be discarded. Completed leaderboard records will remain saved.',{confirmLabel:'ABANDON RUN',destructive:true,onConfirm:()=>{st=initial();runRecapDismissed=false;matchResultDismissed=false;draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;save();render()}})}
 function savePersonalRecord(){
  const cat=(st.pool===4?'classic':'national')+'-'+(st.legends?'legends':'standard');
  const key='pokefc-challenge-personal-records-v1';
