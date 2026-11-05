@@ -241,7 +241,7 @@ function showResult(result){
  $('matchClock').textContent='FULL TIME';
  $('matchState').textContent=challengeRecord?challengeRecord.outcome.toUpperCase():result.score[0]>result.score[1]?'HOME WIN':result.score[0]<result.score[1]?'AWAY WIN':'DRAW';
  $('modeTag').textContent=result.origin==='tacticmesh'?'WATCHED':result.origin==='hybrid'?'WATCH → SIM':'QUICK SIM';
- const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
+ const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Goalkeeper saves','saves'],['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
  const statRows=rows.map(([label,key])=>'<div class="stat-row"><span>'+ (result.stats?.[0]?.[key]??'—') +(key==='possession'?'%':'')+'</span><small>'+label+'</small><span>'+(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+'</span></div>').join('');
  $('matchResult').innerHTML=(challengeRecord&&challengeRecord.tiebreak?'<p class="result-meta">'+esc(challengeRecord.tiebreak)+'</p>':'')+
   '<div class="result-title"><strong>'+($('matchState').textContent)+'</strong><span class="result-meta">'+esc(result.origin.toUpperCase())+'</span></div>'+
