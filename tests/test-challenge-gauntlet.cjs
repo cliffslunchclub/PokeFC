@@ -121,7 +121,10 @@ for(let i=0;i<6;i++){
  assert.equal(state().locked.items[0],'Eviolite','Items cannot be changed after lock');
  if(i<5){
   assert.equal(state().phase,'result');
-  assert(app.innerHTML.indexOf('id="next"')<app.innerHTML.indexOf('challenge-run-layout'),'Advance button is in Indigo Gauntlet');
+  assert.match(app.innerHTML,/<dialog id="challengeMatchResultModal"/,'Advance and score live in a match result dialog');
+  assert.equal(elems.challengeMatchResultModal.open,true,'Each victory automatically opens the result modal');
+  assert.match(app.innerHTML,/id="openMatchResultModal"/,'Reopen result from Gauntlet progress');
+  assert(app.innerHTML.indexOf('id="next"')>app.innerHTML.indexOf('id="challengeMatchResultModal"'),'Advance button is inside match result popup');
   assert.equal((app.innerHTML.match(/id="next"/g)||[]).length,1,'Only one advance action');
   elems.next.onclick();
  }else assert.equal(state().phase,'finished');
