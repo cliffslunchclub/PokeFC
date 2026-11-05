@@ -9,7 +9,8 @@ const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null;
+let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,
+ spriteRoster=null,ballCarrier=-1,smoothedFocus=null,kickIndex=0,kickElapsed=0;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -30,6 +31,14 @@ function receiveFixture(){
 function verify(m){
  if(m?.origin!=='quick-sim'||m?.schema!=='pokefc-quick-sim-export/v1')throw Error('Not a Quick Sim export');
  if(m.home.lineup.length!==11||m.away.lineup.length!==11)throw Error('Missing lineup');
+ if(m.durationMinutes!==90&&m.durationMinutes!==120)throw Error('Unsupported match duration');
+ if(m.durationMinutes===120&&m.knockoutRules!=='pse-knockout-v1')throw Error('Extra-time provenance missing');
+ if(m.shootout){
+  if(m.durationMinutes!==120||m.shootout.version!=='pse-shootout-v1'||!Array.isArray(m.shootout.attempts))
+   throw Error('Invalid official shootout export');
+ }
+ if(m.events.some(e=>!Number.isFinite(e.minute)||e.minute<0||e.minute>=m.durationMinutes))
+  throw Error('Official event outside match period');
  const goals=m.events.filter(e=>e.type==='goal');
  if(goals.length!==m.score[0]+m.score[1])throw Error('Goal ledger mismatch');
  for(const side of [m.home,m.away])for(const e of goals.filter(g=>g.team===side.id))
@@ -71,7 +80,7 @@ function cameraFit(canvas,field,ball){
 }
 function render(t){
  const field=Utils.getFieldBounds(),s=scoreAt(t);
- const script=motionFrame(match,t,field);
+ const script=motionFrame(match,t,field,{kickIndex});
  for(const p of script.actors){
   const actor=(p.side===0?sim.teamA:sim.teamB).players[p.index];
   actor.x=p.x;actor.y=p.y;actor.z=p.z;
@@ -93,21 +102,44 @@ function render(t){
  sim.renderAll(ctx);
  ctx.restore();
  $('score').textContent=s.join(' – ');
- $('clock').textContent=Math.floor(t)+"'";
- $('scrub').value=t;$('played').textContent=t.toFixed(1)+"/90'";
+ $('clock').textContent=Math.floor(t)+"'"+(t>=90&&match.durationMinutes===120?' · ET':'');
+ $('scrub').value=t;$('played').textContent=t.toFixed(1)+"/"+match.durationMinutes+"'";
  $('toast').textContent=script.label;$('toast').hidden=!script.label;
- $('status').textContent=t>=90?'FULL TIME':playing?'WATCHING':'READY / PAUSED';
+ const totalKicks=match.shootout?.attempts.length||0;
+ const shootoutPending=!!totalKicks&&t>=match.durationMinutes&&kickIndex<totalKicks;
+ $('status').textContent=shootoutPending?'PENALTY SHOOTOUT':
+  t>=match.durationMinutes?'FULL TIME':
+  t>=90&&match.durationMinutes===120?'EXTRA TIME':playing?'WATCHING':'READY / PAUSED';
+ $('nextKick').hidden=!shootoutPending;
+ $('nextKick').disabled=!shootoutPending;
+ const panel=$('shootoutOverlay');
+ panel.hidden=!(totalKicks&&t>=match.durationMinutes);
+ if(!panel.hidden){
+  const shown=match.shootout.attempts.slice(0,kickIndex);
+  const h=shown.filter(k=>k.side==='home'&&k.scored).length;
+  const a=shown.filter(k=>k.side==='away'&&k.scored).length;
+  $('shootoutScore').textContent='PENALTIES '+h+' – '+a+' · '+kickIndex+'/'+totalKicks;
+  $('shootoutDetail').textContent=kickIndex?
+   shown.at(-1).kicker+' · '+shown.at(-1).outcome.toUpperCase():
+   'End of extra time · official PSE shootout';
+  $('shootoutAdvance').disabled=!shootoutPending;
+  $('shootoutAdvance').hidden=!shootoutPending;
+ }
  const actionText={
   'illustrative-carry':'Ball carry','illustrative-pass':'Passing sequence',
   'illustrative-dribble':'Attacking dribble','illustrative-challenge':'Defensive challenge',
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
-  'official-goal':'OFFICIAL QUICK SIM GOAL'
+  'official-goal':'OFFICIAL QUICK SIM GOAL',
+  'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
+  'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
+  'official-shootout-off-target':'OFFICIAL SHOOTOUT MISS'
  };
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
-  (script.action==='official-goal'?' · official result':' · illustrative movement');
+  (script.officialEvent?' · official PSE event':' · illustrative movement');
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
- if(embedded&&(t===90||t===0||Math.abs(t-lastSent)>=.1)){
-  lastSent=t;send({type:'progress',minute:t,score:s});
+ if(embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
+  lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
+   shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -117,7 +149,10 @@ function render(t){
   pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length,
   pokemonSpritesDrawn:window.__PFC_REAL_SPRITES_DRAWN__,pokemonEntitiesDrawn:window.__PFC_DRAWN__,
   numbersVisible:$('showNumbers').checked,teamColors:spriteRoster.colors,
-  pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false};
+  pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false,
+  durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
+   'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
+  kickIndex,totalKicks};
 }
 function step(now){
  if(playing){
