@@ -11,6 +11,7 @@ function runCase(pool,legends){
   if(sel==='[data-pick]')nodes=[...this.innerHTML.matchAll(/<button data-pick="(\d+)"([^>]*)>/g)].map(x=>({dataset:{pick:x[1]},disabled:/\bdisabled\b/.test(x[2]),onclick:null}));
   if(sel==='[data-item]')nodes=[...this.innerHTML.matchAll(/<select data-item="(\d+)"([^>]*)>/g)].map(x=>({dataset:{item:x[1]},disabled:/\bdisabled\b/.test(x[2]),value:'',onchange:null}));
   if(sel==='[data-slot]')nodes=[...this.innerHTML.matchAll(/<button data-slot="(\d+)"([^>]*)>/g)].map(x=>({dataset:{slot:x[1]},onclick:null}));
+  if(sel==='[data-shop-pick]')nodes=[...this.innerHTML.matchAll(/<button type="button" data-shop-pick="([^"]+)"[^>]*>/g)].map(x=>({dataset:{shopPick:x[1]},onclick:null}));
   bound.set(sel,nodes);return nodes;
  }};
  const document={getElementById(id){
@@ -54,6 +55,9 @@ function runCase(pool,legends){
  assert.equal(get().roster.filter(Boolean).length,11);
  assert.match(app.innerHTML,/data-shop-pick="Leftovers"/,'Item-first catalog includes Leftovers');
  assert.match(app.innerHTML,/id="shopTarget"/,'Pokémon dropdown is available');
+ const leftovers=bound.get('[data-shop-pick]')?.find(b=>b.dataset.shopPick==='Leftovers');
+ assert(leftovers?.onclick,'Leftovers remains selectable despite price-ranked catalog');
+ leftovers.onclick();
  document.getElementById('shopTarget').value='0';
  document.getElementById('equipShopItem').onclick();
  assert.equal(get().items[0],'Leftovers');

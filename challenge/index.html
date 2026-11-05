@@ -180,7 +180,8 @@ function shopMarkup(used){
  // Keep existing equipment visible for reassignment/removal, but hide new
  // purchases that cannot fit in the remaining budget.
  const withinBudget=fullCatalog.filter(it=>it[1]<=remaining||st.items.includes(it[0]));
- const catalog=shopStatFilters.size?withinBudget.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):withinBudget;
+ const catalog=(shopStatFilters.size?withinBudget.filter(it=>Array.from(shopStatFilters).some(stat=>itemBoostsStat(it,stat))):withinBudget)
+  .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'en',{sensitivity:'base'}));
  const current=catalog.some(x=>x[0]===selectedShopItem)?selectedShopItem:null;
  if(!current)selectedShopItem=catalog[0]?.[0]||null;
  const item=catalog.find(x=>x[0]===selectedShopItem),name=item?.[0]||'';

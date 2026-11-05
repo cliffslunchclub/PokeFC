@@ -41,6 +41,7 @@ assert.match(app.innerHTML,/sprites\/items\/blue-orb\.png/,'Blue Orb icon');
 assert.match(app.innerHTML,/sprites\/items\/red-orb\.png/,'Red Orb icon');
 assert.match(app.innerHTML,/data-shop-pick="Blue Orb"/);
 assert.match(app.innerHTML,/data-shop-pick="Red Orb"/);
+choose('Leftovers'); // Item sorting now starts with expensive species-specific stones.
 const chooser=app.innerHTML.match(/<select id="shopTarget"[^>]*>([\s\S]*?)<\/select>/)?.[1];
 assert(chooser,'Shop target selector exists');
 const positions=[...chooser.matchAll(/<option value="(\d+)"/g)].map(m=>Number(m[1]));
