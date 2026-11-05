@@ -6,7 +6,7 @@
 
 /* Recorded match events, shared by live Play and the Challenge run recaps. */
 .pfc-event-timeline{padding:0!important;margin:8px 0!important;list-style:none!important;display:grid;gap:6px}
-.pfc-event-entry{display:grid;grid-template-columns:41px 25px minmax(0,1fr) auto;gap:7px;align-items:center;background:#172e3d;border:1px solid #426073;border-left:3px solid #698fa0;border-radius:7px;padding:8px 10px}
+.pfc-event-entry{display:grid;grid-template-columns:41px 25px minmax(0,1fr);gap:7px;align-items:center;background:#172e3d;border:1px solid #426073;border-left:3px solid #698fa0;border-radius:7px;padding:8px 10px}
 .pfc-event-entry.home{border-left-color:#a3e8b9}
 .pfc-event-entry.away{border-left-color:#f0c888}
 .pfc-event-entry.neutral{border-left-color:#88a7c7}
