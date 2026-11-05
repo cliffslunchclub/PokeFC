@@ -1,73 +1,52 @@
-# PokeFC v0.8b.1 — Stat definitions aligned
+# PokéFC
 
-**New:** TacticMesh and Quick Sim share explicit definitions for pass attempts, completed passes, shot attempts, tackle attempts and successful tackles; forwards now challenge, too. Watch → Quick Sim preserves both tackle counters. See `CHANGES_v0.8b1.md` and `calibration/aligned-first-half-comparison.json`.
+Unofficial Pokémon-themed football management and match-play project. **Private product source** lives in this repository; the public research/test harness lives in [pokefc-simulation](https://github.com/cliffslunchclub/pokefc-simulation).
 
-**Balance remains provisional.** The first-half dataset is genuine but cannot validate full-match statistical rates. Original physics engine and Pokémon ratings are unchanged.
+**Public alpha:** https://pfc.cliffslunchclub.com/  
+**Last status review:** 2026-11-05  
+**Authoritative roadmap:** [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md)
 
-# PokeFC v0.8b — Four-Region Calibration Diagnostics (Local Alpha)
+> **Important distinction:** “Available” below means implemented on the current `main` deployment path, not a claim of newly verified live-site availability. An experimental branch/PR is **not deployed** until merged and verified through the SiteGround workflow.
 
-**New this build:** genuine, SHA-verified TacticMesh physics segment measurements from Kanto, Johto, Hoenn and Sinnoh, plus 5,000 complete Quick Sim Monte Carlo runs, compared in `CALIBRATION_AUDIT_v0.8b.md` and `calibration/v08b-summary.json`. Run `node tests/test-calibration-diagnostics.cjs` to audit the shipped diagnostic records or `node tests/diagnose-quick-vs-tm.cjs --club=24 --minutes=2 --replicates=2000` to generate a fresh genuine-engine sample.
+## Available on `main` — current game
 
-**Calibration remains provisional.** These are early-match partial observations, not complete TacticMesh references. No Quick Sim parameters, rating formulas or watched-match physics were modified. The original pinned engine is included.
+| Area | Implemented features | Scope / limits |
+| --- | --- | --- |
+| **Home / XI Builder** (`/`) | Search and assemble an XI, five formations, Pokémon sprites/artwork, position-based XI grades, autosave and copy/export options | **1,025 National Dex base species (Gen I–IX)**; browser-local data |
+| **Quick Play** (`/play/`) | Gym/Elite Four/Champion exhibitions, generated opposing lineups, instant **Quick Sim**, legacy TacticMesh Watch, pause/speed and Watch → Sim to End | Uses locally saved XI. **Current Watch screen is the old viewer**, not Soccer-JS 2.5D |
+| **Challenges** (`/challenge/`) | Classic Gen I–IV or National Gen I–IX, six-boss Gauntlet, four local leaderboard categories, animated scouting reels, type/generation rerolls, S–D positional tiers, 11-player XI, ₽1,000 item shop, Mega/Primal handling, item assignment and AI Auto-Equip, boss scouting, match/event reports, victory/result and Pokémon detail dialogs, responsive draft and movable desktop panels, downloadable result card | Local saves/leaderboards only; seeded tie resolver until extra-time/PK logic is finished. Challenges v2 UI and recent unified match timeline are in `main` |
+| **Franchise** (`/franchise/`) | 32 Gym clubs across Kanto/Johto/Hoenn/Sinnoh, 22 league matches per club (352 fixtures), 16-club playoffs, 25 senior roster slots and up to 10 Practice Squad spots (five initial prospects), drafting, scouting, training/progression, season rollover, Quick Sim and legacy Tactical Viewer, save export/import | **493 Gen I–IV species** intentionally remain pinned to existing career saves |
 
----
+**Current match engine:** `quick-sim.js` produces immediate statistical results. Legacy TacticMesh Watch and the existing Watch → Sim continuation still run in current `main`. Match commentary and final events share one timeline; event provenance remains stored even when source chips are hidden.
 
-# PokeFC v0.8 — Gen IV / 32 Gyms + Genuine TacticMesh Stress
+**Known limits:** browser-local records (no verified online accounts or cross-user rankings); incomplete 90-minute calibration parity; no production-grade extra time/penalty shootout controller; alternate regional/cosmetic forms aren't all separate player choices. Art rights must be reviewed before commercial distribution.
 
-Local-only playable prototype. No PokeFC GitHub repository, database server, SiteGround deployment or account service has been created.
+## In development — **not** part of the public alpha yet
 
-## What works
+- **Soccer-JS 2.5D primary Watch** in the **draft** [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) on `feature/soccerjs-watch-rebuild`. The private code includes isometric rendering, Pokémon sprite/badge components, a Quick Sim-authoritative Watch bridge, and an **opt-in** inline Quick Play test route `/play/?watch=soccerjs`. Native browser visuals, packaging and complete game-mode regressions remain **unverified for this rebuild**. The normal SiteGround build does **not** publish this branch or its test route.
+- **Match Director** in that same draft: read-only deterministic shot/goal timeline; non-goal movements and timestamps are illustrative, not recorded official play.
+- Target architecture: **Quick Sim owns official scores/results/stats; Soccer-JS renders the 2.5D Watch** for Quick Play, Challenges and Franchise. TacticMesh is to be **removed after** a fully tested replacement, not before.
+- **One-way Watch → Sim to End** is the currently locked Soccer-JS UX. Mid-match **Sim → Watch** is not implemented. Tactical changes during a simulated match require a future resumable Quick Sim state API (start with halftime).
 
-- **493 National Pokédex species** from Gen I–IV: first 251 preserved from v0.7c, plus 242 default-form Gen III–IV species using PokeAPI base stats/types. IVs (0–31), levels, rating weights, development and detailed attribute variance remain unchanged.
-- **32 gym clubs**, eight each in Kanto, Johto, Hoenn and Sinnoh. Each has a canonical leader and a signature Pokémon in Classic mode (Mossdeep gets Solrock + Lunatone). No legendary or mythical starters.
-- **22-match regular season**: 14 in-region home/away and eight interregional opponents from all three other regions. Each gym plays once every matchweek; **352 total regular-season fixtures**.
-- **16-gym playoff tournament**: best four finishers from each of four regions, 8 round-of-16 matches + 4 quarterfinals + 2 semifinals + 1 championship.
-- **25-round, 32-team snake Fantasy Draft**: 800 selections, 25 senior Pokémon per club and five initial practice prospects (practice capacity 10). More than one athlete of the same species may exist across the league.
-- Quick Sim, watchable TacticMesh tactical viewer (requires original pinned source), Watch → Quick Sim continuation, lineup previews, progression, scouting, season rollover and browser export/import.
-- **Legacy v0.7c 16-team franchise** accessible from `legacy-v07c/index.html`. The new 32-team franchise uses a separate browser save key/version so previous local careers are not replaced. Existing 16-team saves are not automatically migrated to the 32-team world.
+The old experimental [PR #11](https://github.com/cliffslunchclub/PokeFC/pull/11) is closed and unmerged. The public `pokefc-simulation` repo remains a test bed, not another product or public match page. Arcade/FIFA-like direct control remains a separate idea, not a shipped mode.
 
-## Start locally
+## Repository and deployment boundaries
 
-Extract ZIP and run `python3 run_local.py`, then browse to http://127.0.0.1:8765/ . Quick Sim works without internet. The original TacticMesh engine is only needed for real AI/physics watched matches. To install its pinned source once: `python3 tacticmesh/install_engine.py`. No publishing or accounts.
-
-## TacticMesh stress tested in this turn
-
-Original pinned TacticMesh source ran **two independent 2-minute physics/AI segments** (7,200 ticks each; **14,400 ticks total**), with no worker or engine exceptions, 22 active players per verified snapshot, and 35.76 seconds total processing time in that test environment. **This is NOT two completed matches or a verified full 90-minute result.** Those short samples used upstream fictional teams; `run_tm_stress.py` enables genuine four-region Pokémon lineup tests with locally installed source. Details: `TM_STRESS_RESULTS.md`.
-
-Important: **zero completed, audited 90-minute original-engine reference reports**, so v0.8's statistical Quick Sim calibration remains provisional. Standard official TacticMesh reports do not validate conventional shots on target and saves; those cannot be used as calibration ground truth.
-
-## Full 90-minute and regional stress tools
+Only the homepage, ratings explainer, `/play/`, `/challenge/`, and `/franchise/` are copied into the normal SiteGround build. There is **no separate Soccer-JS product page**. Standalone demos and research fixtures are not production routes. Historical `legacy-*`, calibration and TacticMesh audit files remain in private source for provenance but are excluded from live public output.
 
 ```sh
-python3 tacticmesh/install_engine.py  # one-time source install (or --source /existing/local/TacticMesh)
-python3 run_tm_stress.py --minutes 2 --regions all --no-install
-python3 run_90min_test.py --club=24 --checkpoint
-python3 run_calibration_local.py --matches 8 --no-install
-```
+# From a checked-out private repository
+bash scripts/build-siteground.sh
+python3 -m http.server 8765 --directory dist
 
-The 90-minute benchmark can resume interrupted checkpoints with `python3 run_90min_test.py --club=24 --resume`. The 8-match collection is expensive and automatically verifies complete reports and canonical engine source before it will fit any parameters. No full match reference is bundled or fabricated.
-
-## Automated tests
-
-```sh
-node tests/test-node.cjs
+# Selected local validation (requires Node)
+node tests/test-play.cjs
 node tests/test-v08-league.cjs
-node tests/test-hybrid.cjs
-node tests/test-calibration.cjs
-node tests/test-provenance.cjs
-node tests/test-tm-bridge.cjs
-node tests/test-tm-worker.cjs
-node tests/test-tm-handoff.cjs
-python3 tests/browser_v08_test.py
-python3 tests/browser_handoff_test.py
+node tests/test-challenge-gauntlet.cjs
 ```
 
-`test-v08-league` verifies fixture uniqueness, three-season schedule rotation, Gen III–IV data, gym signatures, full 352-game season, postseason and saved-profile status. Browser physics handoff UI tests use a **mocked** TacticMesh worker and are not evidence that a full physical match completed.
+Production deploy workflow: [`.github/workflows/deploy-siteground.yml`](.github/workflows/deploy-siteground.yml) on changes to specified runtime paths on `main`, with validation before FTPS publishing to the PokeFC **subdomain only**. See [SITEGROUND_DEPLOY.md](SITEGROUND_DEPLOY.md) for safeguards. The ordinary build does not include experimental Soccer-JS assets. A **development-only opt-in packaging flag** on the draft branch is not production authorization.
 
-## Source provenance and copyright
+More detail: [development TODO](DEVELOPMENT_TODO.md) · [repository cleanup notes](docs/REPOSITORY_CLEANUP.md) · [older source/calibration history](CHANGES_v0.8b1.md).
 
-Base stats/types for additional Pokémon are from PokeAPI's `data/v2/csv/pokemon.csv`, `pokemon_stats.csv` and `pokemon_types.csv`, National Pokédex IDs #252–493 (default forms), incorporated into `species.js`. `gen3-4-stats.csv` and `tools-build-species.py` provide the retained intermediate reference and repeatable build. Pokémon characters/names belong to their respective owners; this is an unofficial noncommercial prototype. Original TacticMesh source is MIT licensed (Energen Games); its source-lock and license files are preserved by the installer. The full original upstream source is not redistributed in this ZIP; users install exact verified bytes from the official source for watched physics.
-
-## Genuine first-half calibration audit
-
-The added `run_45min_test.py` runs one actual 45-minute **first half** using the original, version-verified TacticMesh engine, stops at the engine's real halftime boundary, saves the event ledger and halftime checkpoint, and compares 5,000 full Quick Sim samples for the same Pokémon lineups. Use `--resume` to continue from the most recently saved 5-minute checkpoint. It never promotes a half-match to an official full-time calibration reference or changes the game's production match settings.
+Pokémon characters and artwork belong to their respective owners. PokéFC is an unofficial project, not affiliated with Pokémon or FIFA/EA.
