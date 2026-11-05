@@ -3,3 +3,38 @@
 .return-challenge{margin:12px 15px 16px}
 .return-challenge[hidden],.team-actions[hidden]{display:none!important}
 .result-meta{line-height:1.6}
+
+/* Recorded match events, shared by live Play and the Challenge run recaps. */
+.pfc-event-timeline{padding:0!important;margin:8px 0!important;list-style:none!important;display:grid;gap:6px}
+.pfc-event-entry{display:grid;grid-template-columns:41px 25px minmax(0,1fr) auto;gap:7px;align-items:center;background:#172e3d;border:1px solid #426073;border-left:3px solid #698fa0;border-radius:7px;padding:8px 10px}
+.pfc-event-entry.home{border-left-color:#a3e8b9}
+.pfc-event-entry.away{border-left-color:#f0c888}
+.pfc-event-entry.neutral{border-left-color:#88a7c7}
+.pfc-event-entry.goal{background:#22433e}
+.pfc-event-entry.card{background:#413828}
+.pfc-event-entry.save{background:#1e384e}
+.pfc-event-minute{font-size:13px;font-weight:950;color:#f2d79a;font-variant-numeric:tabular-nums}
+.pfc-event-icon{font-size:17px;text-align:center;line-height:1}
+.pfc-event-content{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pfc-event-content strong{font-size:11px;font-weight:950;color:#f4f7ef;letter-spacing:.035em}
+.pfc-event-content span{font-size:11px;color:#e0eaf3;overflow-wrap:anywhere}
+.pfc-event-content small{font-size:9px;color:#afcbd2;font-weight:800;letter-spacing:.045em}
+.pfc-event-origin{font-size:9px;white-space:nowrap;color:#bbd9cc;letter-spacing:.05em;font-weight:850}
+.match-event-empty{margin:8px 0!important;padding:10px 12px;border:1px dashed #547185;border-radius:7px;color:#b8cddd!important;font-size:11px!important;line-height:1.5}
+@media(max-width:570px){
+ .pfc-event-entry{grid-template-columns:35px 22px minmax(0,1fr);gap:6px;padding:7px}
+ .pfc-event-minute{font-size:12px}
+ .pfc-event-origin{grid-column:3;justify-self:start;font-size:8px}
+}
+
+/* Chronological live-event column directly below the match controls. */
+.play-live-events{margin:0 14px 14px;border:1px solid #3e6271;border-radius:9px;background:#102935;overflow:hidden}
+.play-live-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#1c3946;border-bottom:1px solid #405e6e}
+.play-live-head h3{font-size:11px;font-weight:950;letter-spacing:.095em;color:#d8f0de;margin:0}
+.play-live-head span{font-size:10px;font-variant-numeric:tabular-nums;color:#e3d1a2;font-weight:900}
+.play-live-feed{max-height:285px;overflow:auto;padding:6px 10px}
+.play-live-feed .pfc-event-timeline{display:flex;flex-direction:column}
+.play-live-feed .pfc-event-entry{flex-shrink:0}
+.play-event-disclaimer{padding:0 13px 10px;color:#a8c4cd;font-size:10px;line-height:1.5;margin:0}
+.event-feed{max-height:400px}
+.event-feed h3{font-size:11px;font-weight:900;color:#d7eaca;letter-spacing:.06em;margin:0 0 8px}
