@@ -43,6 +43,24 @@ for mode in play franchise; do
      "dist/$mode/tacticmesh/vendor/"
 done
 
+# Optional, explicit development-only Soccer-JS packaging. Normal production
+# deployment is unchanged unless the environment flag is set to 1. Build native
+# Soccer-JS assets locally first; NEVER ship the experiments or Quick Sim source.
+if [[ "${PFC_INCLUDE_SOCCERJS:-0}" == "1" ]]; then
+  for file in index.html viewer.css viewer.bundle.js SOCCER-JS-LICENSE.txt; do
+    test -s "watch/soccerjs/dist/$file" || { echo "Missing compiled Soccer-JS asset: $file" >&2; exit 1; }
+  done
+  test -d watch/soccerjs/dist/assets || { echo "Missing native Soccer-JS assets" >&2; exit 1; }
+  mkdir -p dist/watch/soccerjs
+  cp -R watch/soccerjs/dist dist/watch/soccerjs/
+  cp watch/soccerjs/watch-bridge.js dist/watch/soccerjs/
+  test -s dist/watch/soccerjs/dist/viewer.bundle.js
+  echo "Included opt-in Soccer-JS 2.5D assets for a controlled development deploy."
+elif [[ "${PFC_INCLUDE_SOCCERJS:-0}" != "0" ]]; then
+  echo "PFC_INCLUDE_SOCCERJS must be 0 or 1" >&2
+  exit 1
+fi
+
 # Validate every local CSS/script ref, worker dependency and deployment scope.
 python3 - <<'PY'
 from html.parser import HTMLParser
