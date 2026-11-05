@@ -5,7 +5,7 @@
 <meta name="description" content="Play exhibition Pokémon soccer against 32 Gym Leaders and Elite Four. Quick Sim or watch the TacticMesh match engine.">
 <title>PokéFC · Quick Play</title>
 <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1">
-<link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=3">
+<link rel="stylesheet" href="../site.css?v=3"><link rel="stylesheet" href="./play.css?v=4">
 </head><body>
 <header class="pfc-header">
   <div class="pfc-shell pfc-head-row">
@@ -47,6 +47,23 @@
   <div class="scoreboard"><div><span class="team-side">HOME</span><strong id="homeName">YOUR XI</strong></div><div class="score-mid"><span id="matchClock">PRE-MATCH</span><div id="score">– : –</div><span id="matchState">Select an opponent</span></div><div class="away-name"><span class="team-side">AWAY</span><strong id="awayName">GYM LEADERS</strong></div></div>
   <div class="field-shell"><canvas id="matchPitch" width="1050" height="680" aria-label="Top-down football pitch displaying the match"></canvas></div>
   <div class="watch-controls"><button id="pause" class="play-btn" disabled>PAUSE</button><button id="resume" class="play-btn" disabled>RESUME</button><button id="simRemaining" class="play-btn" disabled>SIM TO END →</button><label for="watchSpeed">Watch speed <select id="watchSpeed" class="play-select compact"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option><option value="16">16×</option></select></label></div>
+  <div id="soccerWatchActions" class="soccerjs-actions" hidden aria-label="Soccer-JS match playback controls">
+    <button id="soccerRecord" class="play-btn primary" type="button" disabled>✓ RECORD OFFICIAL RESULT</button>
+    <button id="soccerCancel" class="play-btn subtle" type="button">✕ CANCEL WATCH</button>
+    <label for="soccerProjection">Camera view
+      <select id="soccerProjection" class="play-select compact">
+        <option value="isometric" selected>2.5D Isometric</option>
+        <option value="orthographic">Broadcast</option>
+        <option value="topdown">Top-down</option>
+      </select>
+    </label>
+    <label for="soccerCamera">Framing
+      <select id="soccerCamera" class="play-select compact">
+        <option value="wide" selected>Wide field</option>
+        <option value="follow">Follow ball</option>
+      </select>
+    </label>
+  </div>
   <p id="engineStatus" class="engine-status" role="status">Choose Quick Sim for an instant result or Watch for real TacticMesh ball and player movement.</p>
   <section class="play-live-events" aria-label="Match timeline commentary and recorded events">
    <div class="play-live-head"><h3>MATCH TIMELINE</h3><span id="liveEventCount">0 RECORDED</span></div>
@@ -63,5 +80,5 @@
 <script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=3"></script>
 <script src="./opponents.js?v=1"></script><script src="../challenge/special-items-data.js"></script><script src="../challenge/leaderboard.js?v=1"></script><script src="../challenge/match-report.js?v=4"></script>
 <script src="./hybrid-sim.js"></script><script src="./tm-engine-bridge.js?v=2"></script>
-<script src="./play.js?v=3"></script>
+<script src="./play.js?v=4"></script>
 </body></html>
