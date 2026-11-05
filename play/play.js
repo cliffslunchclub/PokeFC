@@ -1,4 +1,4 @@
-/* PokéFC Play / Exhibition. Uses the exact shared Quick Sim and actual TacticMesh worker.
+/* PokéFC Play / Exhibition. Uses authoritative Quick Sim and the native Soccer-JS 2.5D Watch.
  * All gym squads are deterministic, sourced from the canonical 32-gym table.
  * No ranked scores or franchise results are written by exhibitions. */
 (()=>{'use strict';
@@ -6,10 +6,7 @@ const S=window.FXI_SPECIES||[], BY=new Map(S.map(p=>[p.id,p]));
 const OPP=window.PFC_PLAY_OPPONENTS||[],SAVE='pokefc-free-builder-v1';
 const CHALLENGE_KEY='pokefc-challenge-alpha-1';
 const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('challenge')==='1');
-// Development-only opt-in; default Quick Play and production build stay unchanged.
-// 2.5D Watch is default in browsers. Keep legacy via explicit rollback query.
-const WATCH_CHOICE=window.location?new URLSearchParams(window.location.search||'').get('watch'):null;
-const SOCCERJS_PREVIEW=!!window.location&&WATCH_CHOICE!=='tacticmesh';
+const SOCCERJS_PREVIEW=true;
 let SOCCERJS_READY=false;
 let soccerSession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
@@ -39,7 +36,7 @@ const FORMS={
 };
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let preview=null,controller=null,currentResult=null,latestSnapshot=null,liveEvents=[],busy=false;
+let preview=null,currentResult=null,liveEvents=[],busy=false;
 function getXI(){
  const challenge=getChallenge();
  if(CHALLENGE_MODE){
@@ -101,7 +98,7 @@ function updateXI(){
  box.className='xi-status '+(ready?'ready':'warning');
  box.textContent=ready?'✓ '+team.name+' · '+team.formation+' · 11/11 Pokémon ready':CHALLENGE_MODE?'This Challenge match is finished or no locked XI was found. Return to Challenges.':'⚠ '+complete+'/11 Pokémon selected. Finish your XI in Free Builder or auto-fill the remaining slots.';
  $('quick').disabled=!ready||busy;
- $('watch').disabled=!ready||busy||(SOCCERJS_PREVIEW&&!SOCCERJS_READY);
+ $('watch').disabled=!ready||busy||!SOCCERJS_READY;
  $('homeName').textContent=team?.name||'YOUR XI';
  $('homePreview').innerHTML=(team?.lineup||Array(11).fill(null)).map((id,i)=>{
   const role=FORMS[team?.formation||'4-3-3'][i],s=BY.get(id);
@@ -129,7 +126,7 @@ function selectOpponent(){
  const o=opponent();if(!o)return;
  $('awayName').textContent=o.leader.toUpperCase();
  $('opponentCard').innerHTML='<strong>'+esc(o.leader)+'</strong><p>'+esc(o.city)+' · '+esc(o.region)+' · '+(o.tier==='gym'?'GYM LEADER':o.tier==='elite'?'ELITE FOUR':'CHAMPION')+'</p><span class="type-chip">'+esc(o.type.toUpperCase())+' SPECIALIST</span> <span class="type-chip">'+(o.roster?'FIXED ELITE XI':'GENERATED XI')+'</span>';
- if(!busy){preview=null;latestSnapshot=null;currentResult=null;liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
+ if(!busy){preview=null;currentResult=null;liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
 }
 function drawPitch(snapshot){
  const el=$('matchPitch'),ctx=el.getContext('2d');if(!ctx)return;
@@ -163,13 +160,7 @@ function drawPitch(snapshot){
  const ball=snapshot?.ball;const [bx,by]=coord(Number.isFinite(ball?.x)?ball.x:52.5,Number.isFinite(ball?.y)?ball.y:34);
  ctx.beginPath();ctx.arc(bx,by,8,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#122c2a';ctx.lineWidth=2;ctx.stroke();
 }
-function scoreFromSnapshot(snapshot){
- const s=snapshot?.score;if(!s)return null;
- if(Array.isArray(s)&&s.length>=2)return [Number(s[0])||0,Number(s[1])||0];
- if(typeof s==='object')return [Number(s.home??s.homeGoals)||0,Number(s.away??s.awayGoals)||0];
- return null;
-}
-function renderLiveTimeline(events=liveEvents,origin='tacticmesh',complete=false){
+function renderLiveTimeline(events=liveEvents,origin='quick-sim',complete=false){
  const el=$('liveEventFeed'),count=$('liveEventCount');
  if(!el||!count)return;
  const report=window.PFC_MATCH_REPORT;
@@ -185,22 +176,6 @@ function renderLiveTimeline(events=liveEvents,origin='tacticmesh',complete=false
   goalsEmpty:complete?'No goals were recorded for this match.':'No goals recorded yet.',
   otherEmpty:complete?'No other recorded events for this match.':'No saves or other events recorded yet.'
  })||'<p class="match-event-empty">The match timeline is unavailable.</p>';
-}
-function showSnapshot(s,ev){
- if(!s)return;latestSnapshot=s;
- const score=scoreFromSnapshot(s);if(score)$('score').textContent=score.join(' : ');
- const mins=Math.max(0,Math.min(90,Number(s.elapsedSeconds||0)/60));
- $('matchClock').textContent=Math.floor(mins)+"' / 90'";
- if(ev?.length){
-  let changed=false;
-  for(const e of ev){
-   if(!['goal','foul','card','substitution','half-time','second-half','full-time'].includes(e?.type))continue;
-   const key=x=>[x.type,x.minute,x.team,x.player,x.assist,x.card,x.playerOff,x.playerOn].join('|');
-   if(!liveEvents.some(x=>key(x)===key(e))){liveEvents.push({...e,origin:'tacticmesh'});changed=true}
-  }
-  if(changed)renderLiveTimeline();
- }
- drawPitch(s);
 }
 function saveChallengeResult(result){
  if(!CHALLENGE_MODE||!preview||preview.challengeRound==null)return null;
@@ -258,17 +233,14 @@ function stateBusy(isBusy){
 }
 function stopWatch(){
  if(soccerSession){soccerSession.destroy();soccerSession=null}
- if(SOCCERJS_PREVIEW){
-  document.querySelector('.field-shell')?.classList.remove('soccerjs-active');
-  $('soccerWatchActions').hidden=true;$('soccerRecord').disabled=true;
- }
- if(controller){controller.close();controller=null}
+ document.querySelector('.field-shell')?.classList.remove('soccerjs-active');
+ $('soccerWatchActions').hidden=true;$('soccerRecord').disabled=true;
  stateBusy(false);
  $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
 }
 function quickSim(){
  try{
-  stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
+  stopWatch();preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
   const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
@@ -280,7 +252,7 @@ function watchSoccerPreview(){
   // prior recorded session before checking the bridge for a new fixture.
   stopWatch();
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
-  preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
+  preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
   // A single immutable official Quick Sim result is locked before the first 2.5D frame.
   const official=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   $('soccerProjection').value='isometric';$('soccerCamera').value='wide';
@@ -348,31 +320,6 @@ function loadSoccerBridge(){
  script.onerror=()=>{$('watch').disabled=true;$('engineStatus').textContent='Soccer-JS bridge missing; serve development sources locally.';};
  document.head.append(script);
 }
-async function watchMatch(){
- try{
-  stopWatch();
-  preview=makePreview();latestSnapshot=null;liveEvents=[];
-  stateBusy(true);drawPitch();renderLiveTimeline();
-  $('modeTag').textContent='TACTICMESH';$('score').textContent='0 : 0';
-  $('matchClock').textContent="0' / 90'";$('matchState').textContent='Initializing watched match';
-  $('matchResult').innerHTML='<div class="empty-state"><span>◉</span><strong>LIVE TACTICAL CAMERA</strong><p>Real player and ball positions will appear when TacticMesh starts.</p></div>';
-  $('engineStatus').textContent='Checking the TacticMesh worker and installed engine files…';
-  if(!window.FXI_TM||!await window.FXI_TM.installed())throw Error('TacticMesh engine files are unavailable on this site');
-  controller=window.FXI_TM.connect(preview,{
-    ready:s=>{showSnapshot(s,[]);$('matchState').textContent='Watched match in progress';$('engineStatus').textContent='Genuine TacticMesh physics running. Use Pause or Sim to End any time.';$('pause').disabled=false;$('simRemaining').disabled=false;controller?.play(Number($('watchSpeed').value)||4)},
-    snapshot:showSnapshot,
-    performance:m=>{$('engineStatus').textContent='Live TacticMesh · '+(m?.realTimeFactor??'?')+'× actual simulation pace · '+(m?.ticksPerSecond??'?')+' ticks/s. Browser CPU affects speed.'},
-    handoff:(partial,s)=>{
-      try{showSnapshot(s,[]);const out=window.FXI_HYBRID.finish(preview,partial);showResult(out);
-        $('engineStatus').textContent='Switched at '+(partial.elapsedSeconds/60).toFixed(1)+"'. Earlier TacticMesh goals remain authoritative; only the remaining time was quick-simulated.";
-        stopWatch();
-      }catch(e){$('engineStatus').textContent='Sim-to-end could not be verified: '+e.message;stopWatch()}
-    },
-    done:(result)=>{showResult(result);$('engineStatus').textContent='Full-time: complete official TacticMesh match report received.';stopWatch()},
-    error:msg=>{$('engineStatus').textContent='TacticMesh error: '+msg;stopWatch()}
-  });
- }catch(e){$('engineStatus').textContent='Watch could not start: '+e.message;stopWatch()}
-}
 function start(){
  if(CHALLENGE_MODE){
   $('playIntroLabel').textContent='LOCKED CHALLENGE · WATCH OR QUICK SIM · ONE ATTEMPT';
@@ -384,40 +331,23 @@ function start(){
   $('region').disabled=true;$('opponent').disabled=true;$('tactic').disabled=true;$('fillXI').disabled=true;
   $('returnChallenge').hidden=false;
  }
- if(window.location){
-   const toggle=$('watchEngineSwitch');
-   if(toggle){
-    const query=new URLSearchParams(window.location.search||'');
-    query.set('watch',SOCCERJS_PREVIEW?'tacticmesh':'soccerjs');
-    toggle.href='?'+query.toString();
-    toggle.textContent=SOCCERJS_PREVIEW?'Use legacy Watch':'Use Soccer-JS 2.5D Watch';
-   }
-  }
   if(S.length!==1025||OPP.length!==38){$('engineStatus').textContent='Game data incomplete. Reload this page.';return}
  $('region').addEventListener('change',fillOpponents);
  $('opponent').addEventListener('change',selectOpponent);
  $('fillXI').addEventListener('click',autoFill);
  $('quick').addEventListener('click',quickSim);
- $('watch').addEventListener('click',SOCCERJS_PREVIEW?watchSoccerPreview:watchMatch);
- if(SOCCERJS_PREVIEW){
-  $('soccerRecord').addEventListener('click',()=>{try{soccerSession?.record()}catch(e){$('engineStatus').textContent='Recording failed: '+e.message}});
+ $('watch').addEventListener('click',watchSoccerPreview);
+ $('soccerRecord').addEventListener('click',()=>{try{soccerSession?.record()}catch(e){$('engineStatus').textContent='Recording failed: '+e.message}});
   $('soccerCancel').addEventListener('click',()=>soccerSession?.cancel());
   $('soccerProjection').addEventListener('change',e=>soccerSession?.setProjection(e.target.value));
   $('soccerCamera').addEventListener('change',e=>soccerSession?.setCamera(e.target.value));
   loadSoccerBridge();
- }
- $('pause').addEventListener('click',()=>{if(soccerSession)soccerSession.pause();else controller?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
- $('resume').addEventListener('click',()=>{if(soccerSession)soccerSession.play(Number($('watchSpeed').value)||4);else controller?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='WATCHING'});
+ $('pause').addEventListener('click',()=>{soccerSession?.pause();$('pause').disabled=true;$('resume').disabled=false;$('matchState').textContent='PAUSED'});
+ $('resume').addEventListener('click',()=>{soccerSession?.play(Number($('watchSpeed').value)||4);$('resume').disabled=true;$('pause').disabled=false;$('matchState').textContent='WATCHING'});
  $('simRemaining').addEventListener('click',()=>{
-  if(soccerSession){
-   if(soccerSession.simToEnd()){$('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;}
-   return;
-  }
-  if(!controller)return;
-  $('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;
-  $('engineStatus').textContent='Validating live TacticMesh handoff…';controller.handoff();
+  if(soccerSession?.simToEnd()){$('simRemaining').disabled=true;$('pause').disabled=true;$('resume').disabled=true;}
  });
- $('watchSpeed').addEventListener('change',e=>{if(soccerSession)soccerSession.setSpeed(Number(e.target.value)||4);else controller?.speed(Number(e.target.value)||4)});
+ $('watchSpeed').addEventListener('change',e=>{soccerSession?.setSpeed(Number(e.target.value)||4)});
  window.addEventListener('pageshow',updateXI);
  fillOpponents();updateXI();drawPitch();
 }
