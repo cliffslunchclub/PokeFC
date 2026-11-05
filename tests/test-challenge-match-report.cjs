@@ -81,6 +81,19 @@ for(const label of ['GOAL','FOUL','SAVE','YELLOW CARD','HALF-TIME','SUBSTITUTION
 assert(html.indexOf('GOAL')<html.indexOf('FOUL')&&html.indexOf('FOUL')<html.indexOf('SAVE'),'Chronological timeline displayed');
 assert.doesNotMatch(html,/SIM TO END|WATCHED|QUICK SIM|pfc-event-origin/,'Display hides per-event engine tags while saved records retain origin');
 const escaped=report.renderTimeline([{type:'foul',side:0,minuteLabel:'3',player:'<script>alert(1)</script>',origin:'tacticmesh'}]);
+const grouped=report.renderGroupedTimeline(allEvents);
+assert.match(grouped,/data-timeline-group="goals" open/,'Goals expanded by default');
+assert.match(grouped,/data-timeline-group="other"/,'Secondary incidents group exists');
+assert.doesNotMatch(grouped,/data-timeline-group="other" open/,'Saves and other match incidents are collapsed by default');
+assert.match(grouped,/GOALS<\/span><strong>1 RECORDED/,'Only authentic goals counted in goal group');
+assert.match(grouped,/SAVES &amp; OTHER EVENTS/);
+assert(grouped.indexOf('GOALS')<grouped.indexOf('SAVES &amp; OTHER EVENTS'),'Goal section appears first');
+const expanded=report.renderGroupedTimeline(allEvents,{goalsOpen:false,otherOpen:true});
+assert.doesNotMatch(expanded,/data-timeline-group="goals" open/);
+assert.match(expanded,/data-timeline-group="other" open/);
+assert.deepEqual(Array.from(allEvents.map(e=>e.origin)),
+ ['tacticmesh','tacticmesh','quick-continuation','tacticmesh','tacticmesh','tacticmesh'],
+ 'Grouping never alters the underlying event origin metadata');
 assert(!escaped.includes('<script>'),'Player names HTML-escaped');
 assert(escaped.includes('&lt;script&gt;'),'Escaped player name remains readable');
 console.log('PASS Challenge event ledger: goals, saves, fouls, cards, substitutions, origin, chronology, escaped text, no fabricated events');
