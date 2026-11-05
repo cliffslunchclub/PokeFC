@@ -249,5 +249,5 @@
  }
 
  root.FXI_PHASE10_WATCH={open,mountInline,snapshot,scoreAt,isActive:()=>!!active};
- if(typeof module!=='undefined'&&module.exports)module.exports={snapshot,scoreAt,mountInline};
+ if(typeof module!=='undefined'&&module.exports)module.exports={snapshot,scoreAt,mountInline,isActive:()=>!!active};
 })(typeof window!=='undefined'?window:globalThis);
