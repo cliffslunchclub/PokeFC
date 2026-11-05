@@ -803,6 +803,8 @@ if(st.phase==='draft'){
   slots.map((pos,i)=>!st.roster[i]?'<option value="'+i+'" '+(i===st.selected?'selected':'')+'>'+esc(pos)+' · SLOT '+(i+1)+'</option>':'').join('')+
   '</select></label>'+
   draftRollMarkup+
+  '<p id="challengeDraftRollingNote" class="challenge-draft-rolling-note" role="status"'+(!pendingRollAnimation?' hidden':'')+'>SCOUTING IN PROGRESS · Pokémon choices appear when the reels stop.</p>'+
+  '<div id="challengeDraftCandidates" class="challenge-draft-candidates"'+(pendingRollAnimation?' hidden':'')+'>'+
   '<label class="challenge-draft-search" for="draftSearch"><span>SEARCH ELIGIBLE POKÉMON</span><input id="draftSearch" type="search" placeholder="Name, number or type" autocomplete="off" aria-controls="challengePickGrid"></label>'+
   '<p class="draft-search-count" id="draftSearchCount">'+opts.length+' MATCHING POKÉMON</p>'+
  '<div class="challenge-pick-sort" aria-label="Pokémon sorting">SORTED BY POSITION FIT <strong>S → A → B → C → D</strong></div>'+ 
@@ -812,7 +814,7 @@ if(st.phase==='draft'){
  const stats=[['HP','hp'],['ATK','attack'],['DEF','defense'],['SpA','spAttack'],['SpD','spDefense'],['SPE','speed']];
  const statText=stats.map(([short,key])=>'<span><b>'+short+'</b> '+s.baseStats[key]+'</span>').join('');
  return '<div class="pick'+(first?' tier-group-start':'')+'" data-species-id="'+s.id+'"'+(first?' data-tier-group="'+tier+' TIER"':'')+'><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png"><span class="pick-info"><b>'+esc(s.name)+'</b><small>#'+String(s.id).padStart(4,'0')+' · '+s.types.map(esc).join('/')+' · Gen '+(s.gen||gen(s.id))+(s.legendary?' · ★ Legendary class':'')+' · <span class="pick-tier tier-'+tier.toLowerCase()+'" data-position-tier="'+s.id+'">'+tier+' TIER</span></small><span class="pick-base-stats" aria-label="Base stats for '+esc(s.name)+'">'+statText+'</span></span><span class="challenge-drag-grip pick-grip" data-drag-grip="candidate" data-drag-value="'+s.id+'" title="Drag onto an empty position">⠿</span><button data-pick="'+s.id+'" '+(st.roster[st.selected]||s.legendary&&legendaryCount>=2?'disabled':'')+'>DRAFT</button></div>';
-}).join('')+'</div></dialog>';
+}).join('')+'</div></div></dialog>';
 }
 if((st.phase==='draft'||st.phase==='shop')&&(st.formationChanges>0||st.moves>0)){
  body+='<details class="panel challenge-team-options"><summary>TEAM OPTIONS · FORMATION &amp; MOVES</summary><div class="challenge-team-options-content"><p>These resources expire when the Final XI is locked.</p>';
@@ -1008,11 +1010,18 @@ if(st.phase==='draft'){
  const wasTriggered=pendingRollAnimation;
  pendingRollAnimation=false;
  slotAnimationBusy=wasTriggered;
+ const revealDraftCandidates=()=>{
+  slotAnimationBusy=false;
+  const candidates=document.getElementById('challengeDraftCandidates');
+  const note=document.getElementById('challengeDraftRollingNote');
+  if(candidates)candidates.hidden=false;
+  if(note)note.hidden=true;
+ };
  if(SLOT){
   SLOT.mount(document.getElementById('challengeSlotMachine'),{
    gen:st.roll?.gen,type:st.roll?.type,count:eligible().length
-  },{animate:wasTriggered,pool:st.pool,onDone:()=>{slotAnimationBusy=false}});
- }else slotAnimationBusy=false;
+  },{animate:wasTriggered,pool:st.pool,onDone:revealDraftCandidates});
+ }else revealDraftCandidates();
 }else{SLOT?.cancel();slotAnimationBusy=false;pendingRollAnimation=false}
 // Per-render role cache and badge references keep hover light; committed clicks
 // reorder the grid in ONE DOM replacement, then animate only visible cards.
