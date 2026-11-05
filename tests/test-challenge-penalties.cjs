@@ -37,6 +37,11 @@ for(const [sequence,winner] of [[[.01,.99],'home'],[[.99,.01],'away']]){
  assert(p.home!==p.away,'Shoots until one side wins');
  assert.equal(p.winner,winner,'Winner follows made/missed kicks');
  assert.equal(match.outcome,winner==='home'?'Victory':'Defeat');
+ assert.match(played.app.innerHTML,/FINAL MATCH · VS LORELEI|MATCH 1 · VS LORELEI/,'Opposing boss named after VS');
+ if(winner==='away'){
+  assert.match(played.app.innerHTML,/id="finalMatchHeading"[^>]*>DEFEAT<\/h2>/,'Loss is explicitly player-perspective');
+  assert.match(played.app.innerHTML,/class="challenge-shootout-caption">PENALTIES \d+–\d+/,'Penalty score separated from regulation score');
+ }else assert.match(played.app.innerHTML,/id="challengeMatchResultTitle"[^>]*>VICTORY<\/h2>/,'Win is explicitly player-perspective');
  assert.deepEqual(Array.from(match.score),[1,1],'Regulation score unchanged');
  assert.equal(match.tiebreak.includes(p.home+'–'+p.away),true);
  assert(p.attempts.length>=5,'Each shootout contains modeled kick events');
