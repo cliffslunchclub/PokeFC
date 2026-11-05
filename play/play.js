@@ -7,7 +7,7 @@ const OPP=window.PFC_PLAY_OPPONENTS||[],SAVE='pokefc-free-builder-v1';
 const CHALLENGE_KEY='pokefc-challenge-alpha-1';
 const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('challenge')==='1');
 // Development-only opt-in; default Quick Play and production build stay unchanged.
-const SOCCERJS_PREVIEW=new URLSearchParams(window.location.search).get('watch')==='soccerjs';
+const SOCCERJS_PREVIEW=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('watch')==='soccerjs');
 let SOCCERJS_READY=false;
 let soccerSession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
