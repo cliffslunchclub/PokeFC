@@ -39,7 +39,6 @@
   if(!list.length)return '<p class="match-event-empty">'+escape(opts.empty||'No individual match events were recorded.')+'</p>';
   const labels={goal:'GOAL',save:'SAVE',foul:'FOUL',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
   const symbols={goal:'⚽',save:'🧤',foul:'⚑',card:'▣',substitution:'⇄','half-time':'◷','second-half':'▶','full-time':'■'};
-  const originLabel=origin=>origin==='tacticmesh'?'WATCHED':origin==='quick-continuation'?'SIM TO END':origin==='quick-sim'?'QUICK SIM':'RECORDED';
   return '<ol class="pfc-event-timeline">'+list.map(e=>{
    const type=e.type,side=e.side===0?'home':e.side===1?'away':'neutral';
    const name=e.player||'Pokémon unavailable';
@@ -48,12 +47,11 @@
     type==='save'?name+(e.shooter?' · Against '+e.shooter:''):
     type==='foul'?name:type==='card'?name:
     type==='substitution'?(e.playerOff||'Player off unavailable')+' → '+(e.playerOn||'Player on unavailable'):'';
-   const source=e.origin?'<small class="pfc-event-origin">'+escape(originLabel(e.origin))+'</small>':'';
    return '<li class="pfc-event-entry '+side+' '+type+'"><span class="pfc-event-minute">'+escape(String(e.minuteLabel||'?'))+'′</span>'+
     '<span class="pfc-event-icon" aria-hidden="true">'+symbols[type]+'</span>'+
     '<span class="pfc-event-content"><strong>'+escape(heading)+'</strong>'+
      (detail?'<span>'+escape(detail)+'</span>':'')+
-     '<small>'+(side==='home'?'YOUR XI':side==='away'?'OPPONENT':'MATCH')+'</small></span>'+source+'</li>';
+     '<small>'+(side==='home'?'YOUR XI':side==='away'?'OPPONENT':'MATCH')+'</small></span></li>';
   }).join('')+'</ol>';
  }
  function fromResult(result,fixture){

@@ -5,6 +5,10 @@
  * have their own authoritative integration tests. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
+const playHtml=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+assert.match(playHtml,/<h3>MATCH TIMELINE<\/h3>/,'Play labels the shared event feed as one Match Timeline');
+assert.equal((playHtml.match(/id="liveEventFeed"/g)||[]).length,1,'Exactly one persistent match event timeline');
+assert.doesNotMatch(playHtml,/RECORDED MATCH TIMELINE|LIVE MATCH EVENTS/,'No duplicate event section headings');
 const roster=[25,6,3,9,149,94,131,143,68,135,196];
 const history=['Lorelei','Bruno','Agatha','Lance','Blue'].map((boss,i)=>({boss,round:i+1,score:[2,1],shots:[12,7],passes:[360,275],outcome:'Victory'}));
 const state={version:1,phase:'locked',pool:9,legends:true,formation:'4-3-3',tactic:'press',roster,items:Array(11).fill(null),selected:0,rng:191121,
@@ -73,7 +77,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{file
  ];
  callbacks.snapshot(liveSnapshot,streamed);
  assert.equal(el('liveEventCount').textContent,'4 RECORDED','Match Center shows four verified streamed events');
- for(const label of ['GOAL','FOUL','YELLOW CARD','SUBSTITUTION','WATCHED'])
+ for(const label of ['GOAL','FOUL','YELLOW CARD','SUBSTITUTION'])
   assert.match(el('liveEventFeed').innerHTML,new RegExp(label),'Live commentary includes '+label);
  callbacks.snapshot(liveSnapshot,streamed);
  assert.equal(el('liveEventCount').textContent,'4 RECORDED','Repeat engine snapshots do not duplicate feed entries');
@@ -89,9 +93,11 @@ vm.runInContext(fs.readFileSync(path.join(root,'play/play.js'),'utf8'),ctx,{file
  assert.equal(final.result.report.goals.length,4);
  assert.equal(final.result.report.timeline.length,4,'Handoff saves exact source-labeled timeline to Challenge');
  assert.deepEqual(Array.from(final.result.report.timeline.map(e=>e.origin)),['tacticmesh','tacticmesh','quick-continuation','quick-continuation']);
- assert.match(el('matchResult').innerHTML,/RECORDED MATCH TIMELINE/,'Full-time Play recap shows same timeline');
- assert.match(el('matchResult').innerHTML,/SIM TO END/,'Continuation provenance visible after handoff');
- assert.match(el('matchResult').innerHTML,/WATCHED/,'Watched provenance remains visible after handoff');
+ assert.equal(el('liveEventCount').textContent,'4 RECORDED','Unified Match Timeline contains all final events');
+ assert.match(el('liveEventFeed').innerHTML,/Jolteon/,'Completed timeline shows scorer details');
+ assert.doesNotMatch(el('liveEventFeed').innerHTML,/SIM TO END|WATCHED|QUICK SIM|pfc-event-origin/,'Per-event source labels are not displayed');
+ assert.doesNotMatch(el('matchResult').innerHTML,/RECORDED MATCH TIMELINE|class="event-feed"/,'Result summary does not duplicate Match Timeline');
+ assert.match(el('modeTag').textContent,/WATCH → SIM/,'Match-level source context remains visible');
  assert.equal(final.result.report.goals[0].minuteLabel,'13');
  assert.equal(final.result.report.goals[0].origin,'tacticmesh');
  assert.equal(final.result.report.goals[2].origin,'quick-continuation');
