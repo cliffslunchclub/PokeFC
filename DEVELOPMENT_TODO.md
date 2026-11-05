@@ -29,6 +29,13 @@ Updated: 2026-11-05. Scope: current `main` plus clearly labeled unmerged work. *
 - [ ] **P1 — Remove TacticMesh:** pending final browser/mobile, knockouts/performance/rollback review. Retire old worker/vendor/fallback/deployment dependencies in a **separate** PR. See [retirement plan](docs/TACTICMESH-RETIREMENT.md). **Not yet removed.**
 - [ ] **P1 — Natural Match Director:** coherent passing, possession, shooting and goalkeeper animation, with derived movements labeled illustrative and goals/statistics fixed by Quick Sim.
 
+## Match Watch refinements (November 5 development branch)
+
+- [ ] **P0 — Native Broadcast readability:** staged closer Follow Ball framing, increased render-only ball size, gentler player animation and a slower 1× default. Verify native desktop/mobile screenshots and hosted-site camera behavior before merging or calling this deployed.
+- [ ] **P0 — Match statistics:** staged live on-target shot counts, player shots-on-target breakdown after Watch → Sim, official goalkeeper save timeline, and the missing Challenge match-stat row; confirm results remain immutable and are recorded only on explicit Record.
+- [ ] **P1 — Genuine set-piece rules:** Quick Sim currently does **not** award corners, free kicks, or in-match penalties. Implement fouls, out-of-play/deflections and restarts as deterministic official match events with proper team/player attribution. Ensure resulting shots, goals, saves, corners, free kicks and penalty statistics reconcile to the official box score and are replayable by Soccer-JS. Do not invent set pieces in the animation layer.
+- [ ] **P1 — Knockout shootout controller:** replace the provisional seeded penalty tiebreak with a reproducible kick-by-kick ledger, takers, saved/missed/scored attempts and official advancement, with extra time and visible penalty animations.
+
 ## Additional open work
 
 - [ ] **Real match resumption/tactical changes:** design seeded continuation state (clock, score, events, stats, tactics, lineups, RNG), prototype halftime changes, then arbitrary-minute adjustments without re-simulating elapsed match.
