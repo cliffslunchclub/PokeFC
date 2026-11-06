@@ -79,6 +79,10 @@ assert(css.includes('.watch-commentary')&&css.includes('pfc-watch-fullscreen'),
 assert(css.includes('position:absolute;z-index:7;bottom:8px')&&
  css.includes('.highlight-replay:not([hidden])'),
  'Commentary must remain below interactive instant-replay and fullscreen controls');
+assert(css.includes('pointer-events:none')&&
+ css.includes('.watch-commentary-head button{\n pointer-events:auto;')&&
+ css.includes('.watch-commentary-history:not([hidden]){\n pointer-events:auto;'),
+ 'Passive captions must not obstruct instant replay or shootout controls');
 assert(viewer.includes('Commentary.build(match,field)')&&viewer.includes('renderCommentary(t,script,isReplay)'));
 assert(viewer.includes('row.append(clock,words);fragment.append(row)'),
  'History must be populated as text, not untrusted markup');
