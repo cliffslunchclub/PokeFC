@@ -1242,3 +1242,15 @@
 .challenge-match-result-content>h2.challenge-result-verdict.loss{color:#ffaaa6!important}
 .challenge-match-result-content .challenge-shootout-caption{margin:0 0 8px!important;color:#ffdfa0!important;font-size:clamp(12px,2vw,18px)!important;font-weight:950!important;letter-spacing:.07em}
 
+
+/* The full-slot click target is deliberately invisible. The shared newtro
+   theme gives hovered buttons a charcoal background; keep this overlay
+   transparent in every pointer/focus state so it never masks the position,
+   + icon, Pokémon sprite or stat labels beneath it. The parent slot itself
+   retains its hover/selected highlight and the button's focus outline. */
+.challenge-frame .challenge-pitch .slot button[data-slot],
+.challenge-frame .challenge-pitch .slot button[data-slot]:is(:hover,:focus,:active){
+ background:transparent!important;
+ border:0!important;
+ box-shadow:none!important;
+}
