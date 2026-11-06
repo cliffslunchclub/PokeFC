@@ -291,6 +291,7 @@ function showResult(result){
  // One feed serves live commentary and official full-time history.
  // Events still retain their WATCHED/QUICK continuation origin in the match data.
  renderLiveTimeline(displayed.events||[],displayed.origin,true);
+ return challengeRecord;
 }
 function stateBusy(isBusy){
  busy=isBusy;
@@ -335,7 +336,7 @@ function watchSoccerPreview(){
   const duration=official.durationMinutes===120?120:90;
   let lastShownMinute=-1;
   $('soccerProjection').value='orthographic';$('soccerCamera').value='follow';
-  $('soccerWatchActions').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
+  $('soccerWatchActions').hidden=false;$('soccerRecord').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
   $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D';
   $('matchClock').textContent="0' / "+duration+"'";$('matchState').textContent=
    duration===120?'Preparing 120-minute knockout replay':'Preparing Broadcast match viewer';
@@ -344,7 +345,7 @@ function watchSoccerPreview(){
   const viewport=document.querySelector('.field-shell');
   viewport.classList.add('soccerjs-active');
   soccerSession=window.FXI_PHASE10_WATCH.mountInline({
-   preview,result:official,container:viewport,
+   preview,result:official,container:viewport,autoRecordOnSimToEnd:true,
    onReady:(session)=>{
     session.setProjection('orthographic');session.setCamera('follow');
      $('watchFullscreen').hidden=false;
@@ -353,7 +354,7 @@ function watchSoccerPreview(){
     $('matchState').textContent='WATCHING · BROADCAST';
     $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
    },
-   onProgress:({minute,score,finished,kickIndex=0,shootout})=>{
+   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout})=>{
     $('score').textContent=score.join(' : ');
     const totalKicks=shootout?.attempts.length||0;
     $('matchClock').textContent=finished?'FULL TIME':
@@ -375,25 +376,34 @@ function watchSoccerPreview(){
      renderLiveTimeline(recorded,'quick-sim');
     }
     if(finished){
-     $('matchResult').innerHTML='<div class="result-title"><strong>FULL TIME · NOT YET RECORDED</strong>'+
-      '<span class="result-meta">'+official.score.join(' – ')+'</span></div>'+
+     $('matchResult').innerHTML='<div class="result-title"><strong>'+
+      (handedOff?'FULL TIME · FINALIZING RESULT':'FULL TIME · READY TO RECORD')+
+      '</strong><span class="result-meta">'+official.score.join(' – ')+'</span></div>'+
       officialStatHtml(official)+
-      '<p class="result-meta">Click Record Official Result to save this outcome. Sim to End never saves automatically.</p>';
+      (handedOff?'':'<p class="result-meta">Record the official result to finish this watched match.</p>');
      renderLiveTimeline(official.events||[],'quick-sim',true);
-     $('matchState').textContent='FULL TIME · READY TO RECORD';
+     $('matchState').textContent=handedOff?'FULL TIME · FINALIZING':'FULL TIME · READY TO RECORD';
      $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
-     $('soccerRecord').disabled=false;
+     $('soccerRecord').disabled=!!handedOff;
      $('engineStatus').textContent='Full time '+duration+"'"+': '+official.score.join('–')+
       (official.shootout?' · Penalties '+official.shootout.home+'–'+official.shootout.away:'')+
-      ' · Record the locked PSE result to finish the fixture.';
+      (handedOff?' · Saving official result…':' · Record the locked PSE result to finish the fixture.');
     }
    },
    onRecord:({result,handoff})=>{
-    showResult(result);stateBusy(false);
+    const challengeRecord=showResult(result);stateBusy(false);
     $('soccerRecord').disabled=true;$('soccerCancel').disabled=true;
     $('pause').disabled=true;$('resume').disabled=true;$('simRemaining').disabled=true;
     $('modeTag').textContent=handoff==='watch-to-quick-sim'?'2.5D WATCH → SIM':'SOCCER-JS 2.5D';
     $('engineStatus').textContent='Official Quick Sim result recorded once. The 2.5D final frame remains visible.';
+    if(handoff==='watch-to-quick-sim'){
+     $('soccerRecord').hidden=true;
+     if(CHALLENGE_MODE&&challengeRecord&&typeof window.location?.assign==='function'){
+      window.location.assign('../challenge/'); // Saved run opens its match-result dialog.
+     }else if(!CHALLENGE_MODE){
+      $('matchResult')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+     }
+    }
    },
    onCancel:()=>{
     stopWatch();
@@ -417,7 +427,7 @@ function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
  $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
- script.src='../watch/soccerjs/watch-bridge.js?v=5';
+ script.src='../watch/soccerjs/watch-bridge.js?v=6';
  script.onload=()=>{
   SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
   updateXI();
