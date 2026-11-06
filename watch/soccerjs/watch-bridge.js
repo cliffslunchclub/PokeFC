@@ -252,7 +252,7 @@
  function mountInline({
   preview,result,container,onRecord,onCancel,onProgress,onReady,onStatus,
   autoRecordOnSimToEnd=false,
-  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=7'
+  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=8'
  }){
   requireValid(!active,'Another Watch session is already active');
   requireValid(container&&typeof container.appendChild==='function','A match viewport is required');
@@ -347,6 +347,10 @@
    setProjection:(projection)=>['isometric','orthographic','topdown'].includes(projection)&&send('projection',{projection}),
    setCamera:(camera)=>['wide','follow'].includes(camera)&&send('camera',{camera}),
    setNumbers:(visible)=>send('numbers',{visible:!!visible}),
+   // Highlight controls are presentation-only; no Sim-to-Watch handoff.
+   openHighlights:()=>!closed&&(!handedOff||finished)&&send('highlights'),
+   replayHighlight:(id)=>!closed&&(!handedOff||finished)&&
+    typeof id==='string'&&/^(goal|pk)-\d+$/.test(id)&&send('replay',{id}),
    // Rewind/scrub is visual only. After Watch → Sim, replay cannot resume.
    seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=duration&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
    simToEnd:()=>{

@@ -7,9 +7,13 @@ const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
+const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
+let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,highlightFilter='all',
+ lastCatalogIds='',highlightDrawerOpen=false;
+const promptedGoals=new Set();
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -46,6 +50,88 @@ function verify(m){
 function scoreAt(t){
  const s=[0,0];for(const g of match.events)if(g.type==='goal'&&g.minute<=t)s[g.team===match.home.id?0:1]++;
  return s;
+}
+// The ledger is immutable; highlighting only controls a temporary view.
+function highlightEntries(){
+ const position=replaySession?.saved||{minute,kickIndex};
+ return catalog(match,position.minute,position.kickIndex);
+}
+function clearHighlightNotice(){
+ replayNotice=null;$('highlightNotice').hidden=true;
+}
+function showHighlightNotice(entry){
+ if(replaySession||!entry||entry.kind!=='goal')return;
+ replayNotice=entry.id;
+ $('highlightNoticeTitle').textContent="GOAL! · "+Math.floor(entry.minute+1)+"′ · "+entry.name;
+ $('highlightNotice').hidden=false;
+}
+function clearMotionTracking(){
+ smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;
+}
+function setHighlightDrawer(open){
+ highlightDrawerOpen=!!open;
+ $('highlightDrawer').hidden=!open;
+ $('highlightToggle').setAttribute('aria-expanded',open?'true':'false');
+ if(open){clearHighlightNotice();renderHighlightCatalog(true);}
+}
+function replayMoment(id){
+ if(!match||replaySession)return false;
+ const entry=resolveHighlight(match,String(id),minute,kickIndex);
+ const clip=clipFor(match,entry);
+ if(!clip)return false;
+ replaySession={entry,clip,elapsed:0,progress:0,saved:{minute,kickIndex,playing,stopAt}};
+ playing=false;last=null;replayLast=null;replaySpeed=.5;
+ clearHighlightNotice();setHighlightDrawer(false);clearMotionTracking();
+ $('highlightReplay').hidden=false;
+ $('highlightReplayTitle').textContent=entry.title+' · '+entry.name;
+ $('highlightReplaySpeed').textContent='0.5× SLOW MO';
+ $('highlightReplayProgress').textContent='0%';
+ render(clip.start,{replay:true,progress:0});
+ return true;
+}
+function returnToMatch(){
+ if(!replaySession)return false;
+ const saved=replaySession.saved;
+ replaySession=null;replayLast=null;last=null;clearMotionTracking();
+ minute=saved.minute;kickIndex=saved.kickIndex;stopAt=saved.stopAt;
+ playing=saved.playing&&minute<stopAt;
+ $('highlightReplay').hidden=true;
+ render(minute);
+ return true;
+}
+function highlightEntryElement(entry,buttonLabel){
+ const row=document.createElement('div');row.className='highlight-entry';
+ const time=document.createElement('span');time.className='highlight-entry-time';
+ time.textContent=entry.kind==='goal'?Math.floor(entry.minute+1)+"′":'PK '+entry.kickIndex;
+ const info=document.createElement('div');info.className='highlight-entry-info';
+ const title=document.createElement('strong');title.textContent=entry.title;
+ const detail=document.createElement('small');detail.textContent=entry.description;
+ info.append(title,detail);
+ const button=document.createElement('button');button.type='button';
+ button.textContent=buttonLabel;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
+ button.addEventListener('click',()=>replayMoment(entry.id));
+ row.append(time,info,button);return row;
+}
+function renderHighlightCatalog(force=false){
+ if(!match||!spriteRoster)return;
+ const all=highlightEntries();
+ const signature=all.map(e=>e.id).join('|')+'::'+highlightFilter;
+ if(!force&&signature===lastCatalogIds)return;
+ lastCatalogIds=signature;
+ $('highlightCount').textContent=String(all.length);
+ const list=$('highlightList'),aside=$('goals');
+ const shown=all.filter(e=>highlightFilter==='all'||e.kind===highlightFilter);
+ list.replaceChildren();aside.replaceChildren();
+ if(!shown.length){
+  const empty=document.createElement('p');empty.className='highlight-empty';
+  empty.textContent=highlightFilter==='set'?
+   'No official set-piece incidents recorded yet. Corners and free kicks remain disabled until PSE records them.':
+   'Official highlights become available after each recorded incident.';
+  list.append(empty);
+ }else for(const entry of shown)list.append(highlightEntryElement(entry,'▶ REPLAY'));
+ if(!all.length){const empty=document.createElement('p');empty.className='highlight-empty';
+  empty.textContent='No official highlights yet.';aside.append(empty);
+ }else for(const entry of all)aside.append(highlightEntryElement(entry,'▶ REPLAY'));
 }
 function cameraFit(canvas,field,ball){
  const p=Settings.projectionMode;
@@ -104,13 +190,16 @@ function smoothMotion(script,t){
  trackedMinute=t;
  return {...script,actors,ball};
 }
-function render(t){
+function render(t,options={}){
+ const isReplay=options.replay===true;
  const field=Utils.getFieldBounds(),s=scoreAt(t);
- // Shootout poses are official incident visualizations: bypass locomotion
- // smoothing at a fixed 120' clock, otherwise the ball would never move.
- const script=match.shootout&&t>=match.durationMinutes&&kickIndex>0?
-  motionFrame(match,t,field,{kickIndex}):
-  smoothMotion(motionFrame(match,t,field),t);
+ // All shot paths and keeper movements are illustrative; only the PSE
+ // incident and final ledger are authoritative.
+ const script=isReplay&&replaySession?.clip.kind==='shootout'?
+  motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
+  match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
+   motionFrame(match,t,field,{kickIndex}):
+   smoothMotion(motionFrame(match,t,field),t);
  for(const p of script.actors){
   const actor=(p.side===0?sim.teamA:sim.teamB).players[p.index];
   actor.x=p.x;actor.y=p.y;actor.z=p.z;
@@ -138,13 +227,14 @@ function render(t){
  $('toast').textContent=script.label;$('toast').hidden=!script.label;
  const totalKicks=match.shootout?.attempts.length||0;
  const shootoutPending=!!totalKicks&&t>=match.durationMinutes&&kickIndex<totalKicks;
- $('status').textContent=shootoutPending?'PENALTY SHOOTOUT':
+ $('status').textContent=isReplay?'INSTANT REPLAY':shootoutPending?'PENALTY SHOOTOUT':
   t>=match.durationMinutes?'FULL TIME':
   t>=90&&match.durationMinutes===120?'EXTRA TIME':playing?'WATCHING':'READY / PAUSED';
- $('nextKick').hidden=!shootoutPending;
- $('nextKick').disabled=!shootoutPending;
+ $('nextKick').hidden=isReplay||!shootoutPending;
+ $('nextKick').disabled=isReplay||!shootoutPending;
+ $('highlightToggle').hidden=isReplay;
  const panel=$('shootoutOverlay');
- panel.hidden=!(totalKicks&&t>=match.durationMinutes);
+ panel.hidden=isReplay||!(totalKicks&&t>=match.durationMinutes);
  if(!panel.hidden){
   const shown=match.shootout.attempts.slice(0,kickIndex);
   const h=shown.filter(k=>k.side==='home'&&k.scored).length;
@@ -168,7 +258,7 @@ function render(t){
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
   (script.officialEvent?' · official PSE event':' · illustrative movement');
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
- if(embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
+ if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length});
  }
@@ -185,7 +275,9 @@ function render(t){
   pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false,
   durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
-  kickIndex,totalKicks};
+  kickIndex,totalKicks,replay:isReplay?{id:replaySession.entry.id,
+   kind:replaySession.clip.kind,progress:options.progress||0}:null};
+ if(!isReplay)renderHighlightCatalog();
 }
 function advanceKick(){
  if(!match?.shootout||minute<match.durationMinutes||
@@ -193,10 +285,26 @@ function advanceKick(){
  kickIndex++;kickElapsed=0;render(minute);return true;
 }
 function step(now){
+ if(replaySession){
+  if(replayLast!==null){
+   const delta=Math.max(0,(now-replayLast)/1000);
+   if(delta>2){replayLast=now;requestAnimationFrame(step);return;}
+   replaySession.elapsed+=delta*replaySpeed;
+  }
+  replayLast=now;
+  const progress=Math.min(1,replaySession.elapsed/replaySession.clip.durationSeconds);
+  replaySession.progress=progress;
+  $('highlightReplayProgress').textContent=Math.round(progress*100)+'%';
+  const clip=replaySession.clip;
+  render(clip.start+(clip.end-clip.start)*progress,{replay:true,progress});
+  if(progress>=1)returnToMatch();
+  requestAnimationFrame(step);return;
+ }
  if(playing){
+  let before=minute;
   if(last!==null){
    const elapsed=Math.max(0,(now-last)/1000);
-   // A suspended tab pauses rather than skipping extra time or penalty kicks.
+   // Suspended tabs pause instead of teleporting or triggering old incidents.
    if(elapsed>2){playing=false;last=null;}
    else if(minute<stopAt)minute=Math.min(stopAt,
     minute+elapsed*playbackRate(minute,match.events,speed));
@@ -210,19 +318,25 @@ function step(now){
    !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
   last=playing?now:null;
   render(minute);
+  const newGoal=match.events.find(e=>e.type==='goal'&&e.minute>before+1e-7&&e.minute<=minute+1e-7);
+  if(newGoal){
+   const entry=catalog(match,minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
+   if(entry&&!promptedGoals.has(entry.id)){promptedGoals.add(entry.id);showHighlightNotice(entry);}
+  }
  }
  requestAnimationFrame(step);
 }
 function seek(t){
- playing=false;last=null;smoothedFocus=null;
- trackedActors=null;trackedBall=null;trackedMinute=null;kickElapsed=0;
+ if(replaySession)returnToMatch();
+ playing=false;last=null;clearMotionTracking();kickElapsed=0;
+ clearHighlightNotice();
  minute=Math.max(0,Math.min(match.durationMinutes,t));
  if(minute<match.durationMinutes)kickIndex=0;
  render(minute);
 }
 function finish(){
- playing=false;last=null;smoothedFocus=null;
- trackedActors=null;trackedBall=null;trackedMinute=null;
+ if(replaySession)returnToMatch()&&finish();
+ playing=false;last=null;clearMotionTracking();clearHighlightNotice();
  minute=match.durationMinutes;kickIndex=match.shootout?.attempts.length||0;
  kickElapsed=0;render(minute);
 }
@@ -281,14 +395,26 @@ async function boot(){
   }
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
    throw Error('Original Soccer-JS sprite generation failed');
-  const list=$('goals');list.replaceChildren();
-  for(const e of match.events.filter(e=>e.type==='goal')){
-   const side=e.team===match.home.id?match.home:match.away;
-   const row=document.createElement('div'),scorer=side.lineup.find(p=>p.id===e.player);
-   const helper=side.lineup.find(p=>p.id===e.assist);
-   row.textContent=Math.floor(e.minute+1)+"' · "+scorer.name+' — '+side.name+
-     (helper?' (assist '+helper.name+')':'');
-   list.append(row);
+  // The highlight catalog is shared by standalone and embedded Soccer-JS.
+  $('highlightToggle').onclick=()=>setHighlightDrawer(!highlightDrawerOpen);
+  $('highlightClose').onclick=()=>setHighlightDrawer(false);
+  $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
+  $('highlightNoticeDismiss').onclick=clearHighlightNotice;
+  $('highlightReplayReturn').onclick=returnToMatch;
+  $('highlightReplaySpeed').onclick=()=>{
+   replaySpeed=replaySpeed===.5?1:.5;
+   $('highlightReplaySpeed').textContent=replaySpeed===.5?'0.5× SLOW MO':'1× NORMAL';
+  };
+  for(const button of document.querySelectorAll('[data-highlight-filter]')){
+   button.onclick=()=>{
+    highlightFilter=button.getAttribute('data-highlight-filter');
+    for(const other of document.querySelectorAll('[data-highlight-filter]')){
+     const current=other===button;
+     other.classList.toggle('active',current);
+     other.setAttribute('aria-pressed',current?'true':'false');
+    }
+    renderHighlightCatalog(true);
+   };
   }
   $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
@@ -347,7 +473,9 @@ async function boot(){
    }else if(msg.action==='seek'){
     const m=Number(msg.minute);
     if(Number.isFinite(m)&&m>=0&&m<=match.durationMinutes)seek(m);
-   }else if(msg.action==='next-kick'){advanceKick();
+    }else if(msg.action==='next-kick'){if(!replaySession)advanceKick();
+   }else if(msg.action==='highlights'){if(!replaySession)setHighlightDrawer(!highlightDrawerOpen);
+   }else if(msg.action==='replay'){replayMoment(msg.id);
    }else if(msg.action==='finish'){finish();
    }else if(msg.action==='projection'&&validViews.has(msg.projection)){
     $('projection').value=msg.projection;Settings.projectionMode=msg.projection;smoothedFocus=null;
@@ -358,7 +486,7 @@ async function boot(){
     $('showNumbers').checked=!!msg.visible;render(minute);
    }
   });
-  seek(0);window.__PFC_VIEWER_READY__=true;
+  seek(0);renderHighlightCatalog(true);window.__PFC_VIEWER_READY__=true;
   send({type:'booted',projection:Settings.projectionMode,pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length});
   requestAnimationFrame(step);
  }catch(e){

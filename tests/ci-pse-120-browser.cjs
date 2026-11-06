@@ -41,7 +41,8 @@ async function serve(){
  let browser;
  try{
   await serve();
-  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+  browser=await chromium.launch({headless:true,args:['--no-sandbox'],
+   ...(process.env.PFC_CHROME_BIN?{executablePath:process.env.PFC_CHROME_BIN}:{})});
   for(const [device,viewport] of [['desktop',{width:1440,height:900}],['mobile',{width:390,height:844}]]){
    const page=await browser.newPage({viewport,deviceScaleFactor:1});
    const errors=[];
@@ -58,6 +59,39 @@ async function serve(){
    assert.equal(state.initial.players,22);
    assert.equal(state.initial.phase,'regulation');
    assert(state.initial.pokemonEntitiesDrawn>0,'No Pokémon sprites drawn on '+device);
+   // Real 2.5D UI: avoid spoilers, offer live goal replay, and return to
+   // the exact Watch minute without changing the official match.
+   const firstGoal=fixture.events.find(e=>e.type==='goal');
+   assert(firstGoal,'Browser fixture should have a real goal for replay');
+   await page.locator('#highlightToggle').click();
+   assert.equal(await page.locator('#highlightList .highlight-entry').count(),0,
+    'Highlight drawer cannot reveal future PSE events');
+   await page.locator('#highlightClose').click();
+   const from=Math.max(0,firstGoal.minute-.12);
+   await page.locator('#scrub').evaluate((el,v)=>{
+    el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
+   },from);
+   await page.locator('#speed').selectOption('16');
+   await page.locator('#play').click();
+   await page.locator('#highlightNotice').waitFor({state:'visible',timeout:15000});
+   await page.locator('#highlightNoticePlay').click();
+   const replay=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(replay.replay?.kind,'goal','Official goal replay did not activate');
+   assert(await page.locator('#highlightReplay').isVisible());
+   await page.locator('#highlightReplaySpeed').click();
+   assert.match(await page.locator('#highlightReplaySpeed').innerText(),/1×/);
+   await page.locator('#highlightReplayReturn').click();
+   const restored=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(restored.replay,null,'Replay return must restore live viewer');
+   assert(restored.minute>=firstGoal.minute,'Watch position must resume after goal');
+   await page.locator('#pause').click();
+   await page.locator('#highlightToggle').click();
+   assert((await page.locator('#highlightList .highlight-entry').count())>0,
+    'A recorded goal must be replayable from the highlight drawer');
+   await page.locator('#highlightList .highlight-entry button').first().click();
+   assert.equal((await page.evaluate(()=>window.__PFC_SNAPSHOT__)).replay?.kind,'goal');
+   await page.locator('#highlightReplayReturn').click();
+   await page.locator('#pause').click();
    for(const minute of [90,105,119,120]){
     await page.locator('#scrub').evaluate((el,v)=>{
      el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -74,6 +108,16 @@ async function serve(){
    const shot=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(shot.kickIndex,1);
    assert.match(shot.animation,/^official-shootout-/);
+   await page.locator('#highlightToggle').click();
+   await page.locator('[data-highlight-filter="set"]').click();
+   assert.equal(await page.locator('#highlightList .highlight-entry').count(),1,
+    'Only the first completed official shootout kick may be replayed');
+   await page.locator('#highlightList .highlight-entry button').first().click();
+   const kickReplay=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(kickReplay.replay?.kind,'shootout');
+   assert.deepEqual(kickReplay.score,fixture.score,'Penalty clip cannot modify full-time goals');
+   await page.locator('#highlightReplayReturn').click();
+   assert.equal((await page.evaluate(()=>window.__PFC_SNAPSHOT__)).kickIndex,1);
    for(let i=1;i<initialKicks;i++)await page.locator('#shootoutAdvance').click();
    const final=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(final.kickIndex,initialKicks);

@@ -18,10 +18,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build native pinned MIT Soccer-JS viewer
         run: bash watch/soccerjs/build-local.sh
-      - name: Install headless Chromium
+      - name: Prepare real Chromium browser
         run: |
           npm install --no-save --no-audit --no-fund playwright
-          npx playwright install --with-deps chromium
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PFC_CHROME_BIN=$(command -v google-chrome)" >> "$GITHUB_ENV"
+            google-chrome --version
+          else
+            npx playwright install chromium
+          fi
       - name: Real desktop and mobile 120-minute Watch smoke test
         run: node tests/ci-pse-120-browser.cjs
       - name: Validate optional SiteGround release allowlist

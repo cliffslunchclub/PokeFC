@@ -22,8 +22,10 @@ jobs:
           node --check watch/soccerjs/watch-bridge.js
           node --check watch/soccerjs/phase10-motion.cjs
           node --check watch/soccerjs/viewer-entry.cjs
-      - name: Validate 120-minute Watch, shootout and legacy replay compatibility
+          node --check watch/soccerjs/highlight-replay.cjs
+      - name: Validate 120-minute Watch, shootout, highlights and legacy compatibility
         run: |
+          node tests/test-watch-highlights.cjs
           node tests/test-pse-120-watch.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node watch/soccerjs/test-isometric-motion.cjs

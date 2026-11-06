@@ -302,6 +302,7 @@ function stateBusy(isBusy){
 function stopWatch(){
  if(soccerSession){soccerSession.destroy();soccerSession=null}
  $('watchFullscreen').hidden=true;
+ if($('soccerHighlights')){$('soccerHighlights').hidden=true;$('soccerHighlights').disabled=true}
  if(SOCCERJS_PREVIEW){
   document.querySelector('.field-shell')?.classList.remove('soccerjs-active');
   $('soccerWatchActions').hidden=true;$('soccerRecord').disabled=true;
@@ -337,6 +338,8 @@ function watchSoccerPreview(){
   let lastShownMinute=-1;
   $('soccerProjection').value='orthographic';$('soccerCamera').value='follow';
   $('soccerWatchActions').hidden=false;$('soccerRecord').hidden=false;$('soccerRecord').disabled=true;$('soccerCancel').disabled=false;
+  $('soccerHighlights').hidden=false;$('soccerHighlights').disabled=true;
+  $('soccerHighlights').onclick=()=>soccerSession?.openHighlights?.();
   $('score').textContent='0 : 0';$('modeTag').textContent='SOCCER-JS · 2.5D';
   $('matchClock').textContent="0' / "+duration+"'";$('matchState').textContent=
    duration===120?'Preparing 120-minute knockout replay':'Preparing Broadcast match viewer';
@@ -348,7 +351,7 @@ function watchSoccerPreview(){
    preview,result:official,container:viewport,autoRecordOnSimToEnd:true,
    onReady:(session)=>{
     session.setProjection('orthographic');session.setCamera('follow');
-     $('watchFullscreen').hidden=false;
+     $('watchFullscreen').hidden=false;$('soccerHighlights').disabled=false;
     session.play(Number($('watchSpeed').value)||1);
     $('pause').disabled=false;$('resume').disabled=true;$('simRemaining').disabled=false;
     $('matchState').textContent='WATCHING · BROADCAST';
@@ -427,7 +430,7 @@ function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
  $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
- script.src='../watch/soccerjs/watch-bridge.js?v=7';
+ script.src='../watch/soccerjs/watch-bridge.js?v=8';
  script.onload=()=>{
   SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
   updateXI();
