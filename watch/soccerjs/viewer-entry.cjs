@@ -6,12 +6,14 @@ const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const Pace=require('./phase10-player-pace.cjs');
+const Zoom=require('./phase10-camera-zoom.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,kickIndex=0,kickElapsed=0;
+let zoomFactor=1; // Reset by each fresh Watch iframe, retained across camera modes.
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
@@ -153,7 +155,7 @@ function cameraFit(canvas,field,ball){
  const camera=$('camera').value==='follow'?'follow':'wide';
  // Deliberately tighter television-style framing; camera tracks the ball.
  // Midfield/penalty-area FIFA-like framing without the extreme 4.8x closeup.
- Settings.camera.scale=fit*(camera==='follow'?3.15:1.35);
+ Settings.camera.scale=fit*(camera==='follow'?3.15:1.35)*zoomFactor;
  const corners=[[0,0],[field.width,0],[0,field.height],[field.width,field.height]]
    .map(([x,y])=>Utils.toScreen(x,y,0));
  const xs=corners.map(v=>v.x),ys=corners.map(v=>v.y);
@@ -528,6 +530,18 @@ async function boot(){
    render(minute);
   };
   $('camera').onchange=()=>{smoothedFocus=null;sim.pitch?.invalidateRenderCache?.();render(minute);};
+  function changeZoom(direction){
+   zoomFactor=Zoom.step(zoomFactor,direction);
+   $('zoomValue').textContent=Zoom.percent(zoomFactor);
+   $('zoomOut').disabled=zoomFactor<=Zoom.MIN;
+   $('zoomIn').disabled=zoomFactor>=Zoom.MAX;
+   smoothedFocus=null;
+   sim.pitch?.invalidateRenderCache?.();
+   render(minute);
+  }
+  $('zoomIn').onclick=()=>changeZoom(1);
+  $('zoomOut').onclick=()=>changeZoom(-1);
+  $('zoomValue').textContent=Zoom.percent(zoomFactor);
   $('showNumbers').onchange=()=>render(minute);
   for(const id of ['play','playFive','pause','restart','skip','nextGoal','scrub'])$(id).disabled=false;
   window.addEventListener('message',e=>{
