@@ -222,7 +222,7 @@ assert.equal(lineup.state().moves,1,'Opening and closing never spends the swap c
 lineup.nodes.get('openFormationWindow').onclick();
 assert.equal(lineup.nodes.get('challengeFormationModal').style.properties.get('left'),'480px',
  'Formation window retains manual drag position after reopening');
-lineup.nodes.get('formationChange').value='4-4-2';
+lineup.document.getElementById('formationChange').value='4-4-2';
 lineup.nodes.get('applyFormation').onclick();
 assert.equal(lineup.state().formation,'4-4-2','Selecting formation applies the original game rule');
 assert.equal(lineup.state().formationChanges,0,'Only one formation change allowed');
@@ -232,8 +232,8 @@ assert.equal(lineup.state().roster[0],roster[0],'Formation changes do not overwr
 assert.equal(lineup.state().moves,1,'Formation change does not spend the position move');
 const moved=launch('shop');
 moved.nodes.get('openMoveWindow').onclick();
-moved.nodes.get('moveFrom').value='0';
-moved.nodes.get('moveTo').value='1';
+moved.document.getElementById('moveFrom').value='0';
+moved.document.getElementById('moveTo').value='1';
 moved.nodes.get('movePick').onclick();
 assert.equal(moved.state().moves,0,'A successful position swap spends exactly one move');
 assert.equal(moved.state().roster[0],roster[1],'Swap exchanges Pokémon between slots');
