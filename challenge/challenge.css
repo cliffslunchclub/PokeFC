@@ -1254,3 +1254,19 @@
  border:0!important;
  box-shadow:none!important;
 }
+
+/* Read-only instant replays of official PSE goals from the result dialog.
+   Clips reuse Soccer-JS; they never replay or mutate the official simulation. */
+.challenge-replay-controls{margin:12px 0 14px;padding:11px 12px;border:1px solid #5b6a71;border-radius:8px;background:#222a31}
+.challenge-replay-controls h4{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 0 9px!important;color:#f9efe6!important;font-size:11px!important;letter-spacing:.055em}
+.challenge-replay-controls h4 small{font-size:9px;color:#eac788}
+.challenge-replay-buttons{display:flex;flex-wrap:wrap;gap:7px}
+.challenge-frame .challenge-goal-replay-button{flex:0 0 auto;min-height:32px!important;padding:7px 10px!important;border:1px solid #ab7471!important;background:#412629!important;color:#fff3ee!important;border-radius:6px!important;font-size:10px!important;font-weight:900!important}
+.challenge-frame .challenge-goal-replay-button:hover{background:#713b39!important;border-color:#f4a7a0!important}
+.challenge-replay-controls p,.challenge-goal-replay-content>p{margin:8px 0 0!important;color:#bbc3cc!important;font-size:10px!important;line-height:1.45!important}
+.challenge-goal-replay-dialog{width:min(94vw,900px)!important;max-width:900px!important;max-height:min(90dvh,820px)!important;padding:0!important}
+.challenge-goal-replay-content{padding:12px 15px 16px}
+.challenge-goal-replay-content>p:first-child{margin:0 0 9px!important;color:#f0d29e!important}
+.challenge-goal-replay-stage{height:clamp(270px,53dvh,530px);width:100%;overflow:hidden;background:#0e1b1f;border:1px solid #5c6368;border-radius:8px;position:relative}
+.challenge-goal-replay-stage .soccerjs-inline-frame{display:block;width:100%;height:100%;border:0;background:#0e1b1f}
+@media(max-width:760px){.challenge-goal-replay-dialog{width:100vw!important;max-width:none!important;max-height:100dvh!important}.challenge-goal-replay-content{padding:9px}.challenge-goal-replay-stage{height:clamp(290px,57dvh,520px)}.challenge-replay-buttons{gap:5px}}
