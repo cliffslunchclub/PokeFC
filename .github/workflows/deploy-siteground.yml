@@ -105,6 +105,7 @@ jobs:
           node watch/soccerjs/test-goal-kickoff-reset.cjs
           node watch/soccerjs/test-possession-continuity.cjs
           node watch/soccerjs/test-play-sequence-director.cjs
+          node watch/soccerjs/test-hybrid-counterpress.cjs
           node tests/test-watch-fullscreen.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node tests/test-soccerjs-shot-ledger.cjs
