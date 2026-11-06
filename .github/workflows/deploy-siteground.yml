@@ -109,6 +109,8 @@ jobs:
           node watch/soccerjs/test-possession-continuity.cjs
           node watch/soccerjs/test-play-sequence-director.cjs
           node watch/soccerjs/test-hybrid-counterpress.cjs
+          node watch/soccerjs/test-three-defender-press.cjs
+          node watch/soccerjs/test-offside-aware-passing.cjs
           node watch/soccerjs/test-wall-physics.cjs
           node watch/soccerjs/test-enclosed-wall-play.cjs
           node tests/test-watch-fullscreen.cjs
