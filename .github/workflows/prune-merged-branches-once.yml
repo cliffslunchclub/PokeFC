@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  pull-requests: read
 jobs:
   prune-merged:
     if: github.repository == 'cliffslunchclub/PokeFC'
