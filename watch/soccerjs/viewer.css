@@ -54,3 +54,53 @@ html.pfc-inline main>.layout>.viewer { border:0;border-radius:0; }
 .shootout-overlay button:disabled{opacity:.5;cursor:not-allowed}
 .shootout-overlay button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media(max-width:580px){.shootout-overlay:not([hidden]){bottom:8px;padding:8px 10px;gap:4px}.shootout-overlay span{font-size:11px}}
+
+
+/* Official Match Highlights — Newtro Poké Ball palette, identical in every Watch mode. */
+.highlight-hud{position:absolute;inset:0;pointer-events:none;z-index:8;font-family:Inter,system-ui,sans-serif}
+.highlight-hud button{font:inherit;cursor:pointer;touch-action:manipulation}
+.highlight-hud button:focus-visible{outline:3px solid #ff7370;outline-offset:2px}
+.highlight-toggle:not([hidden]){position:absolute;top:11px;left:11px;z-index:3;pointer-events:auto;border:1px solid #ddd;background:#14161bec;color:#fff;border-radius:9px;min-height:42px;padding:8px 13px;font-size:12px;font-weight:850;box-shadow:0 4px 15px #0006}
+.highlight-toggle span{display:inline-grid;place-items:center;min-width:22px;margin-left:5px;padding:2px 5px;background:#e53935;border-radius:7px;font-variant-numeric:tabular-nums}
+.highlight-notice:not([hidden]){position:absolute;left:50%;top:12%;transform:translateX(-50%);z-index:4;pointer-events:auto;display:flex;align-items:center;gap:8px;max-width:94%;padding:10px 12px;border:2px solid #e53935;border-radius:12px;color:#fff;background:#14161bf4;box-shadow:0 6px 22px #0008}
+.highlight-notice div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.highlight-notice strong{font-size:clamp(13px,1.6vw,18px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.highlight-notice small{font-size:10px;letter-spacing:.05em;color:#f4b5b3}
+.highlight-notice button{flex:none;min-height:44px;padding:9px 11px;border-radius:7px;border:1px solid #f6f6f6;background:#e53935;color:#fff;font-size:12px;font-weight:800}
+.highlight-notice #highlightNoticeDismiss{background:#31343b;min-width:44px}
+.highlight-drawer:not([hidden]){position:absolute;right:8px;top:8px;bottom:8px;z-index:6;display:flex;flex-direction:column;pointer-events:auto;width:min(385px,calc(100% - 16px));max-height:calc(100% - 16px);background:#17191ff7;color:#fff;border:1px solid #8d929e;border-top:4px solid #e53935;border-radius:12px;box-shadow:0 15px 32px #000b;overflow:hidden}
+.highlight-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #454951;background:transparent;font-size:13px}
+.highlight-head button{background:#32363d;color:#fff;border:1px solid #777;border-radius:7px;min-width:42px;min-height:42px;font-size:17px}
+.highlight-filters{display:flex;gap:5px;padding:10px 12px}
+.highlight-filters button{min-height:38px;padding:7px 9px;border-radius:7px;border:1px solid #555965;background:#25272e;color:#fff;font-size:11px;font-weight:750;flex:1}
+.highlight-filters button.active{background:#e53935;border-color:#ff7975}
+.highlight-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:5px 12px}
+.highlight-entry{display:flex;align-items:center;gap:9px;border-bottom:1px solid #383b43;padding:9px 1px}
+.highlight-entry-time{font-size:12px;min-width:40px;font-variant-numeric:tabular-nums;color:#ffc6c3;font-weight:800}
+.highlight-entry-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.highlight-entry-info strong{font-size:12px;white-space:nowrap}
+.highlight-entry-info small{font-size:11px;color:#c2c4ce;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.highlight-entry button{min-height:44px;border:1px solid #e53935;border-radius:8px;background:#332326;color:#fff;padding:7px 10px;font-size:11px;font-weight:800}
+.highlight-empty{font-size:12px;color:#d1d2dc;line-height:1.4}
+.highlight-footnote{margin:0;border-top:1px solid #454951;padding:10px 12px;font-size:10px;color:#b9bcc5;line-height:1.4}
+.highlight-replay:not([hidden]){position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;z-index:9;pointer-events:none;color:#fff}
+.highlight-replay-top,.highlight-replay-bottom{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#14161bdc;max-width:100%}
+.highlight-replay-top{align-self:flex-start;margin:10px;border-left:4px solid #e53935;border-radius:6px;font-size:12px}
+.highlight-replay-top strong{color:#ff7975}
+.highlight-replay-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.highlight-replay-bottom{align-self:center;justify-content:center;flex-wrap:wrap;margin-bottom:10px;border:1px solid #85878e;border-radius:11px;pointer-events:auto}
+.highlight-replay-bottom span{font-size:12px;font-variant-numeric:tabular-nums;min-width:40px}
+.highlight-replay-bottom button{border:1px solid #aaa;background:#282b33;color:#fff;min-height:44px;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:800}
+.highlight-replay-bottom #highlightReplayReturn{background:#e53935;border-color:#e53935}
+@media(max-width:620px){
+ .highlight-toggle:not([hidden]){top:6px;left:6px;font-size:11px;padding:6px 8px}
+ .highlight-notice:not([hidden]){top:16%;padding:7px;gap:5px;width:max-content;max-width:96%}
+ .highlight-notice strong{font-size:12px}.highlight-notice small{font-size:8px}
+ .highlight-notice button{padding:7px;font-size:11px}
+ .highlight-drawer:not([hidden]){top:auto;bottom:4px;right:4px;left:4px;width:auto;max-height:78%;border-radius:10px}
+ .highlight-head{padding:6px 10px}
+ .highlight-filters{padding:5px 9px}
+ .highlight-replay-top{margin:5px}
+ .highlight-replay-bottom{gap:4px;padding:6px;margin-bottom:4px}
+}
+@media(prefers-reduced-motion:reduce){.highlight-hud *{scroll-behavior:auto;transition:none!important;animation:none!important}}
