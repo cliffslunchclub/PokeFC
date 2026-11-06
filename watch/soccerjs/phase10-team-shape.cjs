@@ -24,27 +24,49 @@ function styleFor(name){
 }
 const sideOf=id=>Math.floor(id/11);
 const seedOf=f=>String(f.visualSeed||f.seed||'pfc');
-function lastTurnover(plan,t){
- const turns=plan.turnovers||[];
- let low=0,high=turns.length;
+// Compute turnover entry weights once. A second regain during a recovery
+// inherits the actual pre-regain shape, rather than resetting both lines.
+const weightCache=new WeakMap();
+function weightAfter(item,age){
+ if(!item)return [1,0];
+ const {turn,before}=item;
+ if(age>=10)return turn.newSide===0?[1,0]:[0,1];
+ const output=before.slice();
+ output[turn.oldSide]=age<4?lerp(before[turn.oldSide],1,ease(age/1.4)):
+  1-ease((age-4)/6);
+ output[turn.newSide]=age<4?lerp(before[turn.newSide],1,ease(age/3)):1;
+ return output;
+}
+function preparedTurns(plan){
+ const cached=weightCache.get(plan);if(cached)return cached;
+ const out=[];
+ for(const turn of plan.turnovers||[]){
+  const previous=out.at(-1);
+  out.push({turn,before:previous?weightAfter(previous,turn.time-previous.turn.time):[1,0]});
+ }
+ weightCache.set(plan,out);return out;
+}
+function turnoverPosition(items,t){
+ let low=0,high=items.length;
  while(low<high){const mid=(low+high)>>1;
-  if(turns[mid].time<=t)low=mid+1;else high=mid;}
- return turns[low-1]||null;
+  if(items[mid].turn.time<=t)low=mid+1;else high=mid;}
+ return low;
+}
+function lastTurnover(plan,t){
+ const items=preparedTurns(plan),i=turnoverPosition(items,t);
+ return items[i-1]?.turn||null;
 }
 function status(f,field,seconds,visual){
  const active=visual.stage.mode==='challenge'&&
   seconds>=visual.stage.end-.000001?
   sideOf(visual.stage.receiver):sideOf(visual.stage.owner);
- const latest=lastTurnover(visual.plan,seconds);
- const age=latest?seconds-latest.time:Infinity;
- let attack=[active===0?1:0,active===1?1:0];
- let phase='settled';
- if(latest&&age<=10){
-  attack[latest.newSide]=ease(age/3);
-  attack[latest.oldSide]=age<=4?1:1-ease((age-4)/6);
-  phase=age<4?'counterpress':age<10?'recover':'settled';
- }
- return {ball:visual.ball,active,attack,turnover:latest,age,phase,
+ const turns=preparedTurns(visual.plan),index=turnoverPosition(turns,seconds);
+ const latest=turns[index-1]||null,next=turns[index]||null;
+ const age=latest?seconds-latest.turn.time:Infinity;
+ const attack=weightAfter(latest,age);
+ const phase=age<4?'counterpress':age<10?'recover':'settled';
+ return {ball:visual.ball,active,attack,
+  turnover:latest?.turn||null,nextTurnover:next?.turn||null,age,phase,
   pattern:visual.sequenceType,
   profiles:[styleFor(f.home.tactic),styleFor(f.away.tactic)]};
 }
@@ -107,6 +129,12 @@ function press(f,field,seconds,visual,shape,actors,ball){
   anchor=stage.from;
  }
  intensity*=shape.profiles[side].press;
+ // The previous counterpress fades out before another recorded *visual*
+ // turnover, so rapid exchanges never snap the same defenders to their bases.
+ if(shape.nextTurnover){
+  const timeLeft=shape.nextTurnover.time-seconds;
+  intensity*=ease(timeLeft/1.7);
+ }
  if(intensity<=.001)return {side,phase:shape.phase,intensity:0,ids:[]};
  // Stable pressers for a given passage or turnover; do not switch
  // chasers merely because two moving Pokémon become equidistant.
