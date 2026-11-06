@@ -38,6 +38,8 @@ for(let i=1;i<p.actions.length;i++){
  if(!inGoal){
   const before=motionFrame(fixture,(now-.00006)/60,field),
    after=motionFrame(fixture,(now+.00006)/60,field);
+  if([before,after].some(f=>['official-goal','illustrative-goal-buildup',
+   'illustrative-shot','illustrative-kickoff'].includes(f.action)))continue;
   maxActor=Math.max(maxActor,...before.actors.map((x,j)=>distance(x,after.actors[j])));
  }
 }
