@@ -1,6 +1,7 @@
 /* PokéFC Franchise: Soccer-JS 2.5D Watch adapter.
  * Locked official Quick Sim fixture drives the viewer. No state mutation
- * until explicit Record; Franchise simWeek owns all XP, results and saves.
+ * until an official full-time Record or verified Sim-to-End completion;
+ * Franchise simWeek still owns all XP, results and saves.
  */
 (function(root){'use strict';
  let current=null;
@@ -86,11 +87,13 @@
   };
   $('viewerComplete').onclick=()=>{
    if(!lookup()||!m.ready||m.handedOff||m.finished)return;
-   if(m.session.simToEnd()){
-    m.handedOff=true;m.playing=false;
-    if(note)note.textContent='Watch → Sim to End: replaying the same locked official result.';
-    update(m,bridge.scoreAt(m.session.fixture,m.minute));
-   }
+   const accepted=m.session.simToEnd();
+   // The bridge may complete and call finish() synchronously in a test.
+   // finish() rerenders Franchise, so do not touch its old viewer after that.
+   if(!accepted||!lookup())return;
+   m.handedOff=true;m.playing=false;
+   if(note)note.textContent='Watch → Sim to End: finalizing the same locked official result.';
+   update(m,bridge.scoreAt(m.session.fixture,m.minute));
   };
   $('viewerSoccerRecord').onclick=()=>{
    if(!lookup()||!m.finished||m.recorded)return;
@@ -112,6 +115,7 @@
   try{
    m.session=bridge.mountInline({
     preview:{home:data.home,away:data.away},result:data.result,container:pitch,
+    autoRecordOnSimToEnd:true,
     viewerUrl:options.viewerUrl||'../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=5',
     onReady:session=>{
      if(!lookup())return;
@@ -120,10 +124,14 @@
      if(note)note.textContent='2.5D ready. Score, goals and statistics are locked by Quick Sim; Play to watch.';
      update(m,[0,0]);
     },
-    onProgress:({minute,score,finished})=>{
+    onProgress:({minute,score,finished,handedOff})=>{
      if(!lookup())return;
-     m.minute=minute;m.finished=finished;
-     if(finished){m.playing=false;if(note)note.textContent='Full time. Record official result to advance this matchweek.'}
+     m.minute=minute;m.finished=finished;m.handedOff=m.handedOff||!!handedOff;
+     if(finished){
+      m.playing=false;
+      if(note)note.textContent=handedOff?'Full time. Saving matchweek results…':
+       'Full time. Record official result to advance this matchweek.';
+     }
      update(m,score);
     },
     onRecord:({result})=>{

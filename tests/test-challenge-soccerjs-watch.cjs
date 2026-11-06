@@ -15,7 +15,7 @@ const challenge={version:1,phase:'locked',pool:9,legends:true,
  selected:0,rng:191121,locked:{roster:ids.slice(),items:Array(11).fill(null),
  formation:'4-3-3',tactic:'press',score:85.7},round:5,history,result:null};
 const store=new Map([['pokefc-challenge-alpha-1',JSON.stringify(challenge)]]);
-const els=new Map(),sessions=[];
+const els=new Map(),sessions=[];let destination=null;
 const drawing={clearRect(){},fillRect(){},strokeRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},fillText(){},
  set fillStyle(v){},set strokeStyle(v){},set lineWidth(v){},set font(v){},set textAlign(v){}};
 function el(id){
@@ -34,6 +34,7 @@ const bridge={
  isActive:()=>active,
  mountInline(o){
   assert.equal(active,false);
+  assert.equal(o.autoRecordOnSimToEnd,true,'Sim to End auto-record enabled for Challenges');
   assert.equal(o.preview.home.tactic,'press');
   assert.equal(o.preview.challengeRound,5);
   assert.equal(o.preview.opponent.leader,'Red');
@@ -42,7 +43,8 @@ const bridge={
   active=true;let closed=false,recorded=false,ended=false;
   const session={
    play(){},pause(){},setSpeed(){},setProjection(){},setCamera(){},
-   simToEnd(){ended=true;o.onProgress({minute:90,score:o.result.score,finished:true,handedOff:true});return true},
+   simToEnd(){ended=true;o.onProgress({minute:90,score:o.result.score,finished:true,handedOff:true});
+    this.record();return true},
    record(){
     if(recorded||closed||!ended)return false;
     recorded=true;o.onRecord({result:o.result,handoff:'watch-to-quick-sim'});
@@ -62,7 +64,7 @@ const document={
  head:{append(s){assert.match(s.src,/watch-bridge\.js(?:\?v=\d+)?$/);s.onload()}}
 };
 const context=vm.createContext({
- window:{location:{search:'?challenge=1&watch=soccerjs'},addEventListener(){},FXI_PHASE10_WATCH:bridge},
+ window:{location:{search:'?challenge=1&watch=soccerjs',assign(url){destination=url}},addEventListener(){},FXI_PHASE10_WATCH:bridge},
  document,URLSearchParams,console,Date,Math,
  localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)}
 });
@@ -80,10 +82,9 @@ assert.equal(store.get('pokefc-challenge-alpha-1'),before,'Cancel leaves locked 
 el('watch').events.click();
 assert.equal(sessions.length,2);
 sessions[1].simToEnd();
-assert.match(el('matchResult').innerHTML,/SHOTS ON TARGET/,'Final official shot stats visible before Record');
-assert.equal(store.get('pokefc-challenge-alpha-1'),before,'Sim to End alone cannot advance a boss');
-assert.equal(el('soccerRecord').disabled,false);
-el('soccerRecord').events.click();
+assert.match(el('matchResult').innerHTML,/SHOTS ON TARGET/,'Final official shot stats visible automatically');
+assert.equal(el('soccerRecord').disabled,true,'Sim to End requires no second Record click');
+assert.equal(destination,'../challenge/','Auto-return to Challenge result dialog');
 const final=JSON.parse(store.get('pokefc-challenge-alpha-1'));
 assert.equal(final.phase,'finished','Red final boss ends gauntlet');
 assert.equal(final.result.boss,'Red');

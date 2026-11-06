@@ -34,6 +34,7 @@ const bridge={
  scoreAt,
  mountInline(o){
   assert(!active,'A second viewer was mounted before first was canceled');
+  assert.equal(o.autoRecordOnSimToEnd,true,'Franchise handoff must automatically finalize');
   assert.equal(o.result.origin,'quick-sim');
   assert.equal(o.preview.home.lineup.length,11);
   assert.equal(o.preview.away.lineup.length,11);
@@ -47,7 +48,8 @@ const bridge={
    setProjection(){return true},setCamera(){return true},setSpeed(){return true},
    seek(){return true},
    simToEnd(){if(this.ended)return false;this.ended=true;
-    o.onProgress({minute:90,score:o.result.score.slice(),finished:true});return true},
+    o.onProgress({minute:90,score:o.result.score.slice(),finished:true,handedOff:true});
+    this.record();return true},
    record(){
     if(!this.ended||this.recorded)return false;
     this.recorded=true;
@@ -91,19 +93,19 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(JSON.stringify(game.state()),before,'Opening Watch must not mutate career save');
  assert.equal(active.record(),false,'Cannot record prior to official full time');
  el('viewerComplete').onclick();
- assert.equal(el('viewerSoccerRecord').disabled,false,'Official final result unlocks recording');
- assert.equal(el('viewerMode').disabled,true,'Sim to End must not unlock a new Watch engine');
- assert.equal(game.state().week,0,'Sim to End does not save or advance a week');
- el('viewerSoccerRecord').onclick();
  const saved=game.state();
+ assert.equal(saved.week,1,'Sim to End advances Franchise automatically, no Record click');
+ assert.equal(finished,1,'Exactly one automatic Record callback');
+ assert.equal(el('viewerMode').disabled,false,'Viewer releases engine controls after transitioning to results');
  assert.equal(saved.week,1,'Recording advances exactly one week');
  assert.equal(saved.results.length,1,'Exactly one matchweek recorded');
+ assert.match(el('app').innerHTML,/id="franchiseWeekResults"/,'Sim to End transitions to matchweek results card');
  assert.equal(saved.results[0].length,16,'16 same-week fixtures saved');
  assert.deepEqual(Array.from(saved.results[0][preview.fixtureIndex].score),Array.from(expected.score),'Recorded match is exact locked Quick Sim result');
  assert.equal(finished,1);
  assert.equal(active,null,'Franchise dashboard dismounts 2.5D renderer after recording');
- el('viewerSoccerRecord').onclick();
- assert.equal(saved.week,1,'Repeated Record cannot advance another week');
+ assert.equal(active,null,'No active Watch remains after the automatic dashboard transition');
+ assert.equal(game.state().week,1,'No double save after handoff');
  // Unrecorded cancel must never modify the new saved week.
  navTactical();
  await Promise.resolve();
@@ -115,5 +117,5 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(JSON.stringify(game.state()),beforeCancel,'Cancel leaves all career state identical');
  assert.equal(finished,1);
  assert.equal(el('viewerMode').disabled,false);
- console.log('PASS Franchise native 2.5D: 22 dex sprites, actual Quick Sim, no pre-save mutation, exact result, one week and cancel');
+ console.log('PASS Franchise native 2.5D: Sim to End auto-records one matchweek, opens saved results and preserves cancel');
 })().catch(e=>{console.error(e);process.exitCode=1});

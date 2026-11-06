@@ -22,7 +22,7 @@ function el(id){
     id==='watchSpeed'?'1':id==='tactic'?'balanced':'',
    innerHTML:'',textContent:'',disabled:false,hidden:id==='soccerWatchActions',events:{},
    classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
-   addEventListener(type,fn){this.events[type]=fn},
+   addEventListener(type,fn){this.events[type]=fn},scrollIntoView(options){this.scrolledTo=options},
    getContext(){return drawing},appendChild(){},replaceChildren(){}
   };
   els.set(id,e);
@@ -34,6 +34,7 @@ const bridge={
  mountInline(options){
   assert.equal(active,false,'No overlapping 2.5D session');
   assert.equal(typeof options.onRecord,'function');
+  assert.equal(options.autoRecordOnSimToEnd,true,'Sim to End must auto-finalize official result');
   const original=JSON.stringify(options.result);
   active=true;let recorded=false,closed=false;
   const session={
@@ -43,6 +44,7 @@ const bridge={
    setSpeed(){return true},setProjection(view){this.lastProjection=view;return true},setCamera(camera){this.lastCamera=camera;return true},
    simToEnd(){
     options.onProgress({minute:90,score:options.result.score,finished:true,handedOff:true});
+    this.record(); // Real bridge completes the verified handoff and calls onRecord.
     return true;
    },
    record(){
@@ -90,10 +92,12 @@ assert.equal(active,true);
 assert.equal(el('field-shell').classList.contains('soccerjs-active'),true);
 assert.equal(el('watch').disabled,true,'Cannot overlap a running watch');
 sessions[0].simToEnd();
-assert.equal(el('soccerRecord').disabled,false,'Official result should be recordable at full time');
-assert.match(el('matchResult').innerHTML,/SHOTS ON TARGET/,'Live Watch→Sim shows official shot stats without recording');
-el('soccerRecord').events.click();
-assert.equal(el('watch').disabled,false,'New match available after recording');
+assert.equal(el('soccerRecord').disabled,true,'Record button is unnecessary after Sim to End');
+assert.equal(el('soccerRecord').hidden,true,'Sim to End hides redundant Record control');
+assert.match(el('matchResult').innerHTML,/SHOTS ON TARGET/,'Official final statistics shown immediately');
+assert.equal(el('matchResult').scrolledTo?.block,'start','Quick Play transitions to its result panel');
+assert.equal(el('watch').disabled,false,'New match available after automatic recording');
+assert.equal(sessions[0].record(),false,'Second record cannot duplicate official result');
 assert.equal(active,true,'Final frame remains mounted until starting another match');
 el('watch').events.click();
 assert.equal(sessions.length,2,'A second watched match must be allowed after recording');
@@ -106,4 +110,4 @@ assert.equal(el('field-shell').classList.contains('soccerjs-active'),false);
 assert.equal(el('watch').disabled,false,'Watch can restart after cancel');
 assert.equal(el('soccerWatchActions').hidden,true);
 assert.match(el('engineStatus').textContent,/without recording/);
-console.log('PASS 2.5D Quick Play lifecycle: Watch, full time, record, new Watch, cancel; real Quick Sim stays authoritative');
+console.log('PASS 2.5D Quick Play: Sim to End auto-records once and opens results, next Watch and cancel retain safeguards');

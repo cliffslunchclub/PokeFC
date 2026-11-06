@@ -93,16 +93,19 @@ assert.equal(records,1);
 assert.equal(JSON.stringify(sample),body,'Watch must not mutate locked result');
 session.destroy();
 assert.equal(bridge.isActive(),false);
-const skip=bridge.mountInline({preview,result:sample,container,
+const skip=bridge.mountInline({preview,result:sample,container,autoRecordOnSimToEnd:true,
  onRecord:()=>records++,onCancel:()=>cancels++});
 send('ready');send('booted',{projection:'orthographic'});
 send('progress',{minute:65,score:bridge.scoreAt(fixture,65)});
 assert.equal(skip.simToEnd(),true);
 assert.equal(sent.at(-1).message.action,'finish');
 assert.equal(skip.seek(15),false,'Watch → Sim forbids returning to Watch');
+send('progress',{minute:120,score:sample.score,kickIndex:0});
+assert.equal(records,1,'Sim to End cannot auto-record before final penalty');
 send('progress',{minute:120,score:sample.score,kickIndex:kickTotal});
-assert.equal(skip.record(),true);
-assert.equal(records,2);
+assert.equal(records,2,'Full verified shootout automatically records without clicking');
+assert.equal(skip.record(),false,'Auto-recorded handoff cannot record twice');
+assert.equal(skip.cancel(),false,'Completed official result cannot be discarded');
 skip.destroy();
 const cancel=bridge.mountInline({preview,result:sample,container,
  onRecord:()=>records++,onCancel:()=>cancels++});
@@ -120,4 +123,4 @@ for(const id of ['shootoutOverlay','shootoutScore','shootoutAdvance','nextKick',
  assert(html.includes('id="'+id+'"'),'Mobile shootout DOM missing '+id);
 assert.match(css,/min-height:44px/,'Touch target has accessible 44px height');
 console.log('PASS PSE 120 Watch: 90→120 score, extra-time goals, '+kickTotal+
- ' official kicks, Sim-to-End, zero pre-record writes, no duplicate saves, responsive controls');
+ ' official kicks, automatic Sim-to-End result, manual normal full time, cancel and no duplicate saves');
