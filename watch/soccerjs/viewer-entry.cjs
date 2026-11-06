@@ -189,13 +189,16 @@ function smoothMotion(script,t){
  trackedMinute=t;
  return {...script,actors,ball};
 }
-function render(t){
+function render(t,options={}){
+ const isReplay=options.replay===true;
  const field=Utils.getFieldBounds(),s=scoreAt(t);
- // Shootout poses are official incident visualizations: bypass locomotion
- // smoothing at a fixed 120' clock, otherwise the ball would never move.
- const script=match.shootout&&t>=match.durationMinutes&&kickIndex>0?
-  motionFrame(match,t,field,{kickIndex}):
-  smoothMotion(motionFrame(match,t,field),t);
+ // All shot paths and keeper movements are illustrative; only the PSE
+ // incident and final ledger are authoritative.
+ const script=isReplay&&replaySession?.clip.kind==='shootout'?
+  motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
+  match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
+   motionFrame(match,t,field,{kickIndex}):
+   smoothMotion(motionFrame(match,t,field),t);
  for(const p of script.actors){
   const actor=(p.side===0?sim.teamA:sim.teamB).players[p.index];
   actor.x=p.x;actor.y=p.y;actor.z=p.z;
@@ -222,13 +225,14 @@ function render(t){
  $('toast').textContent=script.label;$('toast').hidden=!script.label;
  const totalKicks=match.shootout?.attempts.length||0;
  const shootoutPending=!!totalKicks&&t>=match.durationMinutes&&kickIndex<totalKicks;
- $('status').textContent=shootoutPending?'PENALTY SHOOTOUT':
+ $('status').textContent=isReplay?'INSTANT REPLAY':shootoutPending?'PENALTY SHOOTOUT':
   t>=match.durationMinutes?'FULL TIME':
   t>=90&&match.durationMinutes===120?'EXTRA TIME':playing?'WATCHING':'READY / PAUSED';
- $('nextKick').hidden=!shootoutPending;
- $('nextKick').disabled=!shootoutPending;
+ $('nextKick').hidden=isReplay||!shootoutPending;
+ $('nextKick').disabled=isReplay||!shootoutPending;
+ $('highlightToggle').hidden=isReplay;
  const panel=$('shootoutOverlay');
- panel.hidden=!(totalKicks&&t>=match.durationMinutes);
+ panel.hidden=isReplay||!(totalKicks&&t>=match.durationMinutes);
  if(!panel.hidden){
   const shown=match.shootout.attempts.slice(0,kickIndex);
   const h=shown.filter(k=>k.side==='home'&&k.scored).length;
@@ -252,7 +256,7 @@ function render(t){
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
   (script.officialEvent?' · official PSE event':' · illustrative movement');
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
- if(embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
+ if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length});
  }
@@ -268,7 +272,9 @@ function render(t){
   pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false,
   durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
-  kickIndex,totalKicks};
+  kickIndex,totalKicks,replay:isReplay?{id:replaySession.entry.id,
+   kind:replaySession.clip.kind,progress:options.progress||0}:null};
+ if(!isReplay)renderHighlightCatalog();
 }
 function advanceKick(){
  if(!match?.shootout||minute<match.durationMinutes||
@@ -276,10 +282,26 @@ function advanceKick(){
  kickIndex++;kickElapsed=0;render(minute);return true;
 }
 function step(now){
+ if(replaySession){
+  if(replayLast!==null){
+   const delta=Math.max(0,(now-replayLast)/1000);
+   if(delta>2){replayLast=now;requestAnimationFrame(step);return;}
+   replaySession.elapsed+=delta*replaySpeed;
+  }
+  replayLast=now;
+  const progress=Math.min(1,replaySession.elapsed/replaySession.clip.durationSeconds);
+  replaySession.progress=progress;
+  $('highlightReplayProgress').textContent=Math.round(progress*100)+'%';
+  const clip=replaySession.clip;
+  render(clip.start+(clip.end-clip.start)*progress,{replay:true,progress});
+  if(progress>=1)returnToMatch();
+  requestAnimationFrame(step);return;
+ }
  if(playing){
+  let before=minute;
   if(last!==null){
    const elapsed=Math.max(0,(now-last)/1000);
-   // A suspended tab pauses rather than skipping extra time or penalty kicks.
+   // Suspended tabs pause instead of teleporting or triggering old incidents.
    if(elapsed>2){playing=false;last=null;}
    else if(minute<stopAt)minute=Math.min(stopAt,
     minute+elapsed*playbackRate(minute,match.events,speed));
@@ -293,19 +315,25 @@ function step(now){
    !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
   last=playing?now:null;
   render(minute);
+  const newGoal=match.events.find(e=>e.type==='goal'&&e.minute>before+1e-7&&e.minute<=minute+1e-7);
+  if(newGoal){
+   const entry=catalog(match,minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
+   if(entry&&!promptedGoals.has(entry.id)){promptedGoals.add(entry.id);showHighlightNotice(entry);}
+  }
  }
  requestAnimationFrame(step);
 }
 function seek(t){
- playing=false;last=null;smoothedFocus=null;
- trackedActors=null;trackedBall=null;trackedMinute=null;kickElapsed=0;
+ if(replaySession)returnToMatch();
+ playing=false;last=null;clearMotionTracking();kickElapsed=0;
+ clearHighlightNotice();
  minute=Math.max(0,Math.min(match.durationMinutes,t));
  if(minute<match.durationMinutes)kickIndex=0;
  render(minute);
 }
 function finish(){
- playing=false;last=null;smoothedFocus=null;
- trackedActors=null;trackedBall=null;trackedMinute=null;
+ if(replaySession)returnToMatch()&&finish();
+ playing=false;last=null;clearMotionTracking();clearHighlightNotice();
  minute=match.durationMinutes;kickIndex=match.shootout?.attempts.length||0;
  kickElapsed=0;render(minute);
 }
