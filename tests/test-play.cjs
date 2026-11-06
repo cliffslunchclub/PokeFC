@@ -23,7 +23,7 @@ const ctx=vm.createContext({
  localStorage:{getItem:key=>values.get(key)||null,setItem:(k,v)=>values.set(k,v)},
  Date,Math,console
 });
-for(const f of ['national-species.js','calibration-profile.js','quick-sim.js','play/opponents.js','play/play.js']){
+for(const f of ['national-species.js','calibration-profile.js','position-effectiveness.js','quick-sim.js','play/opponents.js','play/play.js']){
  vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f,timeout:20000});
 }
 const play=ctx.window.PFC_PLAY;
@@ -44,12 +44,13 @@ assert.equal(play.getXI().lineup.filter(Boolean).length,11);
 const preview=play.makePreview();
 assert.equal(preview.home.lineup.length,11);
 assert.equal(preview.away.lineup.length,11);
-assert(preview.home.lineup.every(x=>x.main&&x.detail));
+assert(preview.home.lineup.every(x=>x.main&&x.detail&&x.positionEfficiency>=.88&&x.positionEfficiency<=1));
 assert(preview.away.lineup.every(x=>x.main&&x.detail));
 el('quick').events.click();
 assert.equal(el('matchClock').textContent,'FULL TIME','Quick Sim completion');
 assert.match(el('score').textContent,/\d+ : \d+/);
 assert.match(el('matchResult').innerHTML,/Shots/);
+assert.match(el('matchResult').innerHTML,/Positional suitability/);
 assert.doesNotMatch(el('matchResult').innerHTML,/<small>Corners<\/small>/);
 assert.match(el('matchResult').innerHTML,/Enclosed pitch/);
 const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
