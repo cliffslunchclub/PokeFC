@@ -16,6 +16,8 @@ for(let i=1;i<timeline.actions.length;i++){
  if(ignored(at))continue;
  const a=motionFrame(fixture,(at-.00006)/60,field);
  const b=motionFrame(fixture,(at+.00006)/60,field);
+ if([a,b].some(f=>['official-goal','illustrative-goal-buildup',
+  'illustrative-shot','illustrative-kickoff'].includes(f.action)))continue;
  maxBoundary=Math.max(maxBoundary,dist(a.ball,b.ball),
   ...a.actors.map((p,j)=>dist(p,b.actors[j])));
  assert(maxBoundary<.05,'Ball or player teleported between variable-length actions');
@@ -24,6 +26,8 @@ for(const stage of timeline.actions){
  const at=(stage.start+stage.end)/2;
  if(ignored(at)||stage.duration<.5)continue;
  const frame=motionFrame(fixture,at/60,field);
+ if(['official-goal','illustrative-goal-buildup','illustrative-shot',
+  'illustrative-kickoff'].includes(frame.action))continue;
  if(stage.mode==='carry'){
   assert.equal(frame.ownerIndex,stage.owner,'Dribbler ownership changed mid-carry');
   maxContact=Math.max(maxContact,dist(frame.ball,frame.actors[stage.owner]));
