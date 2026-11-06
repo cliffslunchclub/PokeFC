@@ -123,17 +123,29 @@ function motionFrame(fixture,t,field,options=false){
   const taker=actors[side*11+takerIndex],keeper=actors[(1-side)*11+keeperIndex];
   const shooting={x:origin(side,.84,field),y:field.height*.5};
   const net={x:origin(side,.985,field),y:field.height*.5};
-  taker.x=shooting.x;taker.y=shooting.y;taker.frame=3;
+  // Presentations can animate a stored attempt from ball setup to outcome;
+  // regular shootout playback defaults to its already recorded final pose.
+  const p=options&&typeof options==='object'&&Number.isFinite(options.kickProgress)?
+   limit(options.kickProgress,0,1):1;
+  const approach=ease(p/.35),shot=ease((p-.38)/.60);
+  const start={x:origin(side,.80,field),y:shooting.y};
+  taker.x=lerp(start.x,shooting.x,approach);taker.y=shooting.y;
+  taker.frame=p>.33?3:0;
   keeper.x=origin(side,.972,field);keeper.y=field.height*.5;
   const finishY=kick.outcome==='off-target'?field.height*.21:
    kick.outcome==='saved'?field.height*.48:field.height*.5;
-  keeper.frame=kick.outcome==='saved'?8:1;
-  keeper.y=kick.outcome==='saved'?field.height*.48:field.height*.58;
-  ball={x:net.x,y:finishY,z:kick.outcome==='off-target'?1.2:.3};
-  return {actors,ball,action:'official-shootout-'+kick.outcome,
+  keeper.frame=p>.50?(kick.outcome==='saved'?8:1):0;
+  keeper.y=lerp(field.height*.5,kick.outcome==='saved'?field.height*.48:field.height*.58,shot);
+  ball={x:lerp(shooting.x,net.x,shot),
+   y:lerp(shooting.y,finishY,shot),
+   z:.22+shot*(kick.outcome==='off-target'?1.2:.1)+Math.sin(shot*Math.PI)*.55};
+  const complete=p>=.99;
+  return {actors,ball,
+   action:complete?'official-shootout-'+kick.outcome:'illustrative-shot',
    label:'PENALTY '+kickIndex+'/'+kicks.length+' · '+
-    (roster.lineup[takerIndex].name||'Pokémon')+' · '+kick.outcome.toUpperCase(),
-   officialEvent:kick,illustrative:false};
+    (roster.lineup[takerIndex].name||'Pokémon')+
+    (complete?' · '+kick.outcome.toUpperCase():' · SHOT IN PROGRESS'),
+   officialEvent:complete?kick:null,illustrative:!complete};
  }
  const goals=ignoreGoal?[]:fixture.events.filter(e=>e.type==='goal');
  const event=goals.find(g=>t>=g.minute-.7&&t<=g.minute+.22);
