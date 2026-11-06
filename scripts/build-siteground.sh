@@ -24,6 +24,8 @@ for file in builder.js national-species.js quick-sim.js pse-knockout.js \
             career.js tactical-viewer.js soccerjs-franchise-viewer.js; do
   cp "assets/js/$file" "dist/assets/js/$file"
 done
+# Competitive v2 position + finishing model is required by every interactive match mode.
+test -s dist/assets/js/position-effectiveness.js
 
 # Ratings explainer is linked from the Free Builder, not a fourth game mode.
 cp ratings/index.html dist/ratings/
