@@ -70,7 +70,11 @@ for(let cycle=1;cycle<210;cycle++){
  if(highest>maxTransition){
   maxTransition=highest;
   maxTransitionInfo=' at '+t+' minute, index '+distances.indexOf(highest)+
-   ' actions '+left.action+' / '+right.action+' phase '+left.pressPhase+' / '+right.pressPhase;
+   ' actions '+left.action+' / '+right.action+' phase '+left.pressPhase+' / '+right.pressPhase+
+   ' sides '+left.pressingSide+' / '+right.pressingSide+
+   ' pressers '+JSON.stringify(left.pressingPlayers)+' / '+JSON.stringify(right.pressingPlayers)+
+   ' points '+JSON.stringify(distances.indexOf(highest)>0?left.actors[distances.indexOf(highest)-1]:left.ball)+
+   ' / '+JSON.stringify(distances.indexOf(highest)>0?right.actors[distances.indexOf(highest)-1]:right.ball);
  }
 }
 assert(maxTransition<.15,'Off-ball players/ball teleport at a possession boundary: '+maxTransition+maxTransitionInfo);
