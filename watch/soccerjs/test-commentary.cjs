@@ -76,6 +76,9 @@ for(const id of ['commentaryPanel','commentaryLine','commentaryMinute',
 assert(html.includes('aria-live="polite"')&&html.includes('aria-expanded="false"'));
 assert(css.includes('.watch-commentary')&&css.includes('pfc-watch-fullscreen'),
  'Commentary should fit fullscreen');
+assert(css.includes('position:absolute;z-index:7;bottom:8px')&&
+ css.includes('.highlight-replay:not([hidden])'),
+ 'Commentary must remain below interactive instant-replay and fullscreen controls');
 assert(viewer.includes('Commentary.build(match,field)')&&viewer.includes('renderCommentary(t,script,isReplay)'));
 assert(viewer.includes('row.append(clock,words);fragment.append(row)'),
  'History must be populated as text, not untrusted markup');
