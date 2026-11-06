@@ -2,7 +2,7 @@
 'use strict';
 // Local only: private Quick Sim outcome -> safe, data-only Soccer-JS replay JSON.
 const fs=require('node:fs'),path=require('node:path');
-const quick=require('../../quick-sim.js');
+const quick=require('../../assets/js/quick-sim.js');
 function option(name,defaultValue){
  const i=process.argv.indexOf('--'+name);
  if(i<0)return defaultValue;
