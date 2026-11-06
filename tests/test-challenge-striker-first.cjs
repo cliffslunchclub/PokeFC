@@ -24,7 +24,7 @@ for(const [formation,expectedStriker] of cases){
  const context=vm.createContext({window:{},document:doc,console,
   localStorage:{getItem(){return saved},setItem(k,v){saved=v}},
   crypto:{getRandomValues(a){a[0]=123447;return a}},alert(){throw Error('Native alert')}});
- for(const f of ['assets/js/national-species.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js'])
+ for(const f of ['assets/js/position-effectiveness.js','assets/js/national-species.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js'])
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),context,{filename:f,timeout:15000});
  vm.runInContext(js,context,{filename:'challenge-inline',timeout:15000});
  doc.getElementById('form').value=formation;doc.getElementById('start').onclick();
