@@ -8,6 +8,7 @@
 const PlayDirector=require('./phase10-play-director.cjs');
 const TeamShape=require('./phase10-team-shape.cjs');
 const Wall=require('./phase10-wall-physics.cjs');
+const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -355,11 +356,23 @@ function motionFrame(fixture,t,field,options=false){
  // Hybrid Counterpress: 0–4 seconds pressure, 4–10 seconds recovery.
  // Away from turnovers the closest defenders still close passing lanes.
  const defensive=TeamShape.press(fixture,field,seconds,visual,shape,actors,ball);
+ // Deterministic 5 m/s maximum keeper pursuit, not a PSE save or turnover.
+ // A goalkeeper can take the ball only if the director's existing rebound
+ // action explicitly assigned that visual pickup to the keeper.
+ const keeperPositions=Keeper.at(fixture,field,seconds);
+ for(let side=0;side<2;side++){
+  actors[side*11].x=keeperPositions[side].x;
+  actors[side*11].y=keeperPositions[side].y;
+ }
+ const attackerSide=Math.floor(visual.stage.owner/11);
+ const defenderSide=1-attackerSide;
+ const keeperTarget=Keeper.target(defenderSide,field,visual.stage,ball);
  return {actors,ball,action:visual.action,ownerIndex:visual.ownerIndex,
   contact:visual.contact,label:'',officialEvent:null,illustrative:true,
   sequenceType:visual.sequenceType,sequenceIndex:visual.sequenceIndex,
   pressPhase:defensive.phase,pressingSide:defensive.side,
-  pressingPlayers:defensive.ids,visualTactic:teams[shape.active].tactic||'balanced',
+  pressingPlayers:defensive.ids,goalkeeperRushSide:keeperTarget.urgent?defenderSide:null,
+  visualTactic:teams[shape.active].tactic||'balanced',
   segmentStart:visual.segmentStart,segmentEnd:visual.segmentEnd,
   passStart:visual.passStart,passArrival:visual.passArrival,
   passOrigin:visual.passOrigin,passTarget:visual.passTarget,

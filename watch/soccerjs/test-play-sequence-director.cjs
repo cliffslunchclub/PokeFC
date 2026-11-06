@@ -9,7 +9,14 @@ const p=planFor(fixture,field),other=planFor(JSON.parse(pristine),field);
 assert.deepEqual(p,other,'Visual plan must replay identically from same fixture');
 assert.equal(p.duration,5400);
 assert(p.actions.length>1100&&p.sequences.length>350,'Variable plays not constructed');
-assert(p.sequences.some(s=>s.end-s.start>20),'Missing extended buildups');
+// With shorter on-ball carries, an extended buildup is defined by several
+// real passing actions, not by one player standing on the ball for 20s.
+const longSequences=p.sequences.filter(s=>s.end-s.start>10);
+const passingWeaves=p.sequences.filter(s=>s.kind==='weave'&&
+ p.actions.filter(a=>a.sequence===s.index&&a.mode==='pass').length>=3);
+assert(longSequences.length>10&&passingWeaves.length>20,
+ 'Missing meaningful extended multi-pass buildups; '+longSequences.length+
+ ' over 10s and '+passingWeaves.length+' passing weaves');
 assert(new Set(p.sequences.map(s=>Math.round((s.end-s.start)*10))).size>45,
  'Play durations remain fixed');
 const kinds=new Map;

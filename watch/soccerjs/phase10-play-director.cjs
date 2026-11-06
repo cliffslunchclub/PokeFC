@@ -106,7 +106,7 @@ function makePlan(f,field){
    pattern==='one-two'?24:pattern==='through'?24:29;
   if(dice('wall-bank:'+salt,100)>=chance)return null;
   const axes=[['y','min'],['y','max'],['x','min'],['x','max']];
-  const strength=(10+dice('wall-softness:'+salt,101)/10)/100;
+  const strength=(3+dice('wall-softness:'+salt,41)/10)/100;
   const candidates=axes.map(([axis,edge])=>
    Wall.candidate(from,to,field,axis,edge,strength))
    .filter(w=>w&&w.originalPathLength<Math.min(45,time*10.8+7) &&
@@ -180,7 +180,7 @@ function makePlan(f,field){
     to:point(field,ball.x-5.5,ball.y-1.5)}
   ];
   const duration=2.6+dice('loose-duration',23)/10;
-  const strength=(10+dice('loose-softness',101)/10)/100;
+  const strength=(3+dice('loose-softness',41)/10)/100;
   const choices=options.filter(c=>c.gap<13.5).map(c=>({
    ...c,wall:Wall.candidate(ball,c.to,field,c.axis,c.edge,strength)
   })).filter(c=>c.wall&&c.wall.originalPathLength<duration*9.3+5);
@@ -189,7 +189,19 @@ function makePlan(f,field){
   const choice=choices[0];
   let collector=owner;
   const reboundTarget=choice.wall.exit;
-  if(dice('loose-receiver',100)<55){
+  // An opposing keeper can only claim a scripted loose ball inside their
+  // own last 10m and within a realistic 5m/s collection window. The next
+  // sequence must then be a keeper distribution, never a goalkeeper dribble.
+  const keeperSide=1-side,keeperId=keeperSide*11;
+  const keeperBase=base(keeperId,field);
+  const keeperGoal=keeperSide===0?0:field.width;
+  const keeperReach=Math.hypot(keeperBase.x-reboundTarget.x,
+   keeperBase.y-reboundTarget.y);
+  const keeperDanger=Math.hypot(keeperGoal-reboundTarget.x,
+   field.height*.5-reboundTarget.y);
+  if(keeperDanger<=10&&keeperReach<=Math.min(8,5*duration-.45)){
+   collector=keeperId;
+  }else if(dice('loose-receiver',100)<55){
    const otherSide=dice('loose-steal',100)<20?1-side:side;
    const nearby=Array.from({length:10},(_,i)=>otherSide*11+i+1)
     .map(id=>({id,dist:Math.hypot(base(id,field).x-reboundTarget.x,
@@ -223,6 +235,16 @@ function makePlan(f,field){
   const started=seconds,initial=owner,side=sideOf(owner);
   const sign=dice('side',2)?1:-1;
   const lane=sign*(3+dice('lane',60)/10);
+  if(owner%11===0){
+   // Keeper collections are already visual possession boundaries. Resume
+   // immediately with a normal distribution, preserving PSE match authority.
+   const to=point(field,ball.x+(side===0?10:-10),
+    clamp(ball.y+sign*3,4,field.height-4));
+   pass(1.6+dice('keeper-release',16)/10,to,'keeper-distribution',.28,'one-two');
+   sequences.push({index:count,start:started,end:seconds,
+    kind:'keeper-distribution',firstOwner:initial});
+   return;
+  }
   if(kind==='dribble'){
    // Make a deliberate forward carry, then release rather than waiting
    // 5–15 seconds for the next meaningful action.
@@ -357,7 +379,8 @@ function sample(f,field,seconds){
  }else if(stage.mode==='challenge'){
   action='illustrative-challenge';contact='standing-challenge';
  }else if(stage.mode==='rebound'){
-  action=u>.96?'illustrative-wall-pickup':'illustrative-wall-rebound';
+  action=u>.96?(stage.receiver%11===0?
+    'illustrative-keeper-collection':'illustrative-wall-pickup'):'illustrative-wall-rebound';
   contact=u>.96?'collected-loose-ball':
    ball.contact==='approaching-wall'?'loose-wall-approach':'loose-wall-rebound';
  }else{

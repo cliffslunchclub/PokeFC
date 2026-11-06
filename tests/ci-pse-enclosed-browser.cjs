@@ -104,7 +104,9 @@ async function serve(){
    assert.equal(bounce.ballContact,'bank-rebound');
    await seekExact(pickup.start+pickup.duration*.975);
    const gathered=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
-   assert.equal(gathered.animation,'illustrative-wall-pickup');
+   assert.equal(gathered.animation,pickup.receiver%11===0?
+    'illustrative-keeper-collection':'illustrative-wall-pickup',
+    'Rebound collector must match the scripted receiver, including GK');
    assert.equal(gathered.ballContact,'collected-loose-ball');
    assert(gathered.carrier>=0,'Loose ball was not recovered by a Pokémon');
    assert.equal(gathered.wallContact?.axis,pickup.wall.axis);

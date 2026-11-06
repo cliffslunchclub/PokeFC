@@ -8,6 +8,9 @@ const NORMAL_RUN=4.0;
 const BALL_CARRY=3.8;
 const SHORT_SPRINT=5.0;
 function speedFor(script,index){
+ // Keepers alone can charge or retreat at a bounded five metres/second;
+ // ordinary players retain the existing with/without-ball limits.
+ if(index%11===0)return SHORT_SPRINT;
  if(script?.ownerIndex===index)return BALL_CARRY;
  if(script?.pressPhase==='counterpress'&&
    Array.isArray(script.pressingPlayers)&&script.pressingPlayers.includes(index))

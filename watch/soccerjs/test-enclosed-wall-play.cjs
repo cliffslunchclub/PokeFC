@@ -19,14 +19,15 @@ let maxBoundary=0,looseRecoveries=0,turnovers=0;
 const strengths=new Set();
 for(const stage of [...banks,...rebounds]){
  const wall=stage.wall;
- assert(wall.reboundFactor>=.10-1e-9&&wall.reboundFactor<=.20+1e-9,
-  'Wall strength must stay between 10% and 20% of previous rebound');
+ assert(wall.reboundFactor>=.03-1e-9&&wall.reboundFactor<=.07+1e-9,
+  'Wall strength must stay between 3% and 7% of previous rebound');
  strengths.add(Math.round(wall.reboundFactor*1000));
  assert(Math.abs(wall.restitution-Physics.ORIGINAL_RESTITUTION*
   wall.reboundFactor)<1e-10,'Rebound velocity must be damped');
- assert(Math.abs(distance(wall.hit,stage.to)/
-  (wall.originalPathLength-distance(stage.from,wall.hit))-
-  wall.reboundFactor)<1e-8,'Rebound distance must be damped');
+ assert(Math.abs(distance(wall.hit,stage.to)-Math.min(
+  Physics.MAX_REBOUND_DISTANCE,
+  (wall.originalPathLength-distance(stage.from,wall.hit))*wall.reboundFactor))<1e-8,
+  'Rebound distance must be 0.6m or less');
 }
 assert(strengths.size>8,'Multiple deterministic rebound strengths should appear');
 for(let i=1;i<plan.actions.length;i++){
@@ -66,7 +67,8 @@ for(const stage of [...banks,...rebounds]){
   const pickup=Director.sample(fixture,field,stage.start+stage.duration*.975);
   assert.equal(mid.ownerIndex,-1,'Loose rebound must stay unowned until recovery');
   assert.equal(pickup.ownerIndex,stage.receiver,'Correct player must recover loose ball');
-  assert.equal(pickup.action,'illustrative-wall-pickup');
+  assert.equal(pickup.action,stage.receiver%11===0?
+   'illustrative-keeper-collection':'illustrative-wall-pickup');
   assert.equal(pickup.contact,'collected-loose-ball');
   const after=Director.sample(fixture,field,Math.min(plan.duration,stage.end+.00002));
   if(after.stage!==stage)assert.equal(after.stage.owner,stage.receiver,
