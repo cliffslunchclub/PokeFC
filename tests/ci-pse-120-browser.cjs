@@ -73,6 +73,22 @@ async function serve(){
    },from);
    await page.locator('#speed').selectOption('16');
    await page.locator('#play').click();
+   // At the exact PSE goal time, show the ball past the keeper and beyond
+   // the goal line before the Replay/Continue modal obscures the pitch.
+   await page.waitForFunction(goal=>{
+    const s=window.__PFC_SNAPSHOT__;
+    return s?.animation==='official-goal'&&!s.goalPaused&&!s.watchPlaying&&
+      Math.abs(s.minute-goal)<.00001;
+   },firstGoal.minute,{timeout:15000});
+   const netFrame=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   const homeScored=firstGoal.team===fixture.home.id;
+   const farLine=homeScored?106:0;
+   assert((netFrame.ball.x-farLine)*(homeScored?1:-1)>.5,
+    'Goal ball must be inside net, not in front of end line on '+device);
+   assert((netFrame.ball.x-netFrame.actorWorldPositions[homeScored?11:0][0])*
+    (homeScored?1:-1)>2,'Goalkeeper must be between shot and net on '+device);
+   assert.equal(netFrame.goalPaused,false,'Goal popup appeared before net hold');
+   await page.screenshot({path:path.join(screenshotDir,'pse-goal-in-net-'+device+'.png')});
    await page.locator('#highlightNotice').waitFor({state:'visible',timeout:15000});
    const goalPause=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(goalPause.goalPaused,true,'Goal should automatically pause '+device);

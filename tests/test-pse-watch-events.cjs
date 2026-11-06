@@ -14,7 +14,7 @@ function team(id){
  }))};
 }
 const preview={home:team('home'),away:team('away'),seed:'pse-fixture'};
-const field={width:106,height:68};let seen=0,goals=0,poses=0,corners=0,penalties=0;
+const field={width:106,height:68};let seen=0,goals=0,poses=0,corners=0,penalties=0,converted=0;
 for(let i=0;i<120;i++){
  const result=qs.simulate(preview,{seed:'INTEGRATION-'+i,setPieces:'v1'});
  const raw=JSON.stringify(result);
@@ -51,6 +51,19 @@ for(let i=0;i<120;i++){
   assert.equal(frame.illustrative,false);
   poses++;
  }
+ for(const e of fixture.events.filter(e=>e.type==='goal'&&e.setPiece==='penalty')){
+  const side=e.team===fixture.home.id?0:1;
+  const moment=motionFrame(fixture,e.minute,field);
+  assert.equal(moment.action,'official-penalty-kick','Converted match penalty should finish shot at goal timestamp');
+  assert.equal(moment.officialEvent?.outcome,'goal');
+  assert((moment.ball.x-(side===0?field.width:0))*(side===0?1:-1)>.5,
+   'Converted penalty ball stops before end line');
+  const keeper=moment.actors[(1-side)*11];
+  assert((moment.ball.x-keeper.x)*(side===0?1:-1)>2,
+   'Converted penalty must pass the goalkeeper');
+  assert(Math.abs(moment.ball.y-keeper.y)>2,'Keeper must miss converted penalty');
+  converted++;
+ }
  for(const e of fixture.events){
   if(e.causedBy){
    const parent=fixture.events.find(x=>x.id===e.causedBy);
@@ -64,7 +77,7 @@ for(let i=0;i<120;i++){
  assert.equal(JSON.stringify(result),raw,'Watch/Match Report must not mutate official result');
  seen++;
 }
-assert(poses>50&&corners>50&&penalties>0&&goals>0);
+assert(poses>50&&corners>50&&penalties>0&&goals>0&&converted>0);
 const old=qs.simulate(preview,{seed:'LEGACY-COMPAT'});
 const oldFixture=bridge.snapshot(preview,old);
 assert.equal(oldFixture.setPieceRules,undefined);
