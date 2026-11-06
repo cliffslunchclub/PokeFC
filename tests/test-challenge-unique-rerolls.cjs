@@ -29,7 +29,7 @@ function launch(seed){
  const ctx=vm.createContext({window:win,document,console,
   localStorage:{getItem(){return stored},setItem(_k,v){stored=v}},
   crypto:{getRandomValues(a){a[0]=32007;return a}},alert:()=>{},confirm:()=>true});
- for(const file of ['national-species.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js'])
+ for(const file of ['assets/js/national-species.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js'])
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
  vm.runInContext(inline,ctx,{filename:'challenge-inline',timeout:20000});
  return {app,elements,state:()=>JSON.parse(stored)};

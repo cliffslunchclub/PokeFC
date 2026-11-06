@@ -3,10 +3,10 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "pse-knockout.js"
+      - "assets/js/pse-knockout.js"
       - "tests/test-pse-knockout.cjs"
       - "challenge/index.html"
-      - "career.js"
+      - "assets/js/career.js"
       - "franchise/index.html"
       - "scripts/build-siteground.sh"
       - ".github/workflows/pse-knockout-pr-checks.yml"
@@ -20,8 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntax and full knockout regression
         run: |
-          node --check pse-knockout.js
-          node --check career.js
+          node --check assets/js/pse-knockout.js
+          node --check assets/js/career.js
           node tests/test-pse-knockout.cjs
           node tests/test-pse-knockout-modes.cjs
           node tests/test-challenge-pse-watch.cjs

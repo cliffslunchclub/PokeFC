@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "quick-sim.js"
+      - "assets/js/quick-sim.js"
       - "tests/test-pse-enclosed-pitch.cjs"
       - ".github/workflows/pse-enclosed-pitch-pr-checks.yml"
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntax and 500-match no-whistle simulation
         run: |
-          node --check quick-sim.js
+          node --check assets/js/quick-sim.js
           node tests/test-pse-enclosed-pitch.cjs
       - name: Existing engine and report integrity
         run: |

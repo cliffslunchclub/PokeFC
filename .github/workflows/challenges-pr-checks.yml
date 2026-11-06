@@ -5,12 +5,12 @@ on:
     branches: [main]
     paths:
       - "challenge/**"
-      - "newtro.css"
-      - "favicon.svg"
-      - "site.css"
+      - "assets/css/newtro.css"
+      - "assets/icons/favicon.svg"
+      - "assets/css/site.css"
       - "index.html"
-      - "builder.js"
-      - "builder.css"
+      - "assets/js/builder.js"
+      - "assets/css/builder.css"
       - "tests/test-free-builder.cjs"
       - "play/index.html"
       - "franchise/index.html"
@@ -51,8 +51,8 @@ jobs:
       - name: Verify PSE and Soccer-JS match lifecycle
         run: |
           node --check play/play.js
-          node --check tactical-viewer.js
-          node --check soccerjs-franchise-viewer.js
+          node --check assets/js/tactical-viewer.js
+          node --check assets/js/soccerjs-franchise-viewer.js
           node tests/test-phase10-quickplay-lifecycle.cjs
           node tests/test-franchise-soccerjs-watch.cjs
           node tests/test-tacticmesh-retired.cjs

@@ -23,7 +23,7 @@ function runCase(pool,legends){
  const ctx=vm.createContext({window:{},document,crypto:{getRandomValues(a){a[0]=49652;return a}},console,
   navigator:{},confirm:()=>true,alert:e=>{throw Error(e)},
   localStorage:{getItem:key=>storage.get(key)||null,setItem:(k,v)=>storage.set(k,v)}});
- for(const file of ['national-species.js','challenge/special-items-data.js','play/opponents.js','challenge/leaderboard.js','challenge/run-card.js']){
+ for(const file of ['assets/js/national-species.js','challenge/special-items-data.js','play/opponents.js','challenge/leaderboard.js','challenge/run-card.js']){
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
  }
  let simulations=0;

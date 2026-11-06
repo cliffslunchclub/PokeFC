@@ -68,7 +68,7 @@ function launch(seed){
   localStorage:{getItem(){return stored},setItem(_k,v){stored=v}},
   crypto:{getRandomValues(a){a[0]=321345;return a}},
   console,alert:e=>{throw Error(e)},confirm:()=>true});
- for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','challenge/drag-drop.js','play/opponents.js']){
+ for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','challenge/drag-drop.js','play/opponents.js']){
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file,timeout:15000});
  }
  const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');

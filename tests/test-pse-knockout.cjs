@@ -1,6 +1,6 @@
 'use strict';
-const assert=require('node:assert/strict'),qs=require('../quick-sim.js');
-const KO=require('../pse-knockout.js');
+const assert=require('node:assert/strict'),qs=require('../assets/js/quick-sim.js');
+const KO=require('../assets/js/pse-knockout.js');
 const positions=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 const build=id=>({id,name:id+' City FC',tactic:'press',
  lineup:positions.map((pos,i)=>({id:id+'-'+i,name:id+' Pokemon '+i,pos,

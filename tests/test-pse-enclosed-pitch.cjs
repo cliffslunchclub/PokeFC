@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('node:assert/strict'),qs=require('../quick-sim.js');
+const assert=require('node:assert/strict'),qs=require('../assets/js/quick-sim.js');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id){return {id,name:id+' Gym FC',tactic:'press',
  lineup:roles.map((pos,i)=>({id:id+'-'+i,name:id+' Pokémon '+i,pos,

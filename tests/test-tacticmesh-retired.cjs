@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
-for(const p of ['play/index.html','franchise/index.html','play/play.js','career.js','tactical-viewer.js','soccerjs-franchise-viewer.js']){
+for(const p of ['play/index.html','franchise/index.html','play/play.js','assets/js/career.js','assets/js/tactical-viewer.js','assets/js/soccerjs-franchise-viewer.js']){
  assert.doesNotMatch(read(p),/tacticmesh|tm-engine-bridge|tm-worker|hybrid-sim|FXI_TM|FXI_HYBRID/i,p+' must be PSE/Soccer-JS only');
 }
 for(const p of ['tm-worker.js','tm-engine-bridge.js','hybrid-sim.js','tacticmesh',

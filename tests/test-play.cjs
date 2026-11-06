@@ -23,7 +23,7 @@ const ctx=vm.createContext({
  localStorage:{getItem:key=>values.get(key)||null,setItem:(k,v)=>values.set(k,v)},
  Date,Math,console
 });
-for(const f of ['national-species.js','calibration-profile.js','position-effectiveness.js','quick-sim.js','play/opponents.js','play/play.js']){
+for(const f of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/position-effectiveness.js','assets/js/quick-sim.js','play/opponents.js','play/play.js']){
  vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f,timeout:20000});
 }
 const play=ctx.window.PFC_PLAY;

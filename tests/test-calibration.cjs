@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('node:assert/strict'),sim=require('../quick-sim.js'),fit=require('../calibration-fit.js');
+const assert=require('node:assert/strict'),sim=require('../assets/js/quick-sim.js'),fit=require('../assets/js/calibration-fit.js');
 const [GK,DEF,MID,FWD]=['GK','DEF','MID','FWD'];
 function pokemon(side,id,pos,offset=0){const v=57+(id*7%22)+offset;return {
  id:side+'-p'+id,pos,main:{sprintSpeed:v,shortPassing:v+3,firstTouch:v+1,vision:v+2,tackling:v+2,finishing:v+1},

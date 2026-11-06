@@ -8,7 +8,7 @@ const pages=[
   {file:'challenge/index.html',prefix:'../',active:'CHALLENGES'},
   {file:'franchise/index.html',prefix:'../',active:'FRANCHISE'},
 ];
-const ball=fs.readFileSync(path.join(root,'favicon.svg'),'utf8');
+const ball=fs.readFileSync(path.join(root,'assets/icons/favicon.svg'),'utf8');
 assert.match(ball,/<svg[^>]*viewBox="0 0 64 64"/);
 assert.match(ball,/<circle/);
 for(const p of pages){
@@ -24,15 +24,15 @@ for(const p of pages){
  assert.equal((nav[1].match(/aria-current="page"/g)||[]).length,p.active?1:0,'One active mode maximum: '+p.file);
  if(p.active)assert(nav[1].includes('>'+p.active+'</a>'),'Correct active mode: '+p.file);
  assert(head[1].includes('href="'+p.prefix+'"'),'Logo returns to Home: '+p.file);
- assert(head[1].includes('src="'+p.prefix+'favicon.svg?v=2"'),'Shared ball logo: '+p.file);
- assert(html.includes('rel="icon" type="image/svg+xml" href="'+p.prefix+'favicon.svg?v=2"'),'Tab favicon: '+p.file);
- assert(html.includes(p.prefix+'site.css?v=3'),'Shared styling: '+p.file);
+ assert(head[1].includes('src="'+p.prefix+'assets/icons/favicon.svg?v=2"'),'Shared ball logo: '+p.file);
+ assert(html.includes('rel="icon" type="image/svg+xml" href="'+p.prefix+'assets/icons/favicon.svg?v=2"'),'Tab favicon: '+p.file);
+ assert(html.includes(p.prefix+'assets/css/site.css?v=3'),'Shared styling: '+p.file);
  assert(head[1].includes('OPEN ALPHA'),'Shared branding: '+p.file);
 }
 const guide=fs.readFileSync(path.join(root,'ratings/index.html'),'utf8');
 for(const pos of ['GK','CB','LWB','CDM','CAM','LW','ST'])assert(guide.includes(pos),'Missing position explanation: '+pos);
 assert(!guide.includes('n>=83'),'Grade thresholds must not be shown on guide');
-const builder=fs.readFileSync(path.join(root,'builder.js'),'utf8');
+const builder=fs.readFileSync(path.join(root,'assets/js/builder.js'),'utf8');
 assert(!builder.includes('statSummary('),'Raw stat breakdown not rendered');
 assert(!builder.includes("toFixed(1)+' OVR"),'Numeric OVR not rendered');
 assert(!builder.includes('window.PFC_BUILDER={rating,'),'Raw numeric grade not public API');

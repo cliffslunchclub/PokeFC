@@ -93,7 +93,7 @@ function launch(phase,slotApi=null){
   localStorage:{getItem(){return stored},setItem(_k,value){stored=value}},
   confirm:()=>true,alert:s=>{throw Error('Unexpected alert: '+s)}
  });
- for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js','challenge/picker-window.js'])
+ for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js','challenge/picker-window.js'])
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
  vm.runInContext(inline,ctx,{filename:'challenge-inline',timeout:20000});
  return {app,document,nodes,state:()=>JSON.parse(stored)};

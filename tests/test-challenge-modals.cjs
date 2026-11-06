@@ -27,7 +27,7 @@ function launch(initial){
   crypto:{getRandomValues(a){a[0]=1589;return a}},navigator:{},console,
   confirm(){nativeCalled++;throw Error('native confirm forbidden')},
   alert(){nativeCalled++;throw Error('native alert forbidden')}});
- for(const name of ['national-species.js','calibration-profile.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
+ for(const name of ['assets/js/national-species.js','assets/js/calibration-profile.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
   vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name,timeout:15000});
  }
  vm.runInContext(inline,context,{filename:'challenge-inline',timeout:15000});

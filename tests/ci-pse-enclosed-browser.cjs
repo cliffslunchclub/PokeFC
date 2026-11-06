@@ -2,7 +2,7 @@
 // Real Chromium no-whistle enclosed Watch QA, after native Soccer-JS bundle.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
-const qs=require('../quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
+const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
 const root=path.resolve(__dirname,'..');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id,offset){

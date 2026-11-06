@@ -1,8 +1,8 @@
 /* Report honest statistical comparisons. Never synthesize a TacticMesh reference. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const {verifyCollection,accuracy}=require('../calibration-fit.js');
-const {DEFAULTS}=require('../quick-sim.js');
+const {verifyCollection,accuracy}=require('../assets/js/calibration-fit.js');
+const {DEFAULTS}=require('../assets/js/quick-sim.js');
 const root=path.resolve(__dirname,'..'),base=path.join(root,'calibration');
 const refsPath=path.join(base,'references'),reportsPath=path.join(base,'reports');
 fs.mkdirSync(refsPath,{recursive:true});fs.mkdirSync(reportsPath,{recursive:true});

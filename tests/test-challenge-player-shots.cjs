@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),win={};
 const ctx=vm.createContext({window:win,console});
-for(const file of ['quick-sim.js','challenge/match-report.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file});
+for(const file of ['assets/js/quick-sim.js','challenge/match-report.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file});
 const XI=(prefix)=>Array.from({length:11},(_,i)=>({
  id:prefix+i,name:prefix==='h'?'Home Pokémon '+i:'Opponent '+i,
  pos:i===0?'GK':i<=4?'DEF':i<=7?'MID':'FWD',

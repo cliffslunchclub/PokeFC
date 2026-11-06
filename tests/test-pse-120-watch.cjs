@@ -2,7 +2,7 @@
 // Native 120-minute Watch bridge: fixture authority, 90'/120' clocks,
 // shootout gates, manual penalty stepping, Watch→Sim and one-time record.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const qs=require('../quick-sim.js'),KO=require('../pse-knockout.js');
+const qs=require('../assets/js/quick-sim.js'),KO=require('../assets/js/pse-knockout.js');
 const {motionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 const preview={seed:'PSE-120',home:{id:'home',name:'Pewter',tactic:'balanced',lineup:[]},

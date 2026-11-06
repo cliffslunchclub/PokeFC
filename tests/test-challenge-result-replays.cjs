@@ -63,7 +63,7 @@ function setup({withReplay=true,shootout=false}={}){
    getItem:k=>k==='pokefc-challenge-alpha-1'?stored:null,
    setItem(k,v){writes++;if(k==='pokefc-challenge-alpha-1')stored=v}
   },crypto:{getRandomValues(a){a[0]=123}},navigator:{},confirm:()=>true,alert:e=>{throw Error(e)}});
- for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js',
+ for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js',
    'challenge/tiers.js','challenge/match-report.js','challenge/performance.js','play/opponents.js']){
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
  }

@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(root+'/franchise/index.html','utf8');
-assert(html.includes('soccerjs-franchise-viewer.js'),'Franchise loads Soccer-JS adapter');
+assert(html.includes('assets/js/soccerjs-franchise-viewer.js'),'Franchise loads Soccer-JS adapter');
 assert(html.includes('../watch/soccerjs/watch-bridge.js'),'Franchise loads same-origin Watch bridge');
 const store=new Map(),els=new Map();
 let tactical=false,mounts=0,finished=0,active=null;
@@ -71,7 +71,7 @@ const ctx=vm.createContext({window,document,Math,console,
  localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},
  confirm:()=>true,alert:()=>{},setTimeout:()=>{},
  URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},Blob:class{},performance:{now:()=>0},queueMicrotask});
-for(const filename of ['species.js','calibration-profile.js','quick-sim.js','soccerjs-franchise-viewer.js','career.js'])
+for(const filename of ['assets/js/species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','assets/js/soccerjs-franchise-viewer.js','assets/js/career.js'])
  vm.runInContext(fs.readFileSync(path.join(root,filename),'utf8'),ctx,{filename,timeout:25000});
 const game=window.FXI_TEST;
 assert(game,'Franchise state API available');
