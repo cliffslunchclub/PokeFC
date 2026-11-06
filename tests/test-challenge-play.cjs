@@ -13,7 +13,7 @@ function el(id){if(!els.has(id))els.set(id,{value:id==='region'?'all':id==='oppo
  addEventListener(kind,fn){this.events[kind]=fn},getContext(){return canvas}});
  return els.get(id)}
 const ctx=vm.createContext({window:{location:{search:'?challenge=1&watch=soccerjs'},addEventListener(){}},URLSearchParams,Date,Math,console,
- document:{getElementById:el,createElement:()=>({src:'',onload:null,onerror:null}),head:{append(script){script.onload?.()}}},
+ document:{getElementById:el,querySelector:()=>({classList:{remove(){}}}),createElement:()=>({src:'',onload:null,onerror:null}),head:{append(script){script.onload?.()}}},
  localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)}});
 for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','play/opponents.js','challenge/special-items-data.js','play/play.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
