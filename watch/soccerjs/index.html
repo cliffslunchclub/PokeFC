@@ -13,6 +13,11 @@
 <section class="scoreline"><div class="team"><span>PEWTER CITY</span><small>HOME</small></div><div class="result"><strong id="score">0 – 0</strong><div id="clock">0'</div><small id="status" role="status" aria-live="polite">LOADING…</small></div><div class="team visitor"><span>CERULEAN CITY</span><small>AWAY</small></div></section>
 <div class="layout"><section class="viewer"><div class="cap"><h2>SOCCER-JS ORIGINAL VISUAL ENGINE</h2><small>Original Pokémon game sprites • club-colored jersey numbers • official Quick Sim score</small></div>
 <div class="pitchwrap"><canvas id="pitch" width="1120" height="650" aria-label="Soccer-JS pitch animated with official PSE match events"></canvas><span id="toast" hidden></span>
+<div class="watch-zoom-controls" role="group" aria-label="Match camera zoom">
+ <button id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+ <output id="zoomValue" aria-live="polite" aria-label="Camera zoom level">100%</output>
+ <button id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+</div>
 <div class="highlight-hud">
 <button id="highlightToggle" class="highlight-toggle" type="button" aria-expanded="false" aria-controls="highlightDrawer">⚽ HIGHLIGHTS <span id="highlightCount">0</span></button>
 <div id="highlightNotice" class="highlight-notice" role="dialog" aria-modal="true" aria-labelledby="highlightNoticeTitle" hidden>
