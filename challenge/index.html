@@ -1177,6 +1177,64 @@ app.querySelectorAll('[data-pokemon-info]').forEach(button=>button.onclick=e=>{
  e?.stopPropagation?.();
  openPokemonDetail(Number(button.dataset.pokemonInfo));
 });
+if(st.phase==='result'||st.phase==='finished'){
+ const replayModal=document.getElementById('challengeGoalReplayModal');
+ const closeReplay=()=>{
+  goalReplaySession?.destroy?.();goalReplaySession=null;
+  closeDialog(replayModal);
+ };
+ const replayCloseButton=document.getElementById('closeGoalReplayModal');
+ if(replayCloseButton)replayCloseButton.onclick=closeReplay;
+ if(replayModal){
+  replayModal.oncancel=e=>{e?.preventDefault?.();closeReplay()};
+  replayModal.onclick=e=>{if(e?.target===replayModal)closeReplay()};
+  replayModal.onclose=()=>{goalReplaySession?.destroy?.();goalReplaySession=null};
+ }
+ app.querySelectorAll('[data-match-replay]').forEach(button=>button.onclick=()=>{
+  const round=Number(button.dataset.matchReplay),id=String(button.dataset.replayId||'');
+  if(!Number.isInteger(round)||round<1||round>6||!/^(goal|pk)-\d+$/.test(id))return;
+  const match=(st.history||[]).find(m=>m.round===round&&m.replay?.version===1);
+  const replay=match?.replay,bridge=window.FXI_PHASE10_WATCH;
+  const status=document.getElementById('challengeReplayStatus');
+  const stage=document.getElementById('challengeReplayStage');
+  if(!replay||!bridge?.mountInline||!replayModal||!stage)return;
+  goalReplaySession?.destroy?.();goalReplaySession=null;
+  stage.textContent='';
+  if(status)status.textContent='Loading recorded '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
+  openDialog(replayModal);
+  let requested=false;
+  const start=()=>{
+   if(requested||!goalReplaySession)return;
+   requested=true;
+   if(!goalReplaySession.replayHighlight(id)&&status)status.textContent='Replay clip is unavailable.';
+  };
+  try{
+   goalReplaySession=bridge.mountInline({
+    preview:replay.preview,result:replay.result,container:stage,
+    // Read-only: the replay session is not allowed to write match results.
+    onRecord:()=>{if(status)status.textContent='This replay cannot record a new result.'},
+    onCancel:closeReplay,
+    onReady:session=>{
+     if(status)status.textContent='2.5D reconstruction · official match events';
+     if(id.startsWith('pk-')){
+      if(!session.simToEnd()&&status)status.textContent='Penalty clip could not load.';
+     }else{
+      const duration=replay.result.durationMinutes===120?120:90;
+      if(session.seek(duration))start();
+      else if(status)status.textContent='Goal replay could not load.';
+     }
+    },
+    onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished)start()},
+    onStatus:({state,message})=>{
+     if(state==='error'&&status)status.textContent=message||'Could not load replay.';
+    }
+   });
+  }catch(error){
+   goalReplaySession=null;
+   if(status)status.textContent='Replay unavailable: '+String(error?.message||error);
+  }
+ });
+}
 if(st.phase==='result'){
  const modal=document.getElementById('challengeMatchResultModal');
  const reopen=document.getElementById('openMatchResultModal');
