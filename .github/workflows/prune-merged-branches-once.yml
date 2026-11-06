@@ -32,9 +32,13 @@ jobs:
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" | jq -sr 'add | .[] | select(.merged_at == null) | [.number,.head.ref,.head.sha] | @tsv' > prune-audit/closed-unmerged-heads.tsv
           wc -l prune-audit/*.tsv
       - name: Dry-run safe pruning
-        run: bash scripts/prune-merged-branches.sh --dry-run | tee prune-audit/dry-run.log
+        run: |
+          set -euo pipefail
+          bash scripts/prune-merged-branches.sh --dry-run | tee prune-audit/dry-run.log
       - name: Apply safe pruning
-        run: bash scripts/prune-merged-branches.sh --apply | tee prune-audit/apply.log
+        run: |
+          set -euo pipefail
+          bash scripts/prune-merged-branches.sh --apply | tee prune-audit/apply.log
       - name: Capture remaining branch SHAs
         if: always()
         run: |
