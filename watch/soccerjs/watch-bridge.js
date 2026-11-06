@@ -196,9 +196,10 @@
   return active;
  }
 
- // Inline 2.5D presentation. Unlike open(), this mounts directly in Quick Play's
- // match viewport; the outer page owns Pause, Resume, Sim to End and Record.
- // No result is committed unless record() is explicitly invoked.
+ // Inline 2.5D presentation. Unlike open(), this mounts in the match viewport.
+ // The caller may opt into recording the immutable PSE result automatically
+ // after a verified Watch → Sim to End handoff. Normal full-time still offers
+ // manual Record, and Cancel before full-time remains non-mutating.
  // Fullscreen belongs to the outer match viewport, not its iframe.
  // Mobile browsers lacking element fullscreen use a viewport-sized theater.
  let expandedPitch=null,fullscreenListenersBound=false;
@@ -250,6 +251,7 @@
  }
  function mountInline({
   preview,result,container,onRecord,onCancel,onProgress,onReady,onStatus,
+  autoRecordOnSimToEnd=false,
   viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=5'
  }){
   requireValid(!active,'Another Watch session is already active');
@@ -325,7 +327,13 @@
      minute,score:official,finished,handedOff,recorded,
      durationMinutes:duration,kickIndex,shootout:fixture.shootout||null
     });
-    if(finished)announce('full-time');
+    if(finished){
+     announce('full-time');
+     // Never record merely because a viewer reaches full time. Only a
+     // caller-enabled Sim to End handoff finalizes automatically, after the
+     // official score and any extra-time/shootout gates have been verified.
+     if(handedOff&&autoRecordOnSimToEnd&&!recorded)session.record();
+    }
    }else if(e.data.type===TYPE+'-error'){
     fail('Soccer-JS renderer: '+String(e.data.message||'Unknown rendering error'));
    }
