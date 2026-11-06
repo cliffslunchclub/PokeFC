@@ -22,7 +22,9 @@ for(let i=1;i<timeline.actions.length;i++){
   ...a.actors.map((p,j)=>dist(p,b.actors[j])));
  assert(maxBoundary<.05,'Ball or player teleported between variable-length actions; stage '+i+
   ' at '+at+'s max '+maxBoundary+' actions '+a.action+' / '+b.action+
-  ' pressing '+JSON.stringify(a.pressingPlayers)+' / '+JSON.stringify(b.pressingPlayers));
+  ' pressing '+JSON.stringify(a.pressingPlayers)+' / '+JSON.stringify(b.pressingPlayers)+
+  ' biggestIndex '+[dist(a.ball,b.ball),...a.actors.map((p,j)=>dist(p,b.actors[j]))].indexOf(maxBoundary)+
+  ' pressPhase '+a.pressPhase+' / '+b.pressPhase);
 }
 for(const stage of timeline.actions){
  const at=(stage.start+stage.end)/2;
