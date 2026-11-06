@@ -20,7 +20,7 @@ const window={},logs=[];
 const ctx=vm.createContext({window,document:doc,localStorage:{
  getItem(){return stored},setItem(_key,v){stored=v}},crypto:{getRandomValues(a){a[0]=752139;return a}},
  alert:s=>logs.push(s),confirm:()=>true,console});
-for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
+for(const file of ['assets/js/position-effectiveness.js','assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
 }
 const special=window.PFC_CHALLENGE_SPECIAL;
