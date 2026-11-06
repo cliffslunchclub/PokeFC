@@ -99,3 +99,8 @@ body.pfc-watch-no-scroll{overflow:hidden!important;overscroll-behavior:none}
 .play-goal-replay-stage{height:clamp(260px,55dvh,540px);width:100%;overflow:hidden;position:relative;border:1px solid #527870;border-radius:8px;background:#092020}
 .play-goal-replay-stage .soccerjs-inline-frame{display:block;width:100%;height:100%;border:0;aspect-ratio:auto}
 @media(max-width:760px){.play-goal-replay-dialog{width:100vw!important;max-width:none!important;max-height:100dvh!important}.play-goal-replay-body{padding:9px}.play-goal-replay-stage{height:clamp(270px,56dvh,500px)}}
+
+/* Tier and efficiency on each compact Quick Play / Challenge Watch XI card. */
+.mini-poke .mini-fit{display:block;font-size:9px;font-weight:950;color:#f3dfa7;white-space:nowrap;line-height:1.3;font-variant-numeric:tabular-nums}
+.mini-poke .mini-fit strong{color:#d6f5db}
+@media(max-width:580px){.mini-poke .mini-fit{font-size:8px}}
