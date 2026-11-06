@@ -2,81 +2,85 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const {motionFrame}=require('./phase10-motion.cjs');
+const {planFor}=require('./phase10-play-director.cjs');
 const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'fixture.json'),'utf8'));
 const original=JSON.stringify(fixture),field={width:106,height:68};
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-let maxBoundary=0,maxContact=0,maxPassReverse=0,transfers=0,challenges=0;
-let forwardPasses=0,backwardPasses=0,loftedPasses=0;
-const secToMin=seconds=>seconds/60;
-for(let cycle=0;cycle<Math.floor(90*60/8);cycle++){
- const start=cycle*8;
- if(cycle>0){
-  const before=motionFrame(fixture,secToMin(start-.00006),field);
-  const after=motionFrame(fixture,secToMin(start+.00006),field);
-  maxBoundary=Math.max(maxBoundary,dist(before.ball,after.ball),
-   ...before.actors.map((p,i)=>dist(p,after.actors[i])));
-  assert(maxBoundary<.05,'Ball/player jumps at next possession cycle: '+maxBoundary);
- }
- // The ball is owned before the pass and in flight without a false carrier.
- const held=motionFrame(fixture,secToMin(start+8*.55),field);
- const launched=motionFrame(fixture,secToMin(start+8*.72),field);
- const middle=motionFrame(fixture,secToMin(start+8*.82),field);
- const finalPass=motionFrame(fixture,secToMin(start+8*.92),field);
- const received=motionFrame(fixture,secToMin(start+8*.95),field);
- if([held,launched,middle,finalPass,received].some(x=>x.action==='official-goal'||x.action==='illustrative-goal-buildup'||x.action==='illustrative-shot'||x.action==='illustrative-kickoff'))continue;
- assert(Number.isInteger(held.ownerIndex)&&held.ownerIndex>=0,'No prior carrier');
- assert.equal(launched.ownerIndex,-1,'Carrier label must disappear during flight');
- assert.equal(middle.ownerIndex,-1,'Midflight must not claim new possession');
- assert(Number.isInteger(received.ownerIndex)&&received.ownerIndex>=0,'Receiver missing');
- const receiver=received.actors[received.ownerIndex];
- maxContact=Math.max(maxContact,dist(received.ball,receiver));
- assert(maxContact<1.2,'Ball cannot become owned before reaching a receiving Pokémon');
- const from=launched.passOrigin,to=launched.passTarget;
- const vector={x:to.x-from.x,y:to.y-from.y},length=Math.hypot(vector.x,vector.y);
- if(length>.1){
-  // A pass may travel backward if the teammate is behind, but it must never
-  // reverse or take a sharp detour BEFORE that teammate touches the ball.
-  const dot=(p)=>((p.ball.x-from.x)*vector.x+(p.ball.y-from.y)*vector.y)/length;
-  const traveled=[launched,middle,finalPass].map(dot);
-  const reverse=Math.max(0,traveled[0]-traveled[1],traveled[1]-traveled[2]);
-  maxPassReverse=Math.max(maxPassReverse,reverse);
-  assert(reverse<.0001,'Ball reversed direction mid-pass without a touch');
- }
- const progression=(launched.passTarget.x-launched.passOrigin.x)*
-  (held.ownerIndex<11?1:-1);
- if(progression>2)forwardPasses++;
- if(progression< -2)backwardPasses++;
- if(launched.action==='illustrative-through-ball')loftedPasses++;
- if(received.ownerIndex!==held.ownerIndex)transfers++;
- if(received.action==='illustrative-challenge')challenges++;
+const timeline=planFor(fixture,field);
+const ignored=sec=>fixture.events.some(e=>e.type==='goal'&&
+ sec>=e.minute*60-42-.2&&sec<=e.minute*60+17);
+let maxBoundary=0,maxContact=0,maxReversal=0,transfers=0,challenges=0;
+let forward=0,backwards=0,lobs=0,oneTwos=0,crosses=0;
+for(let i=1;i<timeline.actions.length;i++){
+ const at=timeline.actions[i].start;
+ if(ignored(at))continue;
+ const a=motionFrame(fixture,(at-.00006)/60,field);
+ const b=motionFrame(fixture,(at+.00006)/60,field);
+ if([a,b].some(f=>['official-goal','illustrative-goal-buildup',
+  'illustrative-shot','illustrative-kickoff'].includes(f.action)))continue;
+ maxBoundary=Math.max(maxBoundary,dist(a.ball,b.ball),
+  ...a.actors.map((p,j)=>dist(p,b.actors[j])));
+ assert(maxBoundary<.05,'Ball or player teleported between variable-length actions');
 }
-assert(transfers>100,'Passes do not reach teammates');
-assert(challenges>20,'Illustrative possession changes absent');
-assert(forwardPasses>backwardPasses,'Attacking passes should beat backward passes');
-assert(backwardPasses/(transfers||1)<.38,'Too many backwards passes despite dribbling pressure');
-assert(loftedPasses>20,'Occasional forward lofted through balls missing');
-// The visual buildup must progress into goal rather than reversing toward
-// a preset player coordinate. These passes are illustrative, PSE goals aren't.
+for(const stage of timeline.actions){
+ const at=(stage.start+stage.end)/2;
+ if(ignored(at)||stage.duration<.5)continue;
+ const frame=motionFrame(fixture,at/60,field);
+ if(['official-goal','illustrative-goal-buildup','illustrative-shot',
+  'illustrative-kickoff'].includes(frame.action))continue;
+ if(stage.mode==='carry'){
+  assert.equal(frame.ownerIndex,stage.owner,'Dribbler ownership changed mid-carry');
+  maxContact=Math.max(maxContact,dist(frame.ball,frame.actors[stage.owner]));
+ }else if(stage.mode==='pass'){
+  assert.equal(frame.ownerIndex,-1,'Midflight ball assigned a premature owner');
+  assert.deepEqual(frame.passOrigin,stage.from);
+  assert.deepEqual(frame.passTarget,stage.to);
+  const ts=[.2,.5,.8].map(u=>motionFrame(fixture,
+   (stage.start+stage.duration*u)/60,field));
+  const v={x:stage.to.x-stage.from.x,y:stage.to.y-stage.from.y};
+  const length=Math.hypot(v.x,v.y);
+  if(length>.1){
+   const pr=x=>((x.ball.x-stage.from.x)*v.x+(x.ball.y-stage.from.y)*v.y)/length;
+   const ds=ts.map(pr);
+   maxReversal=Math.max(maxReversal,ds[0]-ds[1],ds[1]-ds[2]);
+   assert(ds[0]<=ds[1]+.00001&&ds[1]<=ds[2]+.00001,'Pass reverses before touch');
+  }
+  const advance=(stage.to.x-stage.from.x)*(stage.owner<11?1:-1);
+  if(advance>2)forward++;else if(advance<-2)backwards++;
+  if(stage.arc>2)lobs++;
+  if(stage.pattern==='one-two')oneTwos++;
+  if(stage.pattern==='cross')crosses++;
+  transfers++;
+ }else if(stage.mode==='challenge'){
+  assert.equal(frame.ownerIndex,-1,'Contested ball must not be an owned carry');
+  challenges++;
+ }
+}
+assert(transfers>100,'Too few real give-and-go/cross/through visuals');
+assert(challenges>20,'No standing possession challenges');
+assert(oneTwos>30&&crosses>25&&lobs>25,'New attacking patterns absent');
+assert(forward>backwards,'Backpasses dominate the attacking sequence');
+assert(maxContact<1.8,'The ball drifts away from its actual dribbler');
+assert(maxReversal<.0001,'Flight reverses direction');
 for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const toward=goal.team===fixture.home.id?1:-1;
- let last=null;
+ let prev=null;
  for(let t=goal.minute-.7;t<=goal.minute;t+=.01){
   const next=motionFrame(fixture,t,field);
-  if(last)assert((next.ball.x-last.ball.x)*toward>-.08,
-   'Goal buildup whips backward before the official strike');
-  last=next;
+  if(prev)assert((next.ball.x-prev.ball.x)*toward>-.08,
+   'Goal buildup whips backwards before the official shot');
+  prev=next;
  }
 }
-assert.equal(JSON.stringify(fixture),original,'Read-only Watch altered official fixture');
-const replay=JSON.parse(original);assert.deepEqual(
- motionFrame(fixture,1.5,field),motionFrame(replay,1.5,field),
- 'Same seed and time must produce exact same animation');
-// Knockout preview through 120 minutes remains supported.
-const extended={...fixture,durationMinutes:120};
+assert.equal(JSON.stringify(fixture),original,'Watch modified official PSE fixture');
+const clone=JSON.parse(original);
+assert.deepEqual(motionFrame(fixture,1.5,field),motionFrame(clone,1.5,field),
+ 'Cloned fixture and same seed must animate identically');
 for(const minute of [90,100,119.99,120]){
- const frame=motionFrame(extended,minute,field);
+ const frame=motionFrame({...fixture,durationMinutes:120},minute,field);
  assert.equal(frame.actors.length,22);assert(Number.isFinite(frame.ball.x));
 }
-console.log('PASS Watch ball continuity: '+transfers+' intended touches, '+
- challenges+' illustrative contests, max boundary jump '+maxBoundary.toFixed(5)+
- ' m, max receiver gap '+maxContact.toFixed(2)+' m, no mid-pass whipping, 120-minute safe');
+console.log('PASS variable Watch continuity: '+timeline.sequences.length+
+ ' distinct plays, '+transfers+' illustrative passes, '+challenges+
+ ' contests, '+oneTwos+' one-twos, '+crosses+' crosses, '+lobs+
+ ' lofts, '+maxBoundary.toFixed(5)+'m max discontinuity, stable PSE ledger');

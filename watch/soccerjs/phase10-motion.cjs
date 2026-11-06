@@ -5,6 +5,7 @@
  * player stats, tackles, substitutions, shot probability, or possession totals.
  * All events except official Quick Sim goal timestamps are animation inventions.
  */
+const PlayDirector=require('./phase10-play-director.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -138,9 +139,11 @@ function motionFrame(fixture,t,field,options=false){
  if(!Number.isFinite(t)||t<0||t>duration)throw Error('Invalid replay minute');
  if(!field||!Number.isFinite(field.width)||!Number.isFinite(field.height))throw Error('Invalid soccer pitch');
  const teams=[fixture.home,fixture.away],actors=[],seconds=t*60;
+ const plan=PlayDirector.planFor(fixture,field);
  const shape=waveAt(fixture,field,seconds);
  for(let side=0;side<2;side++)for(let i=0;i<11;i++){
-  const p=supportingPose(fixture,side*11+i,field,seconds,shape);
+  const id=side*11+i;
+  const p=PlayDirector.actorAt(plan,id,seconds,supportingPose(fixture,id,field,seconds,shape));
   actors.push({side,index:i,
    x:p.x,y:p.y,z:0,
    frame:Math.floor(seconds*7+i)%3===0?1:0,orientation:side===0?2:6});
@@ -208,7 +211,11 @@ function motionFrame(fixture,t,field,options=false){
    }
   }
   const attack=side===0?1:-1;
-  const finish={x:origin(side,.83,field),y:field.height*.50};
+  // Late receiving touches may already be inside the box. Keep every
+  // part of the buildup moving toward the goal, never retreat to 83%.
+  const firstProgress=(side===0?p0.x:field.width-p0.x)/field.width;
+  const finishProgress=Math.min(.998,Math.max(.83,firstProgress+.025));
+  const finish={x:origin(side,finishProgress,field),y:field.height*.50};
   const wing=(hash(String(event.player)+':'+String(event.minute))%2?1:-1);
   // Goal line is the end of the field, not 98.5% of its length.
   // Finish with the ball visibly BEHIND the keeper and the line.
@@ -289,7 +296,7 @@ function motionFrame(fixture,t,field,options=false){
   let scored=null;
   for(const g of goals)if(t>g.minute+.22&&(!scored||g.minute>scored.minute))scored=g;
   if(scored){
-   const start=(scored.minute+.22)*60,finish=Math.ceil((start+4)/8)*8;
+   const start=(scored.minute+.22)*60,finish=PlayDirector.nextBoundary(fixture,field,start+4);
    if(seconds<finish){
     const nextSide=scored.team===teams[0].id?1:0;
     const kicker=nextSide*11+6;
@@ -315,76 +322,37 @@ function motionFrame(fixture,t,field,options=false){
    }
   }
  }
- // The same receiver who controls the ball at the end of this passage
- // starts the next passage as its carrier. No hidden return to midfield.
- const cycleSeconds=8,at=seconds/cycleSeconds,cycle=Math.floor(at),u=at-cycle;
- const plan=touchPlan(fixture,field);
- const current=plan[Math.min(cycle,plan.length-2)],next=plan[Math.min(cycle+1,plan.length-1)];
- const sender=supportingPose(fixture,current.owner,field,seconds,shape),
-  receiver=supportingPose(fixture,next.owner,field,seconds,shape);
- const passStart=cycle*cycleSeconds+cycleSeconds*.68;
- const passArrival=cycle*cycleSeconds+cycleSeconds*.93;
- const side=Math.floor(current.owner/11),forward=side===0?1:-1;
- // When no forward runner is available, hold the ball rather than sprinting
- // beyond everyone and then whipping a long pass backwards.
- const candidateForward=(supportingPose(fixture,next.owner,field,passArrival).x-
-  supportingPose(fixture,current.owner,field,passStart).x)*forward;
- const runDistance=Math.min(4+(hash(String(fixture.visualSeed||fixture.seed)+':run:'+cycle)%600)/100,
-  Math.max(.75,candidateForward*.72));
- const runSide=(hash(String(fixture.visualSeed||fixture.seed)+':diagonal:'+cycle)%2?1:-1);
- const drift=v=>({x:forward*runDistance*v,y:runSide*1.5*v});
- const runBlend=u<.68?ease(u/.68):1-ease((u-.68)/.27);
- const offset=drift(Math.max(0,runBlend));
- actors[current.owner].x=limit(sender.x+offset.x,1,field.width-1);
- actors[current.owner].y=limit(sender.y+offset.y,1,field.height-1);
- const passSender=supportingPose(fixture,current.owner,field,passStart),fullDrift=drift(1);
- const passOrigin=foot({x:limit(passSender.x+fullDrift.x,1,field.width-1),
-  y:limit(passSender.y+fullDrift.y,1,field.height-1)},current.owner);
- const passTarget=foot(supportingPose(fixture,next.owner,field,passArrival),next.owner);
- const forwardPass=(passTarget.x-passOrigin.x)*forward>12;
- const lob=forwardPass&&hash(String(fixture.visualSeed||fixture.seed)+':lob:'+cycle)%4===0;
- let action,ownerIndex,contact;
- if(u<.68){
-  ball=foot(actors[current.owner],current.owner);
-  ownerIndex=current.owner;contact='controlled';action='illustrative-carry';
- }else if(u<.93){
-  const progress=ease((u-.68)/.25);
-  ball={x:lerp(passOrigin.x,passTarget.x,progress),
-   y:lerp(passOrigin.y,passTarget.y,progress),
-   z:.23+(lob?2.6:.65)*Math.sin(Math.PI*progress)};
-  ownerIndex=-1;
-  const contested=Math.floor(current.owner/11)!==Math.floor(next.owner/11);
-  contact=contested?'contested-flight':lob?'lofted-through':'in-flight';
-  action=contested&&u>.81?'illustrative-challenge':lob?'illustrative-through-ball':'illustrative-pass';
- }else{
-  ball=foot(receiver,next.owner);
-  ownerIndex=next.owner;contact='received';
-  action=Math.floor(current.owner/11)!==Math.floor(next.owner/11)
-   ?'illustrative-challenge':'illustrative-dribble';
+ // Variable-length play sequences are visual only. Never alter PSE events.
+ const visual=PlayDirector.sample(fixture,field,seconds);
+ ball=visual.ball;
+ const step=visual.stage;
+ const phase=limit((seconds-step.start)/Math.max(.001,step.duration),0,1);
+ if(step.mode==='carry')actors[step.owner].frame=phase>.92?3:0;
+ if(step.mode==='pass'){
+  if(phase<.19)actors[step.owner].frame=3;
+  if(phase>.84)actors[step.receiver].frame=3;
  }
- // The receiver meets the approaching ball; defenders press the dribbler
- // during possession but ease back before the next cycle boundary.
- const targetPlayer=actors[next.owner];
- const preparation=ease((u-.30)/.40)*(1-ease((u-.83)/.15));
- const anticipated=supportingPose(fixture,next.owner,field,passArrival);
- targetPlayer.x=lerp(targetPlayer.x,anticipated.x,preparation*.18);
- targetPlayer.y=lerp(targetPlayer.y,anticipated.y,preparation*.18);
- const press=ease(u/.28)*(1-ease((u-.72)/.27));
- if(press>0&&u<.99){
-  const defenders=actors.map((p,i)=>({i,d:Math.hypot(p.x-actors[current.owner].x,p.y-actors[current.owner].y)}))
-   .filter(x=>Math.floor(x.i/11)!==side&&x.i%11!==0&&x.d<28)
+ if(step.mode==='challenge'&&phase>.6)actors[step.receiver].frame=2;
+ // Pressure eases in and out of a passage without teleporting defenders.
+ const pressure=ease(phase/.30)*(1-ease((phase-.68)/.29));
+ if(pressure>.001&&step.mode==='carry'){
+  const side=step.owner<11?0:1;
+  const closest=actors.map((p,i)=>({i,d:Math.hypot(p.x-ball.x,p.y-ball.y)}))
+   .filter(x=>Math.floor(x.i/11)!==side&&x.i%11!==0&&x.d<29)
    .sort((a,b)=>a.d-b.d).slice(0,2);
-  for(const defender of defenders){
-   const p=actors[defender.i],target=actors[current.owner],distance=Math.max(.01,defender.d);
-   const approach=Math.min(5.2,Math.max(0,distance-2.1))*press;
-   p.x=limit(p.x+(target.x-p.x)/distance*approach,1,field.width-1);
-   p.y=limit(p.y+(target.y-p.y)/distance*approach,1,field.height-1);
+  for(const defender of closest){
+   const p=actors[defender.i],distance=Math.max(.01,defender.d);
+   const amount=Math.min(4.8,Math.max(0,distance-2.2))*pressure;
+   p.x=limit(p.x+(ball.x-p.x)/distance*amount,1,field.width-1);
+   p.y=limit(p.y+(ball.y-p.y)/distance*amount,1,field.height-1);
   }
  }
- if(u>=.65&&u<.75)actors[current.owner].frame=3;
- if(u>.90&&u<.97)targetPlayer.frame=3;
- return {actors,ball,action,ownerIndex,contact,label:'',officialEvent:null,
-  illustrative:true,cycle,passStart,passArrival,passOrigin,passTarget};
+ return {actors,ball,action:visual.action,ownerIndex:visual.ownerIndex,
+  contact:visual.contact,label:'',officialEvent:null,illustrative:true,
+  sequenceType:visual.sequenceType,sequenceIndex:visual.sequenceIndex,
+  segmentStart:visual.segmentStart,segmentEnd:visual.segmentEnd,
+  passStart:visual.passStart,passArrival:visual.passArrival,
+  passOrigin:visual.passOrigin,passTarget:visual.passTarget};
 
 }
 module.exports={motionFrame,base,hash,shotSummary,playbackRate};

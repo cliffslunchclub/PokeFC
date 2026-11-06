@@ -288,6 +288,10 @@ function render(t,options={}){
  const actionText={
   'illustrative-kickoff':'Kickoff restart','illustrative-carry':'Ball carry','illustrative-pass':'Passing sequence',
   'illustrative-dribble':'Attacking dribble','illustrative-challenge':'Defensive challenge',
+  'illustrative-give-and-go':'Give-and-go combination',
+  'illustrative-cross':'Cross or cutback',
+  'illustrative-through-ball':'Through ball',
+
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
   'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
@@ -304,7 +308,9 @@ function render(t,options={}){
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
-  animation:script.action,ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
+  animation:script.action,sequenceType:script.sequenceType||null,
+  sequenceIndex:script.sequenceIndex??null,
+  ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
   carrier:ballCarrier,ballContact:script.contact||'continuous-play',
   officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
   soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
