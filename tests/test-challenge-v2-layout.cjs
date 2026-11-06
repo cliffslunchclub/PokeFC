@@ -78,6 +78,7 @@ function launch(phase,slotApi=null){
   if(id==='app')return app;
   if(!nodes.has(id))nodes.set(id,{
    id,value:id==='tactic'?'balanced':'',textContent:'',hidden:false,open:false,scrollTop:0,
+   disabled:id==='applyFormation',
    setAttribute(k,v){if(k==='open')this.open=true;this[k]=v},
    classList:{values:new Set(),toggle(k,on){if(on)this.values.add(k);else this.values.delete(k)},contains(k){return this.values.has(k)}},
    removeAttribute(k){if(k==='open')this.open=false},
