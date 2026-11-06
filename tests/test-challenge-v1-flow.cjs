@@ -112,12 +112,12 @@ function runCase(pool,legends){
  assert.equal(get().phase,'finished');
  document.getElementById('shareRun').onclick();
  assert.equal(document.getElementById('runSharePanel').hidden,false);
- document.getElementById('quickRestart').onclick();
- assert.equal(get().phase,'draft');
- assert.equal(get().pool,pool);assert.equal(get().legends,legends);
+ document.getElementById('startNewRun').onclick();
+ assert.equal(get().phase,'setup','New Run returns to mode selection');
+ assert.match(app.innerHTML,/CHOOSE YOUR CHALLENGE/,'Mode chooser shown again');
  assert.equal(get().history.length,0);
- assert.equal(API.rankings(cat,{getItem:k=>storage.get(k)||null}).length,1,'Quick Restart keeps old local leaderboard run');
+ assert.equal(API.rankings(cat,{getItem:k=>storage.get(k)||null}).length,1,'New Run keeps old local leaderboard result');
  return cat;
 }
 for(const [pool,legends] of [[4,false],[4,true],[9,false],[9,true]])assert(runCase(pool,legends));
-console.log('PASS Challenges v1.0 full gameplay in four categories: 44 picks, 24 boss matches, equipment, leaderboard, share and restart');
+console.log('PASS Challenges v1.0 full gameplay in four categories: 44 picks, 24 boss matches, equipment, leaderboard, sharing and return-to-setup');
