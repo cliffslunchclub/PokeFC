@@ -47,6 +47,7 @@
   $('viewerReset').disabled=!m.ready||m.handedOff||m.recorded||m.failed;
   $('viewerSoccerRecord').disabled=!m.finished||m.recorded||m.failed;
   $('viewerSoccerCancel').disabled=m.recorded;
+  $('viewerHighlights').disabled=!m.ready||m.failed;
   // Mode switching while a watched match is running would abandon its
   // recorded prefix and misleadingly look like Sim → Watch. Cancel first.
   $('viewerMode').disabled=!!m.ready&&!m.failed;
@@ -59,6 +60,7 @@
   m.session?.destroy();
   m.canvas.hidden=false;
   if($('viewerFullscreen'))$('viewerFullscreen').hidden=true;
+  if($('viewerHighlights'))$('viewerHighlights').hidden=true;
   m.pitch.classList.remove('soccerjs-franchise-active');
   if($('viewerSoccerRecord')){$('viewerSoccerRecord').hidden=true;$('viewerSoccerRecord').disabled=true}
   if($('viewerSoccerCancel'))$('viewerSoccerCancel').hidden=true;
@@ -73,6 +75,7 @@
   current=m;canvas.hidden=true;pitch.classList.add('soccerjs-franchise-active');
   $('viewerSoccerRecord').hidden=false;$('viewerSoccerRecord').disabled=true;
   $('viewerFullscreen').hidden=true;
+  $('viewerHighlights').hidden=false;$('viewerHighlights').disabled=true;
   $('viewerSoccerCancel').hidden=false;$('viewerSoccerCancel').disabled=false;
   $('viewerTMFull').hidden=true;
   $('viewerProjection').value='orthographic';$('viewerCamera').value='follow';
@@ -101,6 +104,7 @@
   };
   $('viewerSoccerCancel').onclick=()=>{if(lookup()&&!m.recorded)m.session.cancel()};
   $('viewerReset').onclick=()=>{if(!lookup()||m.handedOff||m.recorded)return;m.session.seek(0);m.session.pause();m.playing=false};
+  $('viewerHighlights').onclick=()=>{if(lookup()&&m.ready)m.session.openHighlights?.()};
   $('viewerSeek').oninput=e=>{if(lookup()&&!m.handedOff&&!m.recorded)m.session.seek(Number(e.target.value))};
   $('viewerSpeed').onchange=e=>{if(lookup()&&m.ready)m.session.setSpeed(Number(e.target.value)||1)};
   $('viewerProjection').onchange=e=>{if(lookup()&&m.ready)m.session.setProjection(e.target.value)};
