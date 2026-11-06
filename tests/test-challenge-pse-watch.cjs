@@ -99,6 +99,12 @@ const final=JSON.parse(store.get('pokefc-challenge-alpha-1'));
 assert.equal(final.phase,'finished','Red final boss ends gauntlet');
 assert.equal(final.result.boss,'Red');
 assert.equal(final.result.origin,'quick-sim');
+assert.equal(final.result.replay.version,1,'Recorded match retains a goal replay fixture');
+assert.equal(final.result.replay.result.origin,'quick-sim','Goal replays use locked PSE result');
+assert.equal(final.result.replay.preview.home.lineup.length,11);
+assert.equal(final.result.replay.preview.away.lineup.length,11);
+assert.deepEqual(final.result.replay.result.score,final.result.score,'No new result simulated for replay');
+assert.deepEqual(final.history.at(-1).replay,final.result.replay,'Run history retains same replay fixture');
 assert.equal(final.result.knockoutRules,'pse-knockout-v1');
 assert.deepEqual(final.result.report.score,final.result.score);
 if(final.result.extraTime){
