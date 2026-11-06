@@ -144,4 +144,72 @@ function planFor(f,field){
   return previous;
  const next=makePlan(f,field);planCache.set(f,next);return next;
 }
-module.exports={planFor,base,hash,smooth};
+// Binary lookup allows deterministic seeking to any arbitrary match second.
+function stageAt(plan,seconds){
+ const arr=plan.actions;
+ let lo=0,hi=arr.length-1;
+ while(lo<hi){const mid=(lo+hi)>>1;
+  if(arr[mid].end<=seconds)lo=mid+1;else hi=mid;}
+ return arr[lo]||null;
+}
+function ballAt(stage,seconds){
+ const phase=smooth((seconds-stage.start)/Math.max(.001,stage.duration));
+ return {x:lerp(stage.from.x,stage.to.x,phase),
+  y:lerp(stage.from.y,stage.to.y,phase),
+  z:.23+(stage.mode==='pass'?stage.arc:0)*Math.sin(Math.PI*phase)};
+}
+// Every player has deterministic touch keyframes (including off-ball
+// return runs). Blend into and out of those keyframes without hard cuts.
+function actorAt(plan,id,seconds,baseline){
+ const arr=plan.tracks[id];if(!arr?.length)return baseline;
+ let lo=0,hi=arr.length;
+ while(lo<hi){const mid=(lo+hi)>>1;
+  if(arr[mid].t<=seconds)lo=mid+1;else hi=mid;}
+ const prev=arr[lo-1],next=arr[lo],settle=4;
+ if(prev&&next&&next.t-prev.t<=17){
+  const u=smooth((seconds-prev.t)/Math.max(.001,next.t-prev.t));
+  return {x:lerp(prev.p.x,next.p.x,u),y:lerp(prev.p.y,next.p.y,u)};
+ }
+ if(prev&&seconds-prev.t<settle){
+  const u=smooth((seconds-prev.t)/settle);
+  return {x:lerp(prev.p.x,baseline.x,u),y:lerp(prev.p.y,baseline.y,u)};
+ }
+ if(next&&next.t-seconds<settle){
+  const u=smooth((seconds-(next.t-settle))/settle);
+  return {x:lerp(baseline.x,next.p.x,u),y:lerp(baseline.y,next.p.y,u)};
+ }
+ return baseline;
+}
+function sample(f,field,seconds){
+ const plan=planFor(f,field),stage=stageAt(plan,clamp(seconds,0,plan.duration));
+ if(!stage)throw Error('Missing visual stage');
+ const u=(seconds-stage.start)/Math.max(.001,stage.duration);
+ const ball=ballAt(stage,seconds);
+ const ownerIndex=stage.mode==='carry'?stage.owner:
+  stage.mode==='challenge'&&u>.96?stage.receiver:-1;
+ let action,contact;
+ if(stage.mode==='carry'){
+  action=u>.94?'illustrative-dribble':'illustrative-carry';
+  contact='controlled';
+ }else if(stage.mode==='challenge'){
+  action='illustrative-challenge';contact='standing-challenge';
+ }else{
+  action=stage.pattern==='one-two'?'illustrative-give-and-go':
+   stage.pattern==='cross'?'illustrative-cross':
+   stage.pattern==='through'?'illustrative-through-ball':'illustrative-pass';
+  contact=stage.arc>2?'lofted-through':'in-flight';
+ }
+ return {plan,stage,ball,ownerIndex,action,contact,
+  sequenceType:stage.pattern,sequenceIndex:stage.sequence,
+  segmentStart:stage.start,segmentEnd:stage.end,
+  passStart:stage.mode==='pass'?stage.start:null,
+  passArrival:stage.mode==='pass'?stage.end:null,
+  passOrigin:stage.mode==='pass'?stage.from:null,
+  passTarget:stage.mode==='pass'?stage.to:null};
+}
+function nextBoundary(f,field,after){
+ const plan=planFor(f,field);
+ return plan.actions.find(a=>a.start>=after-.000001)?.start??plan.duration;
+}
+module.exports={planFor,stageAt,ballAt,actorAt,sample,nextBoundary,base,hash,smooth};
+
