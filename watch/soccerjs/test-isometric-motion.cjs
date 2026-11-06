@@ -59,15 +59,21 @@ assert.equal(playbackRate(0,[{type:'save',minute:0}],1),1/60,'A save cannot trig
 assert.equal(playbackRate(15,[],2),2/60,'2x with no goals stays exact');
 assert.equal(playbackRate(0,[],1)*60*90,90,'90 minutes at 1x requires 90 real minutes');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-let maxTransition=0;
+let maxTransition=0,maxTransitionInfo='';
 for(let cycle=1;cycle<210;cycle++){
  const t=cycle*.35;
  const left=motionFrame(fixture,t-0.000001,field);
  const right=motionFrame(fixture,t+0.000001,field);
- maxTransition=Math.max(maxTransition,distance(left.ball,right.ball),
-  ...left.actors.map((player,i)=>distance(player,right.actors[i])));
+ const distances=[distance(left.ball,right.ball),
+  ...left.actors.map((player,i)=>distance(player,right.actors[i]))];
+ const highest=Math.max(...distances);
+ if(highest>maxTransition){
+  maxTransition=highest;
+  maxTransitionInfo=' at '+t+' minute, index '+distances.indexOf(highest)+
+   ' actions '+left.action+' / '+right.action+' phase '+left.pressPhase+' / '+right.pressPhase;
+ }
 }
-assert(maxTransition<.15,'Off-ball players/ball teleport at a possession boundary: '+maxTransition);
+assert(maxTransition<.15,'Off-ball players/ball teleport at a possession boundary: '+maxTransition+maxTransitionInfo);
 for(const event of fixture.events.filter(e=>e.type==='goal')){
  for(const moment of [event.minute-.7,event.minute+.22]){
   const left=motionFrame(fixture,moment-.000001,field);
