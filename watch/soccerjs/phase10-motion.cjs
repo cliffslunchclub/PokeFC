@@ -6,6 +6,7 @@
  * All events except official Quick Sim goal timestamps are animation inventions.
  */
 const PlayDirector=require('./phase10-play-director.cjs');
+const TeamShape=require('./phase10-team-shape.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -139,11 +140,12 @@ function motionFrame(fixture,t,field,options=false){
  if(!Number.isFinite(t)||t<0||t>duration)throw Error('Invalid replay minute');
  if(!field||!Number.isFinite(field.width)||!Number.isFinite(field.height))throw Error('Invalid soccer pitch');
  const teams=[fixture.home,fixture.away],actors=[],seconds=t*60;
- const plan=PlayDirector.planFor(fixture,field);
- const shape=waveAt(fixture,field,seconds);
+ const visual=PlayDirector.sample(fixture,field,seconds);
+ const plan=visual.plan,shape=TeamShape.status(fixture,field,seconds,visual);
  for(let side=0;side<2;side++)for(let i=0;i<11;i++){
   const id=side*11+i;
-  const p=PlayDirector.actorAt(plan,id,seconds,supportingPose(fixture,id,field,seconds,shape));
+  const baseline=TeamShape.position(fixture,field,id,seconds,shape,pose(id,field,seconds));
+  const p=PlayDirector.actorAt(plan,id,seconds,baseline);
   actors.push({side,index:i,
    x:p.x,y:p.y,z:0,
    frame:Math.floor(seconds*7+i)%3===0?1:0,orientation:side===0?2:6});
@@ -323,7 +325,6 @@ function motionFrame(fixture,t,field,options=false){
   }
  }
  // Variable-length play sequences are visual only. Never alter PSE events.
- const visual=PlayDirector.sample(fixture,field,seconds);
  ball=visual.ball;
  const step=visual.stage;
  const phase=limit((seconds-step.start)/Math.max(.001,step.duration),0,1);
@@ -333,23 +334,14 @@ function motionFrame(fixture,t,field,options=false){
   if(phase>.84)actors[step.receiver].frame=3;
  }
  if(step.mode==='challenge'&&phase>.6)actors[step.receiver].frame=2;
- // Pressure eases in and out of a passage without teleporting defenders.
- const pressure=ease(phase/.30)*(1-ease((phase-.68)/.29));
- if(pressure>.001&&step.mode==='carry'){
-  const side=step.owner<11?0:1;
-  const closest=actors.map((p,i)=>({i,d:Math.hypot(p.x-ball.x,p.y-ball.y)}))
-   .filter(x=>Math.floor(x.i/11)!==side&&x.i%11!==0&&x.d<29)
-   .sort((a,b)=>a.d-b.d).slice(0,2);
-  for(const defender of closest){
-   const p=actors[defender.i],distance=Math.max(.01,defender.d);
-   const amount=Math.min(4.8,Math.max(0,distance-2.2))*pressure;
-   p.x=limit(p.x+(ball.x-p.x)/distance*amount,1,field.width-1);
-   p.y=limit(p.y+(ball.y-p.y)/distance*amount,1,field.height-1);
-  }
- }
+ // Hybrid Counterpress: 0–4 seconds pressure, 4–10 seconds recovery.
+ // Away from turnovers the closest defenders still close passing lanes.
+ const defensive=TeamShape.press(fixture,field,seconds,visual,shape,actors,ball);
  return {actors,ball,action:visual.action,ownerIndex:visual.ownerIndex,
   contact:visual.contact,label:'',officialEvent:null,illustrative:true,
   sequenceType:visual.sequenceType,sequenceIndex:visual.sequenceIndex,
+  pressPhase:defensive.phase,pressingSide:defensive.side,
+  pressingPlayers:defensive.ids,visualTactic:teams[shape.active].tactic||'balanced',
   segmentStart:visual.segmentStart,segmentEnd:visual.segmentEnd,
   passStart:visual.passStart,passArrival:visual.passArrival,
   passOrigin:visual.passOrigin,passTarget:visual.passTarget};
