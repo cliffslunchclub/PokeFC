@@ -43,7 +43,7 @@ function launch(champion,withShotData=false){
   navigator:{clipboard:{writeText:async s=>{clipboard.push(s)}}},
   crypto:{getRandomValues(a){a[0]=34567;return a}},
   console,confirm:()=>true,alert:e=>{throw Error(e)}});
- for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/performance.js','play/opponents.js']){
+ for(const file of ['assets/js/position-effectiveness.js','assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/performance.js','play/opponents.js']){
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file,timeout:15000});
  }
  const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
