@@ -7,7 +7,7 @@
  const scalar=(n)=>n==null?null:Math.round(n*10)/10;
  const inRange=(n)=>n!=null&&n>=0&&n<=150;
  const validLabel=s=>/^\d{1,3}(?:\+\d{1,2})?$/.test(s);
- const TYPES=new Set(['goal','save','foul','card','substitution','half-time','second-half','full-time']);
+ const TYPES=new Set(['goal','save','shot','corner','foul','free-kick','penalty-kick','card','substitution','half-time','second-half','full-time']);
  const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function timelineFromEvents(events,fixture,defaultOrigin='quick-sim'){
   const teams=[fixture?.home||{},fixture?.away||{}];
@@ -30,22 +30,25 @@
     shooter:side==null?null:resolve(1-side,e.shooter),
     playerOff:side==null?null:resolve(side,e.playerOff),
     playerOn:side==null?null:resolve(side,e.playerOn),
-    card,origin:safe(e.origin||defaultOrigin),index});
+    card,id:safe(e.id)||null,causedBy:safe(e.causedBy)||null,
+    outcome:['goal','saved','off-target'].includes(e.outcome)?e.outcome:null,
+    origin:safe(e.origin||defaultOrigin),index});
   }
   return all.sort((a,b)=>(a.minute??999)-(b.minute??999)||a.index-b.index).map(({index,...entry})=>entry);
  }
  function renderTimeline(entries,opts={}){
   const list=Array.isArray(entries)?entries.filter(x=>TYPES.has(x?.type)):[];
   if(!list.length)return '<p class="match-event-empty">'+escape(opts.empty||'No individual match events were recorded.')+'</p>';
-  const labels={goal:'GOAL',save:'SHOT ON TARGET · SAVED',foul:'FOUL',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
-  const symbols={goal:'⚽',save:'🧤',foul:'⚑',card:'▣',substitution:'⇄','half-time':'◷','second-half':'▶','full-time':'■'};
+  const labels={goal:'GOAL',save:'SHOT ON TARGET · SAVED',shot:'SHOT',corner:'CORNER',foul:'FOUL','free-kick':'FREE KICK','penalty-kick':'PENALTY KICK',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
+  const symbols={goal:'⚽',save:'🧤',shot:'◉',corner:'⚑',foul:'⚑','free-kick':'⚽','penalty-kick':'◎',card:'▣',substitution:'⇄','half-time':'◷','second-half':'▶','full-time':'■'};
   return '<ol class="pfc-event-timeline">'+list.map(e=>{
    const type=e.type,side=e.side===0?'home':e.side===1?'away':'neutral';
    const name=e.player||'Pokémon unavailable';
    const heading=type==='card'?(e.card?e.card.toUpperCase()+' CARD':'CARD'):labels[type];
    const detail=type==='goal'?name+(e.assist?' · Assist: '+e.assist:''):
     type==='save'?name+(e.shooter?' · Against '+e.shooter:''):
-    type==='foul'?name:type==='card'?name:
+    ['foul','shot','corner','free-kick','penalty-kick'].includes(type)?
+     name+(e.outcome?' · '+e.outcome.replace(/-/g,' '):''):type==='card'?name:
     type==='substitution'?(e.playerOff||'Player off unavailable')+' → '+(e.playerOn||'Player on unavailable'):'';
    return '<li class="pfc-event-entry '+side+' '+type+'"><span class="pfc-event-minute">'+escape(String(e.minuteLabel||'?'))+'′</span>'+
     '<span class="pfc-event-icon" aria-hidden="true">'+symbols[type]+'</span>'+
@@ -92,7 +95,7 @@
   }).filter(Boolean).sort((a,b)=>(a.minute??999)-(b.minute??999));
   const logged=[0,0];for(const e of goals)logged[e.side]++;
   const complete=logged.every((count,i)=>count===score[i]);
-  const fields=['shots','shotsOnTarget','passes','completedPasses','possession','tackleAttempts','tackles','saves'];
+  const fields=['shots','shotsOnTarget','passes','completedPasses','possession','tackleAttempts','tackles','saves','corners','foulsCommitted','freeKicks','penaltyKicks'];
   const stats={};for(const field of fields)stats[field]=[0,1].map(i=>scalar(num(result?.stats?.[i]?.[field])));
   // Individual shots on goal come directly from each match engine player's box
   // (Quick Sim supplies these values). Never allocate team totals by guesswork.
@@ -112,6 +115,7 @@
   }).filter(Boolean));
   return {
    version:3,score,goals,stats,playerShotsOnTarget,playerTackles,timeline,
+   ...(result?.setPieceRules==='v1'?{setPieceRules:'v1'}:{}),
    status:complete?'complete':goals.length?'partial':'unavailable',
    note:complete?'':(events.length?'Some scorer or minute details were not supplied by the match engine.':'Scorer and minute details were not recorded for this match.'),
    origin:safe(result?.origin||'quick-sim'),

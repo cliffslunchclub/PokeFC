@@ -51,6 +51,30 @@ assert.equal(start.officialEvent,null,'Outcome not displayed before illustrative
 assert.equal(end.officialEvent?.id,penalty.event.id);
 assert.equal(end.action,'official-shootout-goal');
 assert.deepEqual(fixture.score,[1,1],'Shootout does not change 120-minute score');
+// Only a v1 PSE event ledger may populate actual corner/free-kick/PK clips.
+const officialSetFixture={...fixture,durationMinutes:90,setPieceRules:'v1',
+ score:[0,0],shootout:null,events:[
+ {id:'pse-v1-00001',type:'corner',minute:12.5,team:'home',player:'h2'},
+ {id:'pse-v1-00002',type:'free-kick',minute:29.2,team:'away',player:'a5'},
+ {id:'pse-v1-00003',type:'penalty-kick',minute:43.7,team:'home',player:'h7',outcome:'saved'}
+]};
+const safeBefore=JSON.stringify(officialSetFixture);
+assert.deepEqual(catalog(officialSetFixture,12.49).map(e=>e.id),[],
+ 'Official corner may not spoil the future');
+assert.deepEqual(catalog(officialSetFixture,12.5).map(e=>e.id),['sp-pse-v1-00001']);
+assert.deepEqual(catalog(officialSetFixture,40).map(e=>e.id),
+ ['sp-pse-v1-00001','sp-pse-v1-00002']);
+for(const entry of catalog(officialSetFixture,90)){
+ const clip=clipFor(officialSetFixture,entry);
+ assert.equal(clip.kind,'set-piece');
+ assert(clip.start<entry.minute&&clip.end>entry.minute);
+ const frame=motionFrame(officialSetFixture,entry.minute+.02,{width:106,height:68});
+ assert.equal(frame.officialEvent?.id,entry.event.id,'A replay cannot fabricate a different incident');
+ assert.equal(frame.action,'official-'+entry.setPiece);
+}
+assert.equal(resolve(officialSetFixture,'sp-pse-v1-00003',40,0),null,
+ 'Future match penalty cannot be replayed');
+assert.equal(JSON.stringify(officialSetFixture),safeBefore,'Set-piece replay mutated PSE match');
 assert.equal(JSON.stringify(fixture),original,'No match or save state mutation');
 const html=require('node:fs').readFileSync(require('node:path').join(__dirname,'../watch/soccerjs/index.html'),'utf8');
 for(const id of ['highlightToggle','highlightNotice','highlightDrawer','highlightList','highlightReplay',

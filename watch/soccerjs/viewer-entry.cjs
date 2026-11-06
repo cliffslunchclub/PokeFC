@@ -102,7 +102,8 @@ function returnToMatch(){
 function highlightEntryElement(entry,buttonLabel){
  const row=document.createElement('div');row.className='highlight-entry';
  const time=document.createElement('span');time.className='highlight-entry-time';
- time.textContent=entry.kind==='goal'?Math.floor(entry.minute+1)+"′":'PK '+entry.kickIndex;
+ time.textContent=entry.setPiece==='shootout'?'PK '+entry.kickIndex:
+   Math.floor(entry.minute+1)+"′";
  const info=document.createElement('div');info.className='highlight-entry-info';
  const title=document.createElement('strong');title.textContent=entry.title;
  const detail=document.createElement('small');detail.textContent=entry.description;
@@ -125,7 +126,7 @@ function renderHighlightCatalog(force=false){
  if(!shown.length){
   const empty=document.createElement('p');empty.className='highlight-empty';
   empty.textContent=highlightFilter==='set'?
-   'No official set-piece incidents recorded yet. Corners and free kicks remain disabled until PSE records them.':
+   'No official set-piece incidents recorded yet. They appear only when PSE includes them.':
    'Official highlights become available after each recorded incident.';
   list.append(empty);
  }else for(const entry of shown)list.append(highlightEntryElement(entry,'▶ REPLAY'));
@@ -171,11 +172,12 @@ function smoothMotion(script,t){
  // A goal-to-kickoff transition is a broadcast camera cut, never ball travel.
  // Discard positional and camera smoothing for the FIRST kickoff frame only.
  const kickoffCut=script.sceneCut==='post-goal-kickoff'&&trackedPhase!=='illustrative-kickoff';
- if(kickoffCut)smoothedFocus=null;
- if(trackedMinute===null||t<trackedMinute||!trackedActors||!trackedBall||kickoffCut){
+ const setPieceCut=(script.sceneCut==='official-set-piece')!==(trackedPhase==='official-set-piece');
+ if(kickoffCut||setPieceCut)smoothedFocus=null;
+ if(trackedMinute===null||t<trackedMinute||!trackedActors||!trackedBall||kickoffCut||setPieceCut){
   trackedActors=script.actors.map(p=>({x:p.x,y:p.y}));
   trackedBall={x:script.ball.x,y:script.ball.y,z:script.ball.z};
-  trackedMinute=t;trackedPhase=script.action;return script;
+  trackedMinute=t;trackedPhase=script.sceneCut==='official-set-piece'?'official-set-piece':script.action;return script;
  }
  const seconds=Math.max(0,(t-trackedMinute)*60);
  const follow=(prev,next,maxDistance)=>{
@@ -191,7 +193,7 @@ function smoothMotion(script,t){
  const ball=follow(trackedBall,script.ball,seconds*28);
  trackedActors=actors.map(p=>({x:p.x,y:p.y}));
  trackedBall={x:ball.x,y:ball.y,z:ball.z};
- trackedMinute=t;trackedPhase=script.action;
+ trackedMinute=t;trackedPhase=script.sceneCut==='official-set-piece'?'official-set-piece':script.action;
  return {...script,actors,ball};
 }
 function render(t,options={}){
@@ -255,6 +257,11 @@ function render(t,options={}){
   'illustrative-dribble':'Attacking dribble','illustrative-challenge':'Defensive challenge',
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
+  'official-corner':'OFFICIAL CORNER',
+  'official-foul':'OFFICIAL FOUL',
+  'official-free-kick':'OFFICIAL FREE KICK',
+  'official-penalty-kick':'OFFICIAL MATCH PENALTY',
+  'illustrative-set-piece-buildup':'Set piece setup',
   'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
   'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
   'official-shootout-off-target':'OFFICIAL SHOOTOUT MISS'
@@ -269,7 +276,9 @@ function render(t,options={}){
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
   animation:script.action,ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
-  carrier:ballCarrier,ballContact:script.contact||'set-piece',soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
+  carrier:ballCarrier,ballContact:script.contact||'set-piece',
+  officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
+  soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
   cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,
   actorWorldPositions:script.actors.map(p=>[p.x,p.y]),
   actualSprites:!!ImageDB.get('player_Brazil_main')&&!!ImageDB.get('player_Argentina_main'),
@@ -355,7 +364,9 @@ async function boot(){
   verify(match);
   stopAt=match.durationMinutes;
   $('scrub').max=String(stopAt);$('seekEnd').textContent=stopAt+"'";
-  if(match.durationMinutes===120)$('notice').textContent=
+  if(match.setPieceRules==='v1')$('notice').textContent=
+   'Official PSE corner, foul, free kick and regulation penalty events are presented at recorded times. Player movement and ball paths are illustrative.';
+  else if(match.durationMinutes===120)$('notice').textContent=
    'PSE knockout replay includes 90 minutes plus 30 minutes of extra time. Shootout kicks are separate from match goals and statistics. Player paths and ball physics remain illustrative.';
   Settings.app={canvas:$('pitch'),camX:0,camY:0};
   Settings.HEADLESS=false;Settings.showFPS=false;Settings.showTime=false;
@@ -420,7 +431,11 @@ async function boot(){
     renderHighlightCatalog(true);
    };
   }
-  $('stats').textContent=shotSummary(match.stats);
+  $('stats').textContent=shotSummary(match.stats)+(match.setPieceRules==='v1'?
+   ' · Corners '+match.stats[0].corners+'–'+match.stats[1].corners+
+   ' · Fouls '+match.stats[0].foulsCommitted+'–'+match.stats[1].foulsCommitted+
+   ' · Free kicks '+match.stats[0].freeKicks+'–'+match.stats[1].freeKicks+
+   ' · Match penalties '+match.stats[0].penaltyKicks+'–'+match.stats[1].penaltyKicks:'');
   $('play').onclick=()=>{
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
