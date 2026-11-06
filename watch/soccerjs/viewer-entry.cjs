@@ -7,6 +7,7 @@ const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
+const Commentary=require('./phase10-commentary.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
@@ -17,6 +18,9 @@ let zoomFactor=1; // Reset by each fresh Watch iframe, retained across camera mo
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
+let commentaryFeed=null,commentaryShown=null,commentarySeenAt=null;
+let commentaryChangedAt=0,commentaryHistoryOpen=false,commentaryHistoryKey='';
+let commentaryLastKick=0,commentaryLastReplay=false;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -222,6 +226,66 @@ function drawEnclosure(ctx,field){
   ctx.lineWidth=3;ctx.strokeStyle='#e53935';ctx.stroke();
  }
 }
+function renderCommentaryHistory(seconds){
+ if(!commentaryHistoryOpen||!commentaryFeed)return;
+ const entries=Commentary.history(commentaryFeed,seconds,kickIndex,90);
+ const key=(entries[0]?.id||'')+'|'+entries.length+'|'+(entries.at(-1)?.id||'');
+ if(key===commentaryHistoryKey)return;
+ commentaryHistoryKey=key;
+ const list=$('commentaryHistory'),fragment=document.createDocumentFragment();
+ for(const entry of entries){
+  const row=document.createElement('li');
+  if(entry.kind==='official')row.className='official';
+  const clock=document.createElement('time');
+  clock.textContent=entry.minute+"′";
+  const words=document.createElement('span');
+  words.textContent=entry.text;
+  row.append(clock,words);fragment.append(row);
+ }
+ list.replaceChildren(fragment);
+}
+function renderCommentary(t,script,isReplay){
+ if(!commentaryFeed)return;
+ const seconds=t*60,now=Date.now();
+ const was=commentarySeenAt;
+ const jump=was!==null&&(seconds<was-.1||seconds-was>35);
+ const modeChange=isReplay!==commentaryLastReplay;
+ const kickChange=kickIndex!==commentaryLastKick;
+ commentarySeenAt=seconds;commentaryLastKick=kickIndex;
+ commentaryLastReplay=isReplay;
+ const urgent=!!script.officialEvent&&script.officialEvent.type==='goal';
+ const hold=speed>=8?4800:speed>=4?4000:speed>=2?3300:2600;
+ // High-speed Watch summarizes play instead of rapidly flashing captions.
+ if(!jump&&!modeChange&&!kickChange&&!urgent&&commentaryShown&&
+    now-commentaryChangedAt<hold){
+  if(commentaryHistoryOpen)renderCommentaryHistory(seconds);
+  return;
+ }
+ const all=Commentary.visible(commentaryFeed,seconds,kickIndex);
+ let selected=all.at(-1)||null;
+ // Keep the official goal line visible through the PSE-confirmed goal scene.
+ if(urgent){
+  selected=all.slice().reverse().find(entry=>entry.kind==='official'&&
+   entry.type==='goal'&&Math.abs(entry.seconds-seconds)<18)||selected;
+ }
+ // Prioritize newly recorded PSE incidents at fast playback rates.
+ if(!jump&&!modeChange&&was!==null&&seconds>=was){
+  const newly=all.slice().reverse().find(entry=>entry.kind==='official'&&
+   entry.seconds>was+1e-8&&entry.seconds<=seconds+1e-8);
+  if(newly)selected=newly;
+ }
+ if(selected&&(!commentaryShown||selected.id!==commentaryShown.id||
+    jump||modeChange||kickChange)){
+  $('commentaryLine').textContent=selected.text;
+  $('commentaryMinute').textContent=selected.minute+"′";
+  commentaryShown=selected;
+  commentaryChangedAt=now;
+  renderCommentaryHistory(seconds);
+ }else if(!selected){
+  $('commentaryLine').textContent='Waiting for kickoff…';
+  $('commentaryMinute').textContent=Math.floor(t)+"′";
+ }
+}
 function render(t,options={}){
  const isReplay=options.replay===true;
  if($('fullscreenPlayback')){
@@ -230,6 +294,7 @@ function render(t,options={}){
   $('fullscreenSpeed').value=String(speed);
  }
  const field=Utils.getFieldBounds(),s=scoreAt(t);
+ if(!commentaryFeed)commentaryFeed=Commentary.build(match,field);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
  const script=isReplay&&replaySession?.clip.kind==='shootout'?
@@ -300,6 +365,7 @@ function render(t,options={}){
   'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
   'official-shootout-off-target':'OFFICIAL SHOOTOUT MISS'
  };
+ renderCommentary(t,script,isReplay);
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
   (script.officialEvent?' · official PSE event':' · illustrative movement')+
   (script.pressPhase==='counterpress'?' · HYBRID PRESS':
@@ -488,6 +554,15 @@ async function boot(){
     renderHighlightCatalog(true);
    };
   }
+  $('commentaryToggle').onclick=()=>{
+   commentaryHistoryOpen=!commentaryHistoryOpen;
+   $('commentaryHistory').hidden=!commentaryHistoryOpen;
+   $('commentaryToggle').setAttribute('aria-expanded',
+    commentaryHistoryOpen?'true':'false');
+   $('commentaryToggle').textContent=commentaryHistoryOpen?'HISTORY ▾':'HISTORY ▴';
+   commentaryHistoryKey='';
+   renderCommentaryHistory(minute*60);
+  };
   $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
@@ -565,7 +640,9 @@ async function boot(){
    }else if(msg.action==='pause'){
     playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){
-    $('fullscreenPlayback').hidden=!msg.active;render(minute);
+    $('fullscreenPlayback').hidden=!msg.active;
+    document.documentElement.classList.toggle('pfc-watch-fullscreen',!!msg.active);
+    render(minute);
    }else if(msg.action==='speed'){
     const v=Number(msg.speed);
     if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;lastSent=-2;render(minute);}
