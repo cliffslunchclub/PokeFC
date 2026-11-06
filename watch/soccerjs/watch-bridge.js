@@ -299,7 +299,7 @@
  function mountInline({
   preview,result,container,onRecord,onCancel,onProgress,onReady,onStatus,
   autoRecordOnSimToEnd=false,
-  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=11'
+  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=12'
  }){
   requireValid(!active,'Another Watch session is already active');
   requireValid(container&&typeof container.appendChild==='function','A match viewport is required');

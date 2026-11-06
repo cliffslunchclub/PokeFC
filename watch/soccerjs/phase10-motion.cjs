@@ -86,6 +86,49 @@ function touchPlan(fixture,field){
  touchCache.set(fixture,{width:field.width,height:field.height,sequence});
  return sequence;
 }
+// Positionally disciplined supporting runs in the attacking third.
+// They are illustrative, never extra official PSE possessions or shots.
+function roleOf(player,index){
+ const role=String(player?.pos||'').toUpperCase();
+ if(index===0||role==='GK')return 'keeper';
+ if(/^(CB|SW|DEF|LB|RB|LWB|RWB)$/.test(role))return 'defender';
+ if(/^(CM|CDM|CAM|LM|RM|MID)$/.test(role))return 'midfielder';
+ if(/^(LW|RW|ST|CF|FWD)$/.test(role))return 'forward';
+ return index<5?'defender':index<8?'midfielder':'forward';
+}
+function waveAt(fixture,field,seconds){
+ const cycle=Math.floor(seconds/8),u=seconds/8-cycle,plan=touchPlan(fixture,field);
+ const value=k=>{
+  const owner=plan[Math.max(0,Math.min(k,plan.length-1))].owner,side=Math.floor(owner/11);
+  const p=pose(owner,field,k*8+5),progress=(side===0?p.x:field.width-p.x)/field.width;
+  return {side,pressure:ease((progress-.585)/.105)};
+ };
+ const before=value(cycle),after=value(cycle+1),blend=ease((u-.54)/.46);
+ return [0,1].map(side=>(before.side===side?before.pressure*(1-blend):0)+
+  (after.side===side?after.pressure*blend:0));
+}
+function supportingPose(fixture,owner,field,seconds,wave=waveAt(fixture,field,seconds)){
+ const side=Math.floor(owner/11),index=owner%11;
+ const player=(side===0?fixture.home:fixture.away).lineup[index],role=roleOf(player,index);
+ const original=pose(owner,field,seconds),pressure=wave[side];
+ if(!pressure||role==='keeper'||role==='forward')return original;
+ const progress=side===0?original.x/field.width:1-original.x/field.width;
+ const seed=String(fixture.visualSeed||fixture.seed||'pfc');
+ const oscillation=Math.sin(seconds*.046+side*2.8+index*.83+(hash(seed)%17)*.19);
+ const overlap=(oscillation+1)/2;
+ let target,amount;
+ if(role==='midfielder'){target=.67;amount=.88;}
+ else{
+  // Fullbacks can overlap; centre backs retain a cover line, with rare
+  // supporting surges. Never drag the keeper or everyone into the box.
+  const wide=/^(LB|RB|LWB|RWB)$/.test(String(player?.pos||'').toUpperCase())||
+   (String(player?.pos||'').toUpperCase()==='DEF'&&(index===1||index===4));
+  if(wide){target=.615;amount=.35+.56*overlap;}
+  else{target=.51;amount=.26+.64*Math.pow(overlap,8);}
+ }
+ const advanced=lerp(progress,Math.max(progress,target),pressure*amount);
+ return {x:limit(origin(side,advanced,field),1,field.width-1),y:original.y};
+}
 function motionFrame(fixture,t,field,options=false){
  const ignoreGoal=options===true;
  const kickIndex=options&&typeof options==='object'&&Number.isInteger(options.kickIndex)?options.kickIndex:0;
@@ -95,8 +138,9 @@ function motionFrame(fixture,t,field,options=false){
  if(!Number.isFinite(t)||t<0||t>duration)throw Error('Invalid replay minute');
  if(!field||!Number.isFinite(field.width)||!Number.isFinite(field.height))throw Error('Invalid soccer pitch');
  const teams=[fixture.home,fixture.away],actors=[],seconds=t*60;
+ const shape=waveAt(fixture,field,seconds);
  for(let side=0;side<2;side++)for(let i=0;i<11;i++){
-  const p=pose(side*11+i,field,seconds);
+  const p=supportingPose(fixture,side*11+i,field,seconds,shape);
   actors.push({side,index:i,
    x:p.x,y:p.y,z:0,
    frame:Math.floor(seconds*7+i)%3===0?1:0,orientation:side===0?2:6});
@@ -210,6 +254,20 @@ function motionFrame(fixture,t,field,options=false){
   keeper.x=lerp(keeper.x,origin(side,.955,field),ready);
   const shotDive=ease((u-.88)/.12);
   keeper.y=lerp(keeper.y,field.height*.5-wing*2.2*shotDive,ready);
+  // The attack moves together before the official scorer takes the shot.
+  // An official defender scorer makes a late run from deeper cover; others
+  // follow without all abandoning their defensive positions.
+  const build=ease((u-.14)/.56);
+  for(let i=1;i<11;i++){
+   const id=side*11+i;
+   if(id===scorerId||id===support)continue;
+   const role=roleOf(roster.lineup[i],i);
+   if(role==='forward')continue;
+   const p=actors[id],position=side===0?p.x/field.width:1-p.x/field.width;
+   const target=role==='midfielder'?.69:.47;
+   p.x=origin(side,lerp(position,Math.max(position,target),
+    build*(role==='midfielder'?.65:.30)),field);
+  }
   // Keep the entire 22-player frame continuous at the goal-scene entry.
   const enter=ease(u/.03);
   for(let i=0;i<actors.length;i++){
@@ -262,14 +320,15 @@ function motionFrame(fixture,t,field,options=false){
  const cycleSeconds=8,at=seconds/cycleSeconds,cycle=Math.floor(at),u=at-cycle;
  const plan=touchPlan(fixture,field);
  const current=plan[Math.min(cycle,plan.length-2)],next=plan[Math.min(cycle+1,plan.length-1)];
- const sender=pose(current.owner,field,seconds),receiver=pose(next.owner,field,seconds);
+ const sender=supportingPose(fixture,current.owner,field,seconds,shape),
+  receiver=supportingPose(fixture,next.owner,field,seconds,shape);
  const passStart=cycle*cycleSeconds+cycleSeconds*.68;
  const passArrival=cycle*cycleSeconds+cycleSeconds*.93;
  const side=Math.floor(current.owner/11),forward=side===0?1:-1;
  // When no forward runner is available, hold the ball rather than sprinting
  // beyond everyone and then whipping a long pass backwards.
- const candidateForward=(pose(next.owner,field,passArrival).x-
-  pose(current.owner,field,passStart).x)*forward;
+ const candidateForward=(supportingPose(fixture,next.owner,field,passArrival).x-
+  supportingPose(fixture,current.owner,field,passStart).x)*forward;
  const runDistance=Math.min(4+(hash(String(fixture.visualSeed||fixture.seed)+':run:'+cycle)%600)/100,
   Math.max(.75,candidateForward*.72));
  const runSide=(hash(String(fixture.visualSeed||fixture.seed)+':diagonal:'+cycle)%2?1:-1);
@@ -278,10 +337,10 @@ function motionFrame(fixture,t,field,options=false){
  const offset=drift(Math.max(0,runBlend));
  actors[current.owner].x=limit(sender.x+offset.x,1,field.width-1);
  actors[current.owner].y=limit(sender.y+offset.y,1,field.height-1);
- const passSender=pose(current.owner,field,passStart),fullDrift=drift(1);
+ const passSender=supportingPose(fixture,current.owner,field,passStart),fullDrift=drift(1);
  const passOrigin=foot({x:limit(passSender.x+fullDrift.x,1,field.width-1),
   y:limit(passSender.y+fullDrift.y,1,field.height-1)},current.owner);
- const passTarget=foot(pose(next.owner,field,passArrival),next.owner);
+ const passTarget=foot(supportingPose(fixture,next.owner,field,passArrival),next.owner);
  const forwardPass=(passTarget.x-passOrigin.x)*forward>12;
  const lob=forwardPass&&hash(String(fixture.visualSeed||fixture.seed)+':lob:'+cycle)%4===0;
  let action,ownerIndex,contact;
@@ -307,7 +366,7 @@ function motionFrame(fixture,t,field,options=false){
  // during possession but ease back before the next cycle boundary.
  const targetPlayer=actors[next.owner];
  const preparation=ease((u-.30)/.40)*(1-ease((u-.83)/.15));
- const anticipated=pose(next.owner,field,passArrival);
+ const anticipated=supportingPose(fixture,next.owner,field,passArrival);
  targetPlayer.x=lerp(targetPlayer.x,anticipated.x,preparation*.18);
  targetPlayer.y=lerp(targetPlayer.y,anticipated.y,preparation*.18);
  const press=ease(u/.28)*(1-ease((u-.72)/.27));
