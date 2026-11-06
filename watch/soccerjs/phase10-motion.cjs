@@ -7,6 +7,7 @@
  */
 const PlayDirector=require('./phase10-play-director.cjs');
 const TeamShape=require('./phase10-team-shape.cjs');
+const Wall=require('./phase10-wall-physics.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -216,7 +217,10 @@ function motionFrame(fixture,t,field,options=false){
   // Late receiving touches may already be inside the box. Keep every
   // part of the buildup moving toward the goal, never retreat to 83%.
   const firstProgress=(side===0?p0.x:field.width-p0.x)/field.width;
-  const finishProgress=Math.min(.998,Math.max(.83,firstProgress+.025));
+  // The shooter must reach a legal point INSIDE the end board before the
+  // PSE-confirmed shot. Only the subsequent shot may cross the open goal.
+  const lastInBounds=1-(Wall.RADIUS+.025)/field.width;
+  const finishProgress=Math.min(lastInBounds,Math.max(.83,firstProgress+.025));
   const finish={x:origin(side,finishProgress,field),y:field.height*.50};
   const wing=(hash(String(event.player)+':'+String(event.minute))%2?1:-1);
   // Goal line is the end of the field, not 98.5% of its length.
