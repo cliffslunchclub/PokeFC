@@ -41,7 +41,8 @@ async function serve(){
  let browser;
  try{
   await serve();
-  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+  browser=await chromium.launch({headless:true,args:['--no-sandbox'],
+   ...(process.env.PFC_CHROME_BIN?{executablePath:process.env.PFC_CHROME_BIN}:{})});
   for(const [device,viewport] of [['desktop',{width:1440,height:900}],['mobile',{width:390,height:844}]]){
    const page=await browser.newPage({viewport,deviceScaleFactor:1});
    const errors=[];
