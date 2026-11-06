@@ -141,7 +141,7 @@ function build(f,field){
   throw Error('Commentary requires the verified PSE fixture');
  const plan=planFor(f,field);
  const entries=[{id:PREFIX+'opening',seconds:0,kind:'visual',type:'intro',
-  text='We are underway! Both sides looking to settle into the match.',
+  text:'We are underway! Both sides looking to settle into the match.',
   minute:0,priority:1}];
  let last=0,visualNumber=0;
  const seed=String(f.visualSeed||f.seed||'pfc');
