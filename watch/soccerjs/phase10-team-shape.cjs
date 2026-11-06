@@ -120,75 +120,69 @@ function position(f,field,id,seconds,shape,baseline){
 }
 function press(f,field,seconds,visual,shape,actors,ball){
  const stage=visual.stage,phase=(seconds-stage.start)/Math.max(.001,stage.duration);
- let side,intensity,anchor;
+ let side,intensity;
  if(shape.turnover&&shape.age>=0&&shape.age<10){
   side=shape.turnover.oldSide;
   intensity=ease(shape.age/1.25)*(1-ease((shape.age-4)/6));
-  anchor=shape.turnover.ball;
  }else{
   side=1-shape.active;
-  // Urgency rises continuously as the attacker approaches the defending goal.
-  // The off-ball team is always the defending side; this is Watch-only motion.
   const attackProgress=shape.active===0?ball.x/field.width:1-ball.x/field.width;
   const finalThird=ease((attackProgress-.60)/.16);
-  const danger=ease((attackProgress-.77)/.16);
   const ordinary=.48*ease(phase/.30)*(1-ease((phase-.62)/.36));
-  // Pressing assignments may change at director stage boundaries. Fade the
-  // threat press to zero before/after that boundary so an incoming third
-  // defender cannot snap several meters on the exact transition frame.
-  const edgeSeconds=Math.max(0,Math.min(seconds-stage.start,stage.start+stage.duration-seconds));
-  const settledThreat=finalThird*(.64+.36*danger)*ease(edgeSeconds/.55);
+  const edgeSeconds=Math.max(0,Math.min(seconds-stage.start,stage.end-seconds));
+  const settledThreat=finalThird*.65*ease(edgeSeconds/.55);
   intensity=Math.max(ordinary,settledThreat);
-  // Recovery pressure reaches zero at age 10. Ease ordinary marking back
-  // in over the next 1.3 s; otherwise a defender can jump several meters
-  // instantly at the recovery-to-settled boundary.
   if(shape.turnover)intensity*=ease((shape.age-10)/1.3);
-  anchor=stage.from;
  }
  intensity*=shape.profiles[side].press;
- // The previous counterpress fades out before another recorded *visual*
- // turnover, so rapid exchanges never snap the same defenders to their bases.
+ // The nearest three defenders, not their fixed lineup slots, respond as
+ // the ball enters the last 16 m. Unlike ordinary stage urgency, danger
+ // pressure does NOT fade when the Play Director moves to another pass.
+ const defending=1-shape.active;
+ const goalX=defending===0?0:field.width;
+ const goalDistance=Math.hypot(ball.x-goalX,ball.y-field.height*.5);
+ let nearGoal=ease((16-goalDistance)/5);
+ if(nearGoal>0){
+  side=defending;
+  // Actual turnovers (not passes) still ease to zero at the handoff:
+  // incoming defenders accelerate over 1.1 s, avoiding instant swaps.
+  if(shape.turnover&&shape.age<1.1)
+   nearGoal*=ease(shape.age/1.1);
+  intensity=Math.max(intensity,nearGoal*.99);
+ }
  if(shape.nextTurnover){
   const timeLeft=shape.nextTurnover.time-seconds;
-  intensity*=ease(timeLeft/1.7);
+  const handoff=ease(timeLeft/1.4);
+  intensity*=handoff;
  }
- if(intensity<=.001)return {side,phase:shape.phase,intensity:0,ids:[]};
- // Stable pressers for a given passage or turnover; do not switch
- // chasers merely because two moving Pokémon become equidistant.
- const ids=Array.from({length:10},(_,i)=>side*11+i+1);
- ids.sort((a,b)=>{
-  const x=actors[a],y=actors[b];
-  // Fixed formation slots, not the current animated positions, choose roles.
-  const ax=side===0?field.width*(a%11<5?.24:a%11<8?.45:.69):
-    field.width*(1-(a%11<5?.24:a%11<8?.45:.69));
-  const bx=side===0?field.width*(b%11<5?.24:b%11<8?.45:.69):
-    field.width*(1-(b%11<5?.24:b%11<8?.45:.69));
-  const ay=field.height*((a%11===1||a%11===5||a%11===8)?.18:
-    (a%11===4||a%11===7||a%11===10)?.82:.5);
-  const by=field.height*((b%11===1||b%11===5||b%11===8)?.18:
-    (b%11===4||b%11===7||b%11===10)?.82:.5);
-  return Math.hypot(ax-anchor.x,ay-anchor.y)-Math.hypot(bx-anchor.x,by-anchor.y)||a-b;
- });
- for(const [k,id] of ids.slice(0,3).entries()){
-  const actor=actors[id];
-  // First closes the carrier, second blocks the shot lane, third covers
-  // a nearby passing lane. All three converge more tightly near goal.
+ intensity=clamp(intensity,0,1);
+ if(intensity<=.001)return {side,phase:shape.phase,intensity:0,ids:[],nearGoal};
+ // Use the CURRENT physical actor locations, not their nominal formation
+ // positions. Each selected defender's individual target depends on their
+ // own position, not their sorting rank. This avoids switching roles when
+ // the nearest two defenders exchange ordering in a running play.
+ const candidates=Array.from({length:10},(_,i)=>side*11+i+1)
+  .map(id=>({id,dist:Math.hypot(actors[id].x-ball.x,actors[id].y-ball.y)}));
+ candidates.sort((a,b)=>a.dist-b.dist||a.id-b.id);
+ const fourth=candidates[3]?.dist??Infinity;
+ const ids=candidates.slice(0,3).map(x=>x.id);
+ for(const item of candidates.slice(0,3)){
+  const actor=actors[item.id];
+  // Third/fourth-place ties must never make the displaced player snap.
+  // A smoothly vanishing membership weight handles each handoff while
+  // keeping the number of active outfield pressers at three or fewer.
+  const membership=ease((fourth-item.dist)/2);
   const depth=side===0?-1:1;
-  const target=k===0?ball:k===1?{
-   x:clamp(ball.x+depth*2.4,1,field.width-1),
-   y:clamp(lerp(ball.y,field.height*.5,.32),1,field.height-1)
-  }:{
-   x:clamp(ball.x+depth*4,1,field.width-1),
-   // Blend the covered lane across midfield; a binary side switch would
-   // abruptly flip this defender's target as the ball crosses pitch center.
-   y:clamp(ball.y+4*(1-2*ease((ball.y-field.height*.5+3)/6)),1,field.height-1)
+  const target={
+   x:clamp(ball.x+depth*(1.0+nearGoal*.25),1,field.width-1),
+   y:clamp(ball.y+clamp((actor.y-ball.y)*.20,-1.7,1.7),1,field.height-1)
   };
-  const distance=Math.max(.01,Math.hypot(actor.x-target.x,actor.y-target.y));
-  const maxMove=k===0?10:k===1?8.5:7.0;
-  const move=clamp(distance-(k===0?1.6:2.5),0,maxMove)*Math.min(1,intensity);
-  actor.x=clamp(actor.x+(target.x-actor.x)/distance*move,1,field.width-1);
-  actor.y=clamp(actor.y+(target.y-actor.y)/distance*move,1,field.height-1);
+  const dist=Math.max(.01,Math.hypot(actor.x-target.x,actor.y-target.y));
+  const limit=10+nearGoal*9;
+  const move=clamp(dist-(1.4-nearGoal*.5),0,limit)*intensity*membership;
+  actor.x=clamp(actor.x+(target.x-actor.x)/dist*move,1,field.width-1);
+  actor.y=clamp(actor.y+(target.y-actor.y)/dist*move,1,field.height-1);
  }
- return {side,phase:shape.phase,intensity,ids:ids.slice(0,3)};
+ return {side,phase:shape.phase,intensity,ids,nearGoal};
 }
 module.exports={styleFor,status,roleOf,position,press,lastTurnover};
