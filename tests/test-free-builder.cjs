@@ -30,7 +30,7 @@ function start(store=new Map()){
   navigator:{},console
  };
  const ctx=vm.createContext(env);
- vm.runInContext(fs.readFileSync(path.join(root,'assets/js/national-assets/js/species.js'),'utf8'),ctx,{timeout:10000});
+ vm.runInContext(fs.readFileSync(path.join(root,'assets/js/national-species.js'),'utf8'),ctx,{timeout:10000});
  vm.runInContext(fs.readFileSync(path.join(root,'assets/js/builder.js'),'utf8'),ctx,{timeout:10000});
  return {get,store,env,api:env.window.PFC_BUILDER};
 }
