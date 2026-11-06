@@ -39,7 +39,7 @@ const doc={
  return controls.get(id)}};
 const ctx=vm.createContext({window:{matchMedia:()=>({matches:reducedMotion})},document:doc,console,localStorage:{getItem(){return saved},setItem(k,v){saved=v}},
  crypto:{getRandomValues(a){a[0]=18391;return a}},alert:()=>{},confirm:()=>true});
-for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
+for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/position-effectiveness.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
 }
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
@@ -67,16 +67,18 @@ assert(animations.length<=12,'Only the top 12 cards animate, never the whole lis
 assert(animations.every(x=>x.options.duration<=250),'Shuffle is fast and nonblocking');
 assert(animations.every(x=>x.frames[0].transform.includes('translateY')),'Shuffle uses compositor transforms');
 const species=new Map(ctx.window.FXI_SPECIES.map(x=>[x.id,x]));
-const score=s=>Math.min(100,20+.55*(s.baseStats.attack*.35+s.baseStats.spAttack*.2+s.baseStats.speed*.35+s.baseStats.hp*.1));
+const score=(s,pos='ST')=>ctx.window.PFC_POSITION_EFFECTIVENESS.preciseFit(s.baseStats,pos);
 const rank={S:0,A:1,B:2,C:3,D:4};
 const ordered=Array.from(grid.children,x=>species.get(Number(x.dataset.speciesId)));
 const expected=before.map(id=>species.get(id)).sort((a,b)=>rank[tiers.tier(score(a))]-rank[tiers.tier(score(b))]||a.name.localeCompare(b.name)||a.id-b.id);
 assert.deepEqual(ordered.map(x=>x.id),expected.map(x=>x.id),'selected ST position sorts Pokémon S-to-D then alphabetically within each tier');
 const actualTiers=ordered.map(x=>rank[tiers.tier(score(x))]);
 assert(actualTiers.every((rank,i)=>i===0||rank>=actualTiers[i-1]),'tiers are monotone descending');
-const beforeSameRole=batches;
-slots[8].onclick(); // LW uses FWD, the same positional formula as ST
-assert.equal(batches,beforeSameRole,'No DOM movement for another position with the same rating family');
+const beforeWing=batches,preWing=Array.from(grid.children,x=>Number(x.dataset.speciesId));
+slots[8].onclick(); // Winger now uses its own ratings, unlike ST.
+const wingSorted=preWing.map(id=>species.get(id)).sort((a,b)=>rank[tiers.tier(score(a,'LW'))]-rank[tiers.tier(score(b,'LW'))]||a.name.localeCompare(b.name)||a.id-b.id);
+assert.deepEqual(Array.from(grid.children,x=>Number(x.dataset.speciesId)),wingSorted.map(x=>x.id));
+assert.equal(batches,beforeWing+(wingSorted.some((s,i)=>s.id!==preWing[i])?1:0),'One atomic reorder when switching ST to LW');
 reducedMotion=true;
 const animationsBefore=animations.length;
 slots[1].onclick(); // LB is different rating family
