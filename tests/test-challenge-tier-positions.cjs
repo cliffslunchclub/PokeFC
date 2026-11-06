@@ -39,7 +39,7 @@ const doc={
  return controls.get(id)}};
 const ctx=vm.createContext({window:{matchMedia:()=>({matches:reducedMotion})},document:doc,console,localStorage:{getItem(){return saved},setItem(k,v){saved=v}},
  crypto:{getRandomValues(a){a[0]=18391;return a}},alert:()=>{},confirm:()=>true});
-for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
+for(const file of ['assets/js/national-assets/js/species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
 }
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
@@ -96,7 +96,7 @@ assert.equal(JSON.parse(saved).selected,1,'occupied slot not treated as new draf
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-pitch \.slot button\[data-slot\][^\n]*position:absolute/,'Full-tile click overlay');
 assert.match(css,/\.challenge-pitch \.slot\.empty:hover/,'Hover indication');
-const skin=fs.readFileSync(path.join(root,'newtro.css'),'utf8');
+const skin=fs.readFileSync(path.join(root,'assets/css/newtro.css'),'utf8');
 assert.match(skin,/\.challenge-frame button:hover:not\(:disabled\):not\(\.primary\)/,
  'Shared newtro style contains the generic button hover that must not cover a pitch card');
 assert.match(css,/\.challenge-frame \.challenge-pitch \.slot button\[data-slot\]:is\(:hover,:focus,:active\)\{\s*background:transparent!important;\s*border:0!important;\s*box-shadow:none!important;/,
