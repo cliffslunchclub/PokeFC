@@ -631,6 +631,36 @@ function individualShotsHtml(match){
   (rows||'<p>No Pokémon recorded a shot on goal in this match.</p>')+
   '<small>From individual match-box data. Penalty shootout attempts are excluded.</small></section>';
 }
+function matchReplayControls(match){
+ // New results retain their immutable official PSE fixture. Old match reports
+ // remain readable, but we never invent a replay from a newly simulated game.
+ const entry=(st.history||[]).find(m=>m.round===match?.round&&m.seed===match?.seed&&m.boss===match?.boss);
+ const data=entry?.replay||match?.replay;
+ if(!data||data.version!==1||data.result?.origin!=='quick-sim'||
+  !Array.isArray(data.result.events)||!data.preview?.home?.lineup||!data.preview?.away?.lineup)return '';
+ const goals=data.result.events.filter(e=>e?.type==='goal').slice().sort((a,b)=>a.minute-b.minute);
+ const score=data.result.score||[];
+ if(!goals.length||goals.length!==Number(score[0])+Number(score[1]))return '';
+ const teams=[data.preview.home,data.preview.away];
+ const buttons=goals.map((goal,i)=>{
+  const team=teams.find(t=>String(t.id)===String(goal.team));
+  const player=team?.lineup?.find(p=>String(p.id)===String(goal.player));
+  if(!team||!player||!Number.isFinite(Number(goal.minute)))return '';
+  return '<button type="button" class="challenge-goal-replay-button" data-match-replay="'+Number(match.round)+
+   '" data-replay-id="goal-'+i+'" aria-label="Replay goal by '+esc(player.name)+'">'+
+   '▶ '+(Math.floor(goal.minute)+1)+'′ · '+esc(player.name)+'</button>';
+ }).join('');
+ const kicks=data.result.shootout?.version==='pse-shootout-v1'?
+  data.result.shootout.attempts.map((kick,i)=>
+   '<button type="button" class="challenge-goal-replay-button" data-match-replay="'+Number(match.round)+
+   '" data-replay-id="pk-'+i+'" aria-label="Replay penalty attempt '+(i+1)+'">'+
+   '▶ PENALTY '+(i+1)+'</button>').join(''):'';
+ if(!buttons&&!kicks)return '';
+ return '<section class="challenge-replay-controls" aria-label="Match video highlights">'+
+  '<h4>GOAL REPLAYS <small>2.5D INSTANT REPLAY</small></h4>'+
+  '<div class="challenge-replay-buttons">'+buttons+kicks+'</div>'+
+  '<p>Illustrative Soccer-JS playback of official PSE events, not a video recording.</p></section>';
+}
 function matchReportHtml(match){
  if(!match)return '<p class="match-report-note">No game record available.</p>';
  const report=match.report;
@@ -675,6 +705,7 @@ function matchReportHtml(match){
  return '<div class="gauntlet-match-report">'+
   awardMarkup(match)+
   '<div class="match-report-heading"><span class="pfc-eyebrow">'+esc(source)+'</span><strong>YOUR XI&nbsp; '+scoreText+'&nbsp; '+esc(match.boss||'OPPONENT')+'</strong></div>'+
+  matchReplayControls(match)+
   '<h4>MATCH TIMELINE</h4>'+timelineHtml+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
