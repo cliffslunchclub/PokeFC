@@ -57,6 +57,15 @@
  <option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option>
  </select></label>
 </div>
+<section id="commentaryPanel" class="watch-commentary" aria-label="PokéFC live match commentary">
+ <div class="watch-commentary-head">
+  <strong>● LIVE COMMENTARY <span class="watch-commentary-visual">· PLAY-BY-PLAY</span></strong>
+  <span id="commentaryMinute" class="watch-commentary-minute">0′</span>
+  <button id="commentaryToggle" type="button" aria-controls="commentaryHistory" aria-expanded="false">HISTORY ▴</button>
+ </div>
+ <p id="commentaryLine" class="watch-commentary-line" role="status" aria-live="polite" aria-atomic="true">Awaiting kickoff…</p>
+ <ol id="commentaryHistory" class="watch-commentary-history" aria-label="Match commentary history" hidden></ol>
+</section>
 <div class="shootout-overlay" id="shootoutOverlay" hidden role="group" aria-label="Official PSE penalty shootout">
 <strong id="shootoutScore" aria-live="polite">PENALTIES 0 – 0</strong>
 <span id="shootoutDetail" aria-live="polite">Awaiting first penalty</span>

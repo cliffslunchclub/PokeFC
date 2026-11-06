@@ -110,6 +110,7 @@ jobs:
           node watch/soccerjs/test-play-sequence-director.cjs
           node watch/soccerjs/test-player-pace.cjs
           node watch/soccerjs/test-camera-zoom.cjs
+          node watch/soccerjs/test-commentary.cjs
           node watch/soccerjs/test-hybrid-counterpress.cjs
           node watch/soccerjs/test-three-defender-press.cjs
           node watch/soccerjs/test-offside-aware-passing.cjs
@@ -173,6 +174,7 @@ jobs:
           cp watch/soccerjs/phase10-team-shape.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-wall-physics.cjs soccer-js-upstream/
           cp watch/soccerjs/highlight-replay.cjs soccer-js-upstream/
+          cp watch/soccerjs/phase10-commentary.cjs soccer-js-upstream/
           cp watch/soccerjs/pokemon-*.cjs soccer-js-upstream/
           mkdir -p watch/soccerjs/dist
           ./soccer-js-upstream/node_modules/.bin/esbuild soccer-js-upstream/pfc-viewer-entry.cjs \

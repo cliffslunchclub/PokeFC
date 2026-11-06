@@ -1,0 +1,36 @@
+name: Watch broadcast commentary
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/phase10-commentary.cjs'
+      - 'watch/soccerjs/test-commentary.cjs'
+      - 'watch/soccerjs/viewer-entry.cjs'
+      - 'watch/soccerjs/index.html'
+      - 'watch/soccerjs/viewer.css'
+      - 'watch/soccerjs/build-local.sh'
+      - '.github/workflows/watch-broadcast-commentary.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'watch/soccerjs/phase10-commentary.cjs'
+      - 'watch/soccerjs/test-commentary.cjs'
+      - 'watch/soccerjs/viewer-entry.cjs'
+      - 'watch/soccerjs/index.html'
+      - 'watch/soccerjs/viewer.css'
+      - '.github/workflows/watch-broadcast-commentary.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check watch/soccerjs/phase10-commentary.cjs
+      - run: node --check watch/soccerjs/viewer-entry.cjs
+      - run: node watch/soccerjs/test-commentary.cjs
+      - run: node watch/soccerjs/test-player-pace.cjs
+      - run: node watch/soccerjs/test-play-sequence-director.cjs
+      - run: node watch/soccerjs/test-possession-continuity.cjs
+      - run: node watch/soccerjs/test-camera-zoom.cjs
+      - run: node watch/soccerjs/test-goal-kickoff-reset.cjs
