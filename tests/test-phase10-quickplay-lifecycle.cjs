@@ -88,7 +88,7 @@ const context=vm.createContext({
  document,URLSearchParams,Date,Math,console,
  localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)}
 });
-for(const filename of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js',
+for(const filename of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/position-effectiveness.js','assets/js/quick-sim.js',
  'play/opponents.js','play/play.js']){
  vm.runInContext(fs.readFileSync(path.join(root,filename),'utf8'),context,{filename,timeout:20000});
 }
