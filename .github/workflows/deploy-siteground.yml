@@ -174,7 +174,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html assets/icons/favicon.svg ratings/index.html assets/css/site.css assets/js/builder.js assets/css/builder.css assets/js/national-species.js assets/js/quick-sim.js assets/js/calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/assets/js/career.js franchise/assets/css/career.css franchise/assets/js/tactical-viewer.js franchise/assets/js/soccerjs-franchise-viewer.js ; do
+          for file in index.html assets/icons/favicon.svg ratings/index.html assets/css/site.css assets/js/builder.js assets/css/builder.css assets/js/national-species.js assets/js/quick-sim.js assets/js/calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html assets/js/career.js assets/css/career.css assets/js/tactical-viewer.js assets/js/soccerjs-franchise-viewer.js ; do
             test -s "dist/$file"
           done
           test -s dist/.htaccess

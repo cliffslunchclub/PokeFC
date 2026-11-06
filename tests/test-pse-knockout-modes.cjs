@@ -48,7 +48,7 @@ function challenge(){
    localStorage:{getItem:k=>k==='pokefc-challenge-alpha-1'?saved:null,
     setItem(k,v){if(k==='pokefc-challenge-alpha-1')saved=v}},
    crypto:{getRandomValues(a){a[0]=seed;return a}},console,confirm:()=>true,alert:e=>{throw Error(e)}});
-  load(context,['assets/js/national-assets/js/species.js','assets/js/quick-sim.js','assets/js/pse-knockout.js','challenge/special-items-data.js',
+  load(context,['assets/js/national-species.js','assets/js/quick-sim.js','assets/js/pse-knockout.js','challenge/special-items-data.js',
    'challenge/tiers.js','challenge/match-report.js','challenge/performance.js','play/opponents.js']);
   const html=read('challenge/index.html');
   vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),context,

@@ -38,7 +38,7 @@ assert(css.includes('.field-shell canvas'),'Pitch must keep green playing surfac
 const clean=css.replace(/\/\*[\s\S]*?\*\//g,'');
 assert.equal((clean.match(/\{/g)||[]).length,(clean.match(/\}/g)||[]).length,'CSS braces unbalanced');
 const build=read('scripts/build-siteground.sh');
-assert(build.includes('assets/css/site.css assets/css/newtro.css assets/icons/favicon.svg'),'Newtro is packaged');
+assert(build.includes('for file in builder.css site.css newtro.css career.css; do') && build.includes('cp "assets/css/$file"') && build.includes('cp assets/icons/favicon.svg'),'Newtro is packaged');
 assert(build.includes('Missing final newtro theme'),'Public build validates newtro asset');
 assert(build.includes('assets/icons/favicon.svg?v=2'),'Public build checks refreshed favicon');
 console.log('PASS Newtro: five pages, final stylesheet, Poké Ball palette, matching 440px floating windows, mobile/a11y and deploy packaging');
