@@ -8,9 +8,6 @@ const CHALLENGE_KEY='pokefc-challenge-alpha-1';
 const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window.location.search).get('challenge')==='1');
 // Soccer-JS is the sole browser Watch; headless Quick Sim tests can omit location.
 const SOCCERJS_PREVIEW=!!window.location;
- // Only opt-in PSE v1 exhibitions; knockout and saved modes remain legacy.
- const setPieceOptions=()=>!CHALLENGE_MODE&&$('setPiecesMode')?.value==='v1'?
-  {setPieces:'v1'}:{};
 let SOCCERJS_READY=false;
 let soccerSession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
@@ -234,8 +231,7 @@ function saveChallengeResult(result){
 function officialStatHtml(result){
  const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Saves','saves'],
   ['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],
-   ['Tackles won','tackles'],['Corners','corners'],['Fouls','foulsCommitted'],
-   ['Free kicks','freeKicks'],['Match penalties','penaltyKicks']];
+   ['Tackles won','tackles']];
  const table=rows.filter(([,key])=>result.stats?.some(t=>t[key]!=null)).map(([label,key])=>'<div class="stat-row"><span>'+
   esc(result.stats?.[0]?.[key]??'—')+(key==='possession'?'%':'')+
   '</span><small>'+esc(label)+'</small><span>'+
@@ -251,9 +247,7 @@ function officialStatHtml(result){
  return '<div class="stat-table">'+table+'</div><h4>POKÉMON SHOTS ON TARGET</h4>'+
   (detail?'<div class="stat-table">'+detail+'</div>':
    '<p class="result-meta">No individual shots on target recorded.</p>')+
-  (result.setPieceRules==='v1'?
-   '<p class="result-meta">PSE v1 · Official corners, fouls, free kicks and match penalties.</p>':
-   '<p class="result-meta">Set-piece statistics unavailable in legacy matches.</p>');
+  '<p class="result-meta">Enclosed pitch · continuous play · no corners, free kicks or in-match penalties.</p>';
 }
 function showResult(result){
  const challengeRecord=saveChallengeResult(result);
@@ -293,7 +287,7 @@ function stopWatch(){
 function quickSim(){
  try{
   stopWatch();preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
-  const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed,...setPieceOptions()});
+  const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
 }
@@ -306,7 +300,7 @@ function watchSoccerMatch(){
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
   preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
   // Lock the entire authoritative knockout before kickoff. No second draw at Record.
-  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed,...setPieceOptions()});
+  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
   const decision=CHALLENGE_MODE&&window.PFC_KNOCKOUT?
    window.PFC_KNOCKOUT.resolve(preview,regulation,{seed:preview.seed}):null;
   const official=decision?{...decision.match,
@@ -418,7 +412,7 @@ function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
  $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
- script.src='../watch/soccerjs/watch-bridge.js?v=10';
+ script.src='../watch/soccerjs/watch-bridge.js?v=11';
  script.onload=()=>{
   SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
   updateXI();
@@ -433,8 +427,6 @@ function start(){
   $('playIntroHeading').textContent='CHALLENGE MATCH.';
   $('playIntroText').textContent='Your locked Final XI, formation, tactics and items carry into this match. The result automatically advances or ends your Challenge attempt.';
   $('teamActions').hidden=true;
-  $('setPiecesPanel').hidden=true;$('setPiecesMode').value='legacy';
-  $('setPiecesMode').disabled=true;
   $('region').value='bosses';
   const challenger=getChallenge();if(challenger)$('tactic').value=challenger.locked.tactic;
   $('region').disabled=true;$('opponent').disabled=true;$('tactic').disabled=true;$('fillXI').disabled=true;

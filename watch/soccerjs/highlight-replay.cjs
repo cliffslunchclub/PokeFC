@@ -1,7 +1,7 @@
 'use strict';
 /* Official PokéFC highlight catalog and deterministic presentation windows.
  * The result ledger is read-only. Clip poses are illustrative, not recordings.
- * Only logged PSE goals, v1 set-piece awards and shootout kicks are eligible.
+ * Only logged PSE goals and knockout shootout kicks are eligible.
  */
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const durationOf=fixture=>fixture?.durationMinutes===120?120:90;
@@ -23,24 +23,6 @@ function catalog(fixture,minute=0,kickIndex=0){
    name:String(player.name||player.id),teamName:String(team.name||team.id),
    title:'GOAL',description:String(player.name||player.id)+' · '+String(team.name||team.id),
    event});
- }
- // Do not invent set pieces for legacy fixtures or expose future incidents.
- if(fixture.setPieceRules==='v1'){
-  const supported=new Set(['corner','free-kick','penalty-kick']);
-  for(const event of fixture.events){
-   if(!supported.has(event?.type)||typeof event.id!=='string'||!event.id)continue;
-   if(!Number.isFinite(event.minute)||event.minute<0||
-      event.minute>current+1e-7||event.minute>=max)continue;
-   const team=String(event.team)===String(fixture.home?.id)?fixture.home:
-    String(event.team)===String(fixture.away?.id)?fixture.away:null;
-   const player=team?.lineup?.find(p=>String(p.id)===String(event.player));
-   if(!player)continue;
-   const title={corner:'CORNER','free-kick':'FREE KICK','penalty-kick':'MATCH PENALTY'}[event.type];
-   entries.push({id:'sp-'+event.id,kind:'set',setPiece:event.type,minute:event.minute,
-    side:team.id,name:String(player.name||player.id),teamName:String(team.name||team.id),
-    title,description:String(player.name||player.id)+' · '+String(team.name||team.id),
-    event});
-  }
  }
  if(current>=max&&fixture.shootout?.version==='pse-shootout-v1'){
   const attempts=fixture.shootout.attempts||[];
@@ -64,10 +46,6 @@ function clipFor(fixture,entry){
   const start=clamp(entry.minute-.7,0,duration);
   const end=clamp(entry.minute+.22,0,duration);
   return {id:entry.id,kind:'goal',start,end,durationSeconds:6,minute:entry.minute};
- }
- if(entry.kind==='set'&&['corner','free-kick','penalty-kick'].includes(entry.setPiece)){
-  return {id:entry.id,kind:'set-piece',start:clamp(entry.minute-.20,0,duration),
-   end:clamp(entry.minute+.22,0,duration),durationSeconds:4.5,minute:entry.minute};
  }
  if(entry.kind==='set'&&entry.setPiece==='shootout'){
   return {id:entry.id,kind:'shootout',start:duration,end:duration,

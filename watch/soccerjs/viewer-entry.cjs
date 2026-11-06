@@ -179,12 +179,11 @@ function smoothMotion(script,t){
  // A goal-to-kickoff transition is a broadcast camera cut, never ball travel.
  // Discard positional and camera smoothing for the FIRST kickoff frame only.
  const kickoffCut=script.sceneCut==='post-goal-kickoff'&&trackedPhase!=='illustrative-kickoff';
- const setPieceCut=(script.sceneCut==='official-set-piece')!==(trackedPhase==='official-set-piece');
- if(kickoffCut||setPieceCut)smoothedFocus=null;
- if(trackedMinute===null||t<trackedMinute||!trackedActors||!trackedBall||kickoffCut||setPieceCut){
+ if(kickoffCut)smoothedFocus=null;
+ if(trackedMinute===null||t<trackedMinute||!trackedActors||!trackedBall||kickoffCut){
   trackedActors=script.actors.map(p=>({x:p.x,y:p.y}));
   trackedBall={x:script.ball.x,y:script.ball.y,z:script.ball.z};
-  trackedMinute=t;trackedPhase=script.sceneCut==='official-set-piece'?'official-set-piece':script.action;return script;
+  trackedMinute=t;trackedPhase=script.action;return script;
  }
  const seconds=Math.max(0,(t-trackedMinute)*60);
  const follow=(prev,next,maxDistance)=>{
@@ -200,8 +199,29 @@ function smoothMotion(script,t){
  const ball=follow(trackedBall,script.ball,seconds*28);
  trackedActors=actors.map(p=>({x:p.x,y:p.y}));
  trackedBall={x:ball.x,y:ball.y,z:ball.z};
- trackedMinute=t;trackedPhase=script.sceneCut==='official-set-piece'?'official-set-piece':script.action;
+ trackedMinute=t;trackedPhase=script.action;
  return {...script,actors,ball};
+}
+// Enclosed PokéFC pitch. Six perimeter board segments leave the goal
+// mouths open. These are presentation-only and cannot award penalties,
+// trigger fouls, or change the authoritative PSE match result.
+function drawEnclosure(ctx,field){
+ const mid=field.height/2,mouth=3.66;
+ const sides=[
+  [[0,0],[field.width,0]],[[0,field.height],[field.width,field.height]],
+  [[0,0],[0,mid-mouth]],[[0,mid+mouth],[0,field.height]],
+  [[field.width,0],[field.width,mid-mouth]],[[field.width,mid+mouth],[field.width,field.height]]
+ ];
+ for(const [[x1,y1],[x2,y2]] of sides){
+  const a=Utils.toScreen(x1,y1,0),b=Utils.toScreen(x2,y2,0);
+  const c=Utils.toScreen(x2,y2,.85),d=Utils.toScreen(x1,y1,.85);
+  ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+  ctx.lineTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.closePath();
+  ctx.fillStyle='rgba(247,247,245,.28)';ctx.fill();
+  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(8,11,14,.7)';ctx.stroke();
+  ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(d.x,d.y);
+  ctx.lineWidth=3;ctx.strokeStyle='#e53935';ctx.stroke();
+ }
 }
 function render(t,options={}){
  const isReplay=options.replay===true;
@@ -238,6 +258,7 @@ function render(t,options={}){
  ctx.translate(camera.tx,camera.ty);
  // Original Soccer-JS pitch/players/ball renderer, no native sim ticks.
  sim.renderAll(ctx);
+ drawEnclosure(ctx,field);
  ctx.restore();
  $('score').textContent=s.join(' – ');
  $('clock').textContent=Math.floor(t)+"'"+(t>=90&&match.durationMinutes===120?' · ET':'');
@@ -269,11 +290,6 @@ function render(t,options={}){
   'illustrative-dribble':'Attacking dribble','illustrative-challenge':'Defensive challenge',
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
-  'official-corner':'OFFICIAL CORNER',
-  'official-foul':'OFFICIAL FOUL',
-  'official-free-kick':'OFFICIAL FREE KICK',
-  'official-penalty-kick':'OFFICIAL MATCH PENALTY',
-  'illustrative-set-piece-buildup':'Set piece setup',
   'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
   'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
   'official-shootout-off-target':'OFFICIAL SHOOTOUT MISS'
@@ -289,7 +305,7 @@ function render(t,options={}){
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
   animation:script.action,ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
-  carrier:ballCarrier,ballContact:script.contact||'set-piece',
+  carrier:ballCarrier,ballContact:script.contact||'continuous-play',
   officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
   soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
   cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,
@@ -301,7 +317,8 @@ function render(t,options={}){
   pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false,
   durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
-  kickIndex,totalKicks,goalPaused:!!replayNotice,watchPlaying:playing,
+  kickIndex,totalKicks,enclosedPitch:true,boardSegments:6,
+  goalPaused:!!replayNotice,watchPlaying:playing,
   replay:isReplay?{id:replaySession.entry.id,
    kind:replaySession.clip.kind,progress:options.progress||0}:null};
  if(!isReplay)renderHighlightCatalog();
@@ -386,9 +403,7 @@ async function boot(){
   verify(match);
   stopAt=match.durationMinutes;
   $('scrub').max=String(stopAt);$('seekEnd').textContent=stopAt+"'";
-  if(match.setPieceRules==='v1')$('notice').textContent=
-   'Official PSE corner, foul, free kick and regulation penalty events are presented at recorded times. Player movement and ball paths are illustrative.';
-  else if(match.durationMinutes===120)$('notice').textContent=
+  if(match.durationMinutes===120)$('notice').textContent=
    'PSE knockout replay includes 90 minutes plus 30 minutes of extra time. Shootout kicks are separate from match goals and statistics. Player paths and ball physics remain illustrative.';
   Settings.app={canvas:$('pitch'),camX:0,camY:0};
   Settings.HEADLESS=false;Settings.showFPS=false;Settings.showTime=false;
@@ -455,11 +470,7 @@ async function boot(){
     renderHighlightCatalog(true);
    };
   }
-  $('stats').textContent=shotSummary(match.stats)+(match.setPieceRules==='v1'?
-   ' · Corners '+match.stats[0].corners+'–'+match.stats[1].corners+
-   ' · Fouls '+match.stats[0].foulsCommitted+'–'+match.stats[1].foulsCommitted+
-   ' · Free kicks '+match.stats[0].freeKicks+'–'+match.stats[1].freeKicks+
-   ' · Match penalties '+match.stats[0].penaltyKicks+'–'+match.stats[1].penaltyKicks:'');
+  $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;

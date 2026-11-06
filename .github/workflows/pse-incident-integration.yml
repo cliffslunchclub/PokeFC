@@ -1,7 +1,7 @@
 name: PSE official incident integration
 on:
   pull_request:
-    branches: [main, feature/pse-official-set-pieces-v1]
+    branches: [main]
     paths:
       - "quick-sim.js"
       - "watch/soccerjs/**"
@@ -27,7 +27,7 @@ jobs:
           node --check play/play.js
       - name: Run official incident and cross-mode regressions
         run: |
-          node tests/test-pse-set-pieces.cjs
+          node tests/test-pse-enclosed-pitch.cjs
           node tests/test-pse-watch-events.cjs
           node tests/test-challenge-match-report.cjs
           node tests/test-challenge-player-shots.cjs

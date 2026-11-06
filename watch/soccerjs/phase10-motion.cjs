@@ -140,70 +140,7 @@ function motionFrame(fixture,t,field,options=false){
    officialEvent:complete?kick:null,illustrative:!complete};
  }
  const goals=ignoreGoal?[]:fixture.events.filter(e=>e.type==='goal');
- // Only PSE-recorded incidents can create an official set-piece sequence.
- // The underlying ball path/poses are illustrative and never score goals.
- const ordinaryGoal=goals.find(g=>g.setPiece!=='penalty'&&t>=g.minute-.28&&t<=g.minute+.22);
- const setPieces=(!ignoreGoal&&fixture.setPieceRules==='v1'&&!ordinaryGoal)?
-  fixture.events.filter(e=>['corner','foul','free-kick','penalty-kick'].includes(e.type)&&
-   t>=e.minute-.20&&t<=e.minute+.22):[];
- const priority={'penalty-kick':4,corner:3,'free-kick':2,foul:1};
- // A converted regulation penalty must reach the net at the official goal
- // minute, not begin its shot only after the scoreboard has changed.
- const scoringPenalty=setPieces.find(e=>e.type==='penalty-kick'&&e.outcome==='goal'&&
-  t>=e.minute-.09&&t<=e.minute+.22);
- const piece=scoringPenalty||setPieces.sort((a,b)=>{
-  // Prefer the most recently awarded incident instead of a future award
-  // when a foul directly precedes its free kick.
-  const happenedA=a.minute<=t?1:0,happenedB=b.minute<=t?1:0;
-  return happenedB-happenedA||Math.abs(t-a.minute)-Math.abs(t-b.minute)||
-   priority[b.type]-priority[a.type];
- })[0];
- if(piece){
-  const side=piece.team===teams[0].id?0:1,roster=teams[side];
-  const index=roster.lineup.findIndex(p=>String(p.id)===String(piece.player));
-  if(index<0)throw Error('Official set-piece player absent');
-  const taker=actors[side*11+index],keeper=actors[(1-side)*11];
-  const corner=piece.type==='corner',penalty=piece.type==='penalty-kick',foul=piece.type==='foul';
-  const x=corner?.985:penalty?.81:piece.type==='free-kick'?.65:.52;
-  const source={x:origin(side,x,field),
-   y:corner?field.height*.07:penalty?field.height*.5:field.height*.44};
-  const target={x:origin(side,corner?.83:penalty?.985:foul?.53:.78,field),
-   y:corner?field.height*.48:field.height*.5};
-  taker.x=source.x;taker.y=source.y;
-  const recorded=t>=piece.minute;
-  const outcome=penalty?piece.outcome:'';
-  const converted=penalty&&outcome==='goal';
-  // Shoot toward a side-netting lane, across the defending keeper, THROUGH
-  // the goal line and 0.9 m into the net. A goal does not finish on the
-  // pitch in front of the line (the old .985-field endpoint).
-  const lane=hash(String(piece.player)+':penalty-net:'+String(piece.minute))%2?1:-1;
-  if(converted){
-   target.x=side===0?field.width+.9:-.9;
-   target.y=field.height*.5+lane*2.15; // Inside the 7.32 m goal mouth.
-  }
-  if(penalty&&outcome==='off-target')target.y=field.height*.19;
-  if(penalty&&outcome==='saved')target.y=field.height*.46;
-  const progress=converted?ease((t-(piece.minute-.085))/.085):
-   recorded?ease((t-piece.minute)/.17):0;
-  if(penalty){
-   keeper.x=origin(side,converted?.955:.975,field);
-   keeper.y=converted?field.height*.5-lane*2.2*progress:field.height*.5;
-  }
-  ball={x:lerp(source.x,target.x,progress),
-   y:lerp(source.y,target.y,progress),
-   z:.23+(corner?1.5:.55)*Math.sin(Math.PI*progress)};
-  if(converted&&progress>=.50)keeper.frame=8;
-  if(recorded){taker.frame=3;if(penalty&&!converted&&progress>.55)keeper.frame=outcome==='saved'?8:1;}
-  const titles={corner:'CORNER',foul:'FOUL','free-kick':'FREE KICK','penalty-kick':'PENALTY'};
-  return {actors,ball,action:recorded?'official-'+piece.type:'illustrative-set-piece-buildup',
-   ownerIndex:recorded?-1:side*11+index,contact:recorded?'set-piece-flight':'set-piece-setup',
-   sceneCut:'official-set-piece',label:(recorded?titles[piece.type]:'SET PIECE SETUP')+
-    ' · '+roster.lineup[index].name+(penalty&&recorded?' · '+outcome.toUpperCase():''),
-   officialEvent:recorded?piece:null,illustrative:!recorded};
- }
- // Penalty conversions are pictured in their official penalty sequence,
- // never as a second, fabricated open-play goal buildup.
- const event=goals.find(g=>g.setPiece!=='penalty'&&t>=g.minute-.7&&t<=g.minute+.22);
+ const event=goals.find(g=>t>=g.minute-.7&&t<=g.minute+.22);
  if(event){
   const side=event.team===teams[0].id?0:1,roster=teams[side];
   const scorer=roster.lineup.findIndex(p=>String(p.id)===String(event.player));

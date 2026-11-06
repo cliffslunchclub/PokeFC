@@ -1,23 +1,23 @@
-name: PSE set-piece prototype checks
+name: PokéFC enclosed pitch regressions
 on:
   pull_request:
     branches: [main]
     paths:
       - "quick-sim.js"
-      - "tests/test-pse-set-pieces.cjs"
-      - ".github/workflows/pse-set-pieces-pr-checks.yml"
+      - "tests/test-pse-enclosed-pitch.cjs"
+      - ".github/workflows/pse-enclosed-pitch-pr-checks.yml"
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  set-piece-regressions:
+  enclosed-pitch-regressions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Syntax and 500-match set-piece simulation
+      - name: Syntax and 500-match no-whistle simulation
         run: |
           node --check quick-sim.js
-          node tests/test-pse-set-pieces.cjs
+          node tests/test-pse-enclosed-pitch.cjs
       - name: Existing engine and report integrity
         run: |
           node tests/test-phase10-director.cjs
