@@ -39,7 +39,8 @@ for(const stage of timeline.actions){
    (stage.start+stage.duration*u)/60,field));
   const v={x:stage.to.x-stage.from.x,y:stage.to.y-stage.from.y};
   const length=Math.hypot(v.x,v.y);
-  if(length>.1){
+  // Intentional bank passes reverse the component perpendicular to a wall.
+  if(length>.1&&!stage.wall){
    const pr=x=>((x.ball.x-stage.from.x)*v.x+(x.ball.y-stage.from.y)*v.y)/length;
    const ds=ts.map(pr);
    maxReversal=Math.max(maxReversal,ds[0]-ds[1],ds[1]-ds[2]);
@@ -51,6 +52,9 @@ for(const stage of timeline.actions){
   if(stage.pattern==='one-two')oneTwos++;
   if(stage.pattern==='cross')crosses++;
   transfers++;
+ }else if(stage.mode==='rebound'){
+  assert.equal(frame.ownerIndex,-1,'Loose ball cannot have an early carrier');
+  assert(frame.wall,'A loose-wall rebound must include contact geometry');
  }else if(stage.mode==='challenge'){
   assert.equal(frame.ownerIndex,-1,'Contested ball must not be an owned carry');
   challenges++;
