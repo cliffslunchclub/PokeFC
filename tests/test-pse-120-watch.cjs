@@ -74,6 +74,13 @@ assert.equal(session.getState().durationMinutes,120);
 assert.equal(session.record(),false);
 send('ready');send('booted',{projection:'orthographic'});
 assert(events.includes('ready'));
+assert.equal(session.openHighlights(),true,'Every Watch mode can open official highlights');
+assert.equal(sent.at(-1).message.action,'highlights');
+assert.equal(session.replayHighlight('goal-0'),true);
+assert.deepEqual({action:sent.at(-1).message.action,id:sent.at(-1).message.id},
+ {action:'replay',id:'goal-0'});
+assert.equal(session.replayHighlight('goal-0;alert(1)'),false,'Rejected non-incident replay key');
+assert.equal(JSON.stringify(sample),body,'Highlight controls cannot alter the official result');
 send('progress',{minute:90,score:bridge.scoreAt(fixture,90),kickIndex:0});
 assert.equal(session.getState().finished,false,'90 is halftime of an extended match');
 send('progress',{minute:119,score:bridge.scoreAt(fixture,119),kickIndex:0});
