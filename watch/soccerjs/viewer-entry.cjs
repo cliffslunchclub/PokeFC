@@ -373,14 +373,26 @@ async function boot(){
   }
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
    throw Error('Original Soccer-JS sprite generation failed');
-  const list=$('goals');list.replaceChildren();
-  for(const e of match.events.filter(e=>e.type==='goal')){
-   const side=e.team===match.home.id?match.home:match.away;
-   const row=document.createElement('div'),scorer=side.lineup.find(p=>p.id===e.player);
-   const helper=side.lineup.find(p=>p.id===e.assist);
-   row.textContent=Math.floor(e.minute+1)+"' · "+scorer.name+' — '+side.name+
-     (helper?' (assist '+helper.name+')':'');
-   list.append(row);
+  // The highlight catalog is shared by standalone and embedded Soccer-JS.
+  $('highlightToggle').onclick=()=>setHighlightDrawer(!highlightDrawerOpen);
+  $('highlightClose').onclick=()=>setHighlightDrawer(false);
+  $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
+  $('highlightNoticeDismiss').onclick=clearHighlightNotice;
+  $('highlightReplayReturn').onclick=returnToMatch;
+  $('highlightReplaySpeed').onclick=()=>{
+   replaySpeed=replaySpeed===.5?1:.5;
+   $('highlightReplaySpeed').textContent=replaySpeed===.5?'0.5× SLOW MO':'1× NORMAL';
+  };
+  for(const button of document.querySelectorAll('[data-highlight-filter]')){
+   button.onclick=()=>{
+    highlightFilter=button.getAttribute('data-highlight-filter');
+    for(const other of document.querySelectorAll('[data-highlight-filter]')){
+     const current=other===button;
+     other.classList.toggle('active',current);
+     other.setAttribute('aria-pressed',current?'true':'false');
+    }
+    renderHighlightCatalog(true);
+   };
   }
   $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
@@ -439,7 +451,9 @@ async function boot(){
    }else if(msg.action==='seek'){
     const m=Number(msg.minute);
     if(Number.isFinite(m)&&m>=0&&m<=match.durationMinutes)seek(m);
-   }else if(msg.action==='next-kick'){advanceKick();
+    }else if(msg.action==='next-kick'){if(!replaySession)advanceKick();
+   }else if(msg.action==='highlights'){if(!replaySession)setHighlightDrawer(!highlightDrawerOpen);
+   }else if(msg.action==='replay'){replayMoment(msg.id);
    }else if(msg.action==='finish'){finish();
    }else if(msg.action==='projection'&&validViews.has(msg.projection)){
     $('projection').value=msg.projection;Settings.projectionMode=msg.projection;smoothedFocus=null;
@@ -450,7 +464,7 @@ async function boot(){
     $('showNumbers').checked=!!msg.visible;render(minute);
    }
   });
-  seek(0);window.__PFC_VIEWER_READY__=true;
+  seek(0);renderHighlightCatalog(true);window.__PFC_VIEWER_READY__=true;
   send({type:'booted',projection:Settings.projectionMode,pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length});
   requestAnimationFrame(step);
  }catch(e){
