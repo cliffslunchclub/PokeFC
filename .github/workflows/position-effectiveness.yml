@@ -7,8 +7,11 @@ on:
       - 'assets/js/quick-sim.js'
       - 'assets/js/pse-knockout.js'
       - 'play/**'
+      - 'index.html'
+      - 'assets/js/builder.js'
       - 'challenge/**'
       - 'tests/test-position-effectiveness.cjs'
+      - 'tests/test-pokemon-position-v2.cjs'
       - 'tests/test-play.cjs'
       - '.github/workflows/position-effectiveness.yml'
   workflow_dispatch:
@@ -31,6 +34,7 @@ jobs:
           node --check assets/js/pse-knockout.js
           node --check play/play.js
           node tests/test-position-effectiveness.cjs
+          node tests/test-pokemon-position-v2.cjs
       - name: Quick Play and knockout baseline
         run: |
           node tests/test-play.cjs
