@@ -106,7 +106,9 @@ function updateXI(){
  $('homeName').textContent=team?.name||'YOUR XI';
  $('homePreview').innerHTML=(team?.lineup||Array(11).fill(null)).map((id,i)=>{
   const role=FORMS[team?.formation||'4-3-3'][i],s=BY.get(id);
-  return '<div class="mini-poke '+(!s?'empty':'')+'"><b>'+role+'</b>'+(s?'<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png">':'<span>+</span>')+'<span title="'+esc(s?.name||'Empty')+'">'+esc(s?.name||'EMPTY')+'</span></div>';
+  const profile=s?window.PFC_POSITION_EFFECTIVENESS.competitiveProfile(heldStats(s,team?.source?.items?.[i]),role):null;
+  const grade=profile?(profile.fit>=85?'S':profile.fit>=75?'A':profile.fit>=65?'B':profile.fit>=55?'C':'D'):'—';
+  return '<div class="mini-poke '+(!s?'empty':'')+'"><b>'+role+'</b>'+(s?'<img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+(s.spriteId||s.id)+'.png">':'<span>+</span>')+'<span title="'+esc(s?.name||'Empty')+'">'+esc(s?.name||'EMPTY')+'</span>'+(profile?'<small class="mini-fit"><strong>'+grade+'</strong> · '+Math.round(profile.efficiency*100)+'%</small>':'')+'</div>';
  }).join('');
 }
 function autoFill(){
