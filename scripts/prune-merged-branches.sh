@@ -17,7 +17,7 @@ archive_tag(){
   local branch="$1" sha="$2" tag="archive/pruned-20261106/$1" stored
   # GitHub CLI can emit literal "null" for a missing tag even on 404.
   # Check the HTTP command status, rather than trusting non-empty stdout.
-  if stored="$(gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null)"; then
+  if stored="$(gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null)" && [[ -n "$stored" && "$stored" != "null" ]]; then
     [[ "$stored" == "$sha" ]] || { echo "ERROR $branch (archive tag disagrees with branch head)" >&2; return 1; }
   else
     gh api -X POST "repos/$REPO/git/refs" -f ref="refs/tags/$tag" -f sha="$sha" >/dev/null
