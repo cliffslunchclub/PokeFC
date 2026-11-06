@@ -40,7 +40,7 @@ function launch(phase,slotApi=null){
     {side:1,minute:38,minuteLabel:'39',player:'Lapras',origin:'quick-sim'},
     {side:0,minute:77,minuteLabel:'78',player:'Pikachu',origin:'quick-sim'}
    ],timeline:[{type:'goal',side:0,minute:18,minuteLabel:'19',player:'Charizard',origin:'quick-sim'}]}}:null,history:[]};
- let stored=JSON.stringify(state),cache=new Map();
+ let stored=JSON.stringify(state),cache=new Map(),saveWrites=0;
  const app={markup:'',get innerHTML(){return this.markup},set innerHTML(v){this.markup=v;cache.clear()},querySelectorAll(sel){
   if(cache.has(sel))return cache.get(sel);
   let buttons=[];
@@ -54,10 +54,23 @@ function launch(phase,slotApi=null){
    '[data-pokemon-info]':[/data-pokemon-info="(\d+)"/g,'pokemonInfo']
   };
   const parsed=patterns[sel];
-  if(parsed)buttons=[...this.markup.matchAll(parsed[0])].map(match=>({
-   dataset:{[parsed[1]]:match[1]},disabled:/\bdisabled\b/.test(match[2]||''),
-   onclick:null,onmouseenter:null,onmouseleave:null,onfocus:null,onblur:null,classList:{toggle(){}}
-  }));
+  if(parsed)buttons=[...this.markup.matchAll(parsed[0])].map(match=>{
+   const item={dataset:{[parsed[1]]:match[1]},disabled:/\bdisabled\b/.test(match[2]||''),
+    onclick:null,onmouseenter:null,onmouseleave:null,onfocus:null,onblur:null,classList:{toggle(){}}};
+   if(sel==='[data-slot-card]'){
+    const index=Number(match[1]);
+    const snippet=this.markup.slice(match.index,this.markup.indexOf('</div>',match.index)+6);
+    const coords=snippet.match(/style="left:(\d+)%;top:(\d+)%"/);
+    const role=snippet.match(/<span class="slot-role">([^<]+)<\/span>/);
+    const roleNode={textContent:role?.[1]||''};
+    const tierNode={textContent:'',className:''};
+    const slotButton={disabled:false,setAttribute(name,value){this[name]=value}};
+    item.style={left:(coords?.[1]||'0')+'%',top:(coords?.[2]||'0')+'%'};
+    item.querySelector=selector=>selector==='.slot-role'?roleNode:
+     selector==='.slot-tier'?tierNode:selector==='button[data-slot]'?slotButton:null;
+   }
+   return item;
+  });
   cache.set(sel,buttons);return buttons;
  }};
  const nodes=new Map();
@@ -65,7 +78,9 @@ function launch(phase,slotApi=null){
   if(id==='app')return app;
   if(!nodes.has(id))nodes.set(id,{
    id,value:id==='tactic'?'balanced':'',textContent:'',hidden:false,open:false,scrollTop:0,
-   setAttribute(k){if(k==='open')this.open=true},
+   disabled:id==='applyFormation',
+   setAttribute(k,v){if(k==='open')this.open=true;this[k]=v},
+   classList:{values:new Set(),toggle(k,on){if(on)this.values.add(k);else this.values.delete(k)},contains(k){return this.values.has(k)}},
    removeAttribute(k){if(k==='open')this.open=false},
    show(){this.open=true},showModal(){this.open=true},close(){this.open=false},
    listeners:new Map(),
@@ -90,13 +105,13 @@ function launch(phase,slotApi=null){
  }};
  const win=slotApi?{PFC_CHALLENGE_SLOT_REELS:slotApi}:{},ctx=vm.createContext({window:win,document,console,
   crypto:{getRandomValues(x){x[0]=78249;return x}},
-  localStorage:{getItem(){return stored},setItem(_k,value){stored=value}},
+  localStorage:{getItem(){return stored},setItem(_k,value){stored=value;saveWrites++}},
   confirm:()=>true,alert:s=>{throw Error('Unexpected alert: '+s)}
  });
  for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js','challenge/picker-window.js'])
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:20000});
  vm.runInContext(inline,ctx,{filename:'challenge-inline',timeout:20000});
- return {app,document,nodes,state:()=>JSON.parse(stored)};
+ return {app,document,nodes,state:()=>JSON.parse(stored),saves:()=>saveWrites};
 }
 const draft=launch('draft');
 assert.match(draft.app.innerHTML,/class="challenge-run-layout stage-draft"/);
@@ -222,7 +237,54 @@ assert.equal(lineup.state().moves,1,'Opening and closing never spends the swap c
 lineup.nodes.get('openFormationWindow').onclick();
 assert.equal(lineup.nodes.get('challengeFormationModal').style.properties.get('left'),'480px',
  'Formation window retains manual drag position after reopening');
-lineup.document.getElementById('formationChange').value='4-4-2';
+const formationSelect=lineup.document.getElementById('formationChange');
+const previewCards=lineup.app.querySelectorAll('[data-slot-card]');
+const startingSaves=lineup.saves(),originalRole=previewCards[5].querySelector('.slot-role').textContent;
+const originalLeft=previewCards[5].style.left,originalTop=previewCards[5].style.top;
+assert.equal(originalRole,'CM');
+assert.equal(originalLeft,'24%');
+assert.equal(formationSelect.value,'4-3-3','Formation picker opens on committed original');
+assert.match(lineup.app.innerHTML,/id="formationPros"/,'Formation popup describes strengths');
+assert.match(lineup.app.innerHTML,/id="formationCons"/,'Formation popup describes weaknesses');
+assert.equal(lineup.nodes.get('applyFormation').disabled,true,'No-op Apply starts disabled until a change is previewed');
+formationSelect.value='4-4-2';
+formationSelect.onchange();
+assert.equal(previewCards[5].style.left,'16%','Preview rearranges existing Pokémon to wide-midfield coordinates');
+assert.equal(previewCards[5].style.top,'49%');
+assert.equal(previewCards[5].querySelector('.slot-role').textContent,'LM','Preview updates position role labels');
+assert.equal(previewCards[9].style.left,'35%','Both strikers move on preview');
+assert.equal(previewCards[9].querySelector('.slot-role').textContent,'ST');
+assert.equal(lineup.nodes.get('challengePitch').classList.contains('is-formation-preview'),true,
+ 'Unapplied preview blocks dragging and drafting onto hypothetical positions');
+assert.match(lineup.nodes.get('formationPreviewStatus').textContent,/PREVIEW ONLY · 4-4-2 · NOT APPLIED/);
+assert.match(lineup.nodes.get('formationPros').textContent,/Two strikers/,'Pros follow chosen formation');
+assert.match(lineup.nodes.get('formationCons').textContent,/central midfield/,'Cons follow chosen formation');
+assert.equal(lineup.nodes.get('applyFormation').disabled,false,'Only a new valid formation can be applied');
+assert.equal(lineup.state().formation,'4-3-3','Preview does not mutate authoritative formation');
+assert.equal(lineup.state().formationChanges,1,'Preview consumes no formation credit');
+assert.deepEqual(lineup.state().roster,roster,'Preview does not rearrange saved Pokémon');
+assert.equal(lineup.saves(),startingSaves,'Preview does not autosave any changes');
+lineup.nodes.get('closeFormationWindow').onclick();
+assert.equal(previewCards[5].style.left,originalLeft,'Close without Apply restores original pitch coordinates');
+assert.equal(previewCards[5].style.top,originalTop);
+assert.equal(previewCards[5].querySelector('.slot-role').textContent,'CM','Close restores original role labels');
+assert.equal(lineup.nodes.get('challengePitch').classList.contains('is-formation-preview'),false);
+assert.equal(lineup.state().formationChanges,1);
+lineup.nodes.get('openFormationWindow').onclick();
+assert.equal(formationSelect.value,'4-3-3','Reopen resets dropdown to applied formation');
+formationSelect.value='3-5-2';formationSelect.oninput();
+assert.equal(previewCards[5].querySelector('.slot-role').textContent,'RWB','Keyboard input updates roles instantly');
+lineup.nodes.get('challengeFormationModal').onkeydown({key:'Escape',preventDefault(){}});
+assert.equal(previewCards[5].querySelector('.slot-role').textContent,'CM','Escape cancels preview');
+lineup.nodes.get('openFormationWindow').onclick();
+formationSelect.value='5-3-2';formationSelect.onchange();
+assert.equal(previewCards[5].querySelector('.slot-role').textContent,'RWB');
+lineup.nodes.get('openMoveWindow').onclick();
+assert.equal(previewCards[5].querySelector('.slot-role').textContent,'CM','Switching popups cancels formation preview');
+assert.equal(lineup.state().formationChanges,1);
+lineup.nodes.get('closeMoveWindow').onclick();
+lineup.nodes.get('openFormationWindow').onclick();
+formationSelect.value='4-4-2';formationSelect.onchange();
 lineup.nodes.get('applyFormation').onclick();
 assert.equal(lineup.state().formation,'4-4-2','Selecting formation applies the original game rule');
 assert.equal(lineup.state().formationChanges,0,'Only one formation change allowed');
