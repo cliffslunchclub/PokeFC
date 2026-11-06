@@ -301,7 +301,8 @@ function render(t,options={}){
   pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false,
   durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
-  kickIndex,totalKicks,replay:isReplay?{id:replaySession.entry.id,
+  kickIndex,totalKicks,goalPaused:!!replayNotice,watchPlaying:playing,
+  replay:isReplay?{id:replaySession.entry.id,
    kind:replaySession.clip.kind,progress:options.progress||0}:null};
  if(!isReplay)renderHighlightCatalog();
 }
@@ -356,6 +357,7 @@ function step(now){
 }
 function seek(t){
  if(replaySession)returnToMatch();
+ if(t<minute)promptedGoals.clear();
  playing=false;last=null;clearMotionTracking();kickElapsed=0;
  clearHighlightNotice();
  minute=Math.max(0,Math.min(match.durationMinutes,t));
@@ -430,7 +432,7 @@ async function boot(){
   $('highlightClose').onclick=()=>setHighlightDrawer(false);
   $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
   $('highlightNoticeDismiss').onclick=()=>{
-   clearHighlightNotice();last=null;playing=minute<stopAt;render(minute);
+   clearHighlightNotice();lastSent=-2;last=null;playing=minute<stopAt;render(minute);
   };
   $('highlightReplayReturn').onclick=returnToMatch;
   $('highlightReplaySpeed').onclick=()=>{
@@ -457,10 +459,12 @@ async function boot(){
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
     }
-    stopAt=match.durationMinutes;last=null;playing=true;
+    if(replayNotice)clearHighlightNotice();
+    stopAt=match.durationMinutes;lastSent=-2;last=null;playing=true;
    };
   $('playFive').onclick=()=>{
     if(minute>=match.durationMinutes){playing=true;last=null;return}
+    if(replayNotice)clearHighlightNotice();
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
@@ -478,6 +482,7 @@ async function boot(){
   $('fullscreenPause').onclick=()=>{playing=false;last=null;render(minute);};
   $('fullscreenResume').onclick=()=>{
    if(replayNotice)clearHighlightNotice();
+   lastSent=-2;
    if(minute<match.durationMinutes){playing=true;last=null;}
    render(minute);
   };
@@ -509,7 +514,7 @@ async function boot(){
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
     $('speed').value=String([1,2,4,8,16].includes(speed)?speed:1);
     if(replayNotice)clearHighlightNotice();
-    playing=true;last=null;
+    lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
     playing=false;last=null;render(minute);
