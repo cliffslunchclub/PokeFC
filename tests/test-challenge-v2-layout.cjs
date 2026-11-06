@@ -180,6 +180,71 @@ pendingFinishes.shift()(); // The same completion path handles natural finish, S
 assert.equal(pendingCandidates.hidden,false,'Spinner finish reveals all Pokémon choices');
 assert.equal(pendingNote.hidden,true,'Spinner finish removes scouting progress note');
 
+// Formation and Position are compact pitch-corner controls, not a large
+// collapsible below the field. The whole field is pushed down as a unit.
+assert.match(draft.app.innerHTML,/class="challenge-pitch-shell"/);
+assert.match(draft.app.innerHTML,/class="challenge-pitch-controls" role="toolbar"/);
+assert.match(draft.app.innerHTML,/id="openFormationWindow"/);
+assert.match(draft.app.innerHTML,/id="openMoveWindow"[^>]*>⇄ SWAP POSITION <small>1 LEFT/,
+ 'Swap Position is enabled once Pokémon have been drafted');
+assert(draft.app.innerHTML.indexOf('id="openFormationWindow"')<
+ draft.app.innerHTML.indexOf('class="challenge-pitch"'),'Formation button precedes shifted field');
+assert(draft.app.innerHTML.indexOf('id="openMoveWindow"')<
+ draft.app.innerHTML.indexOf('class="challenge-pitch"'),'Swap Position button precedes shifted field');
+assert.doesNotMatch(draft.app.innerHTML,/class="panel challenge-team-options"/,'Old bottom options expander removed');
+assert.match(css,/\.challenge-pitch-controls\{[\s\S]*?justify-content:space-between/,'Toolbar splits left/right');
+assert.match(css,/\.challenge-roster-panel>\.challenge-pitch-shell>\.challenge-pitch/,'Pitch height and responsive sizes remain under new wrapper');
+assert.match(css,/@media\(max-width:760px\)\{[\s\S]*?\.challenge-frame \.challenge-dialog\.challenge-lineup-window\{/,
+ 'Lineup windows become mobile bottom sheets');
+assert.match(css,/\.challenge-frame \.challenge-dialog\.challenge-lineup-window\{\s*position:fixed!important/,
+ 'Small Formation and Position windows float above the field');
+const lineup=launch('shop');
+assert.match(lineup.app.innerHTML,/id="challengeFormationModal"/);
+assert.match(lineup.app.innerHTML,/id="challengeMoveModal"/);
+lineup.nodes.get('openFormationWindow').onclick();
+assert.equal(lineup.nodes.get('challengeFormationModal').open,true,'Formation popup opens from top-left control');
+assert(lineup.nodes.get('challengeFormationDragHandle').listeners.has('pointerdown'),
+ 'Formation popup uses the existing draggable title-bar helper');
+const formationHandle=lineup.nodes.get('challengeFormationDragHandle');
+formationHandle.listeners.get('pointerdown')({pointerId:11,button:0,clientX:80,clientY:80,preventDefault(){}});
+formationHandle.listeners.get('pointermove')({pointerId:11,clientX:10,clientY:125});
+formationHandle.listeners.get('pointerup')({pointerId:11});
+assert.equal(lineup.nodes.get('challengeFormationModal').style.properties.get('left'),'480px',
+ 'Formation window can move independently from the field');
+lineup.nodes.get('openMoveWindow').onclick();
+assert.equal(lineup.nodes.get('challengeFormationModal').open,false,'Opening Swap closes Formation so sheets cannot overlap');
+assert.equal(lineup.nodes.get('challengeMoveModal').open,true,'Swap popup opens from top-right control');
+assert(lineup.nodes.get('challengeMoveDragHandle').listeners.has('pointerdown'),
+ 'Swap popup uses the same draggable helper');
+lineup.nodes.get('closeMoveWindow').onclick();
+assert.equal(lineup.nodes.get('challengeMoveModal').open,false,'Swap popup closes without consuming a move');
+assert.equal(lineup.state().moves,1,'Opening and closing never spends the swap credit');
+lineup.nodes.get('openFormationWindow').onclick();
+assert.equal(lineup.nodes.get('challengeFormationModal').style.properties.get('left'),'480px',
+ 'Formation window retains manual drag position after reopening');
+lineup.document.getElementById('formationChange').value='4-4-2';
+lineup.nodes.get('applyFormation').onclick();
+assert.equal(lineup.state().formation,'4-4-2','Selecting formation applies the original game rule');
+assert.equal(lineup.state().formationChanges,0,'Only one formation change allowed');
+assert.match(lineup.app.innerHTML,/id="openFormationWindow"[^>]*disabled/,
+ 'Spent formation credit visibly disables only that pitch button');
+assert.equal(lineup.state().roster[0],roster[0],'Formation changes do not overwrite Pokémon');
+assert.equal(lineup.state().moves,1,'Formation change does not spend the position move');
+const moved=launch('shop');
+moved.nodes.get('openMoveWindow').onclick();
+moved.document.getElementById('moveFrom').value='0';
+moved.document.getElementById('moveTo').value='1';
+moved.nodes.get('movePick').onclick();
+assert.equal(moved.state().moves,0,'A successful position swap spends exactly one move');
+assert.equal(moved.state().roster[0],roster[1],'Swap exchanges Pokémon between slots');
+assert.equal(moved.state().roster[1],roster[0],'Swap keeps both Pokémon in roster');
+assert.equal(moved.state().formationChanges,1,'Position swap does not spend formation change');
+assert.match(moved.app.innerHTML,/id="openMoveWindow"[^>]*disabled/,
+ 'Position button stays visible with 0 credits after swapping');
+const noTools=launch('locked');
+assert.doesNotMatch(noTools.app.innerHTML,/id="openFormationWindow"|id="openMoveWindow"/,
+ 'Locked XI hides editing controls entirely');
+
 const shop=launch('shop');
 assert.match(shop.app.innerHTML,/class="challenge-run-layout stage-shop shop-open"/);
 assert.match(shop.app.innerHTML,/id="challengeShopDrawer"/);

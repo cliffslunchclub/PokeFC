@@ -114,6 +114,8 @@ assert.doesNotMatch(inline,/MANUAL_SAVE_KEY|readManualSaves|validManualSave|save
  'Removed manual snapshot handlers rather than leaving unusable hidden controls');
 assert.doesNotMatch(css,/\.challenge-save-toolbar|\.challenge-save-slot-grid/,'Unused manual save CSS removed');
 assert.match(css,/\.challenge-record-metrics/,'New score and win record layout present');
-assert.match(html,/challenge\.css\?v=33/,'Style changes use refreshed cache version');
+const cssCacheVersion=Number(html.match(/challenge\.css\?v=(\d+)/)?.[1]);
+assert(Number.isInteger(cssCacheVersion)&&cssCacheVersion>=33,
+ 'All Challenges UI updates use a refreshed stylesheet cache version');
 assert.doesNotMatch(inline,/\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/,'No native popup methods used');
 console.log('PASS Challenges: automatic run resume, legacy snapshots untouched, leaderboard records retained, top team scores and no manual Save/Load UI');
