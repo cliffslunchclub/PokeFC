@@ -364,12 +364,16 @@ function watchSoccerPreview(){
     $('matchState').textContent='WATCHING · BROADCAST';
     $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
    },
-   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout})=>{
+   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout,pausedForGoal=false})=>{
     $('score').textContent=score.join(' : ');
     const totalKicks=shootout?.attempts.length||0;
     $('matchClock').textContent=finished?'FULL TIME':
      totalKicks&&minute>=duration?'PENALTIES '+kickIndex+'/'+totalKicks:
      Math.floor(minute)+"' / "+duration+"'";
+    if(pausedForGoal&&!finished){
+     $('matchState').textContent='GOAL! · PAUSED FOR REPLAY';
+     $('pause').disabled=true;$('resume').disabled=false;
+    }
     const displayMinute=Math.floor(minute);
     if((displayMinute!==lastShownMinute||totalKicks&&minute>=duration)&&!finished){
      lastShownMinute=displayMinute;

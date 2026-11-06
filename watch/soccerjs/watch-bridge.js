@@ -250,6 +250,10 @@
    button.textContent=expanded?'✕ EXIT FULLSCREEN':'⛶ FULLSCREEN';
    button.setAttribute('aria-pressed',expanded?'true':'false');
   }
+  // Outer viewport controls fullscreen; the iframe gets its own synced bar.
+  const frame=el?.querySelector?.('iframe.soccerjs-inline-frame');
+  frame?.contentWindow?.postMessage?.({type:TYPE+'-control',
+   action:'fullscreen',active:!!expanded},root.location.origin);
  }
  function clearFullscreen(el=expandedPitch){
   if(!el)return;
@@ -365,7 +369,8 @@
     finished=next>=duration&&(!fixture.shootout||kickIndex===expectedKicks);
     if(typeof onProgress==='function')onProgress({
      minute,score:official,finished,handedOff,recorded,
-     durationMinutes:duration,kickIndex,shootout:fixture.shootout||null
+     durationMinutes:duration,kickIndex,shootout:fixture.shootout||null,
+     pausedForGoal:e.data.pausedForGoal===true
     });
     if(finished){
      announce('full-time');
