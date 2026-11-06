@@ -8,10 +8,17 @@
  */
 const RADIUS=.34;
 const GOAL_HALF_WIDTH=3.66;
+// Foam-like boards: 15% of the prior .82 rebound, variable 10–20%.
+// The outgoing trajectory is shortened by the *same* factor as the speed,
+// so the ball never races to the old full-strength rebound destination.
+const ORIGINAL_RESTITUTION=.82;
+const DEFAULT_REBOUND_FACTOR=.15;
+const MIN_REBOUND_FACTOR=.10;
+const MAX_REBOUND_FACTOR=.20;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const ease=u=>{u=clamp(u,0,1);return u*u*(3-2*u)};
-function candidate(from,to,field,axis,edge){
+function candidate(from,to,field,axis,edge,reboundFactor=DEFAULT_REBOUND_FACTOR){
  if(!from||!to||!field||!['x','y'].includes(axis)||!['min','max'].includes(edge))return null;
  const near=RADIUS,far=field[axis==='x'?'width':'height']-RADIUS;
  const position=edge==='min'?near:far;
@@ -29,22 +36,28 @@ function candidate(from,to,field,axis,edge){
   if(impact.y<RADIUS+.8||impact.y>field.height-RADIUS-.8)return null;
  }else if(impact.x<RADIUS+.8||impact.x>field.width-RADIUS-.8)return null;
  const inLength=Math.hypot(impact.x-from.x,impact.y-from.y);
- const outLength=Math.hypot(to.x-impact.x,to.y-impact.y);
- const total=inLength+outLength;
- // A plausible low pass / controlled rebound, not a stadium-spanning
- // instant teleport. The Play Director may reject longer paths.
- if(inLength<.65||outLength<.65||!Number.isFinite(total))return null;
- // Boards reduce velocity after contact. This only changes the animation
- // timing; PSE and subsequent possession staging stay untouched.
- const restitution=.82;
+ const originalOutLength=Math.hypot(to.x-impact.x,to.y-impact.y);
+ const originalPathLength=inLength+originalOutLength;
+ // Keep the original geometry eligibility check, so bank frequency does
+ // not increase just because the post-impact leg has become shorter.
+ if(inLength<.65||originalOutLength<.65||!Number.isFinite(originalPathLength))return null;
+ const strength=clamp(Number.isFinite(reboundFactor)?reboundFactor:
+  DEFAULT_REBOUND_FACTOR,MIN_REBOUND_FACTOR,MAX_REBOUND_FACTOR);
+ const exit={x:lerp(impact.x,to.x,strength),
+  y:lerp(impact.y,to.y,strength)};
+ const outLength=originalOutLength*strength;
+ const restitution=ORIGINAL_RESTITUTION*strength;
+ // Distance and exit velocity shrink in lockstep. Contact time stays
+ // stable, keeping the existing Play Director timeline continuous.
  const timeAt=inLength/(inLength+outLength/restitution);
  // Precompute the inverse of the global cubic easing for exact impact time.
  let lo=0,hi=1;
  for(let i=0;i<24;i++){const mid=(lo+hi)/2;
   if(ease(mid)<timeAt)lo=mid;else hi=mid;}
  const impactU=(lo+hi)/2;
- return {axis,edge,hit:impact,ratio:timeAt,impactU,pathLength:total,
-  restitution,goalOpeningPreserved:axis==='x'};
+ return {axis,edge,hit:impact,exit,ratio:timeAt,impactU,
+  pathLength:inLength+outLength,originalPathLength,
+  reboundFactor:strength,restitution,goalOpeningPreserved:axis==='x'};
 }
 function bankAt(stage,seconds){
  const wall=stage.wall;
@@ -70,4 +83,5 @@ function boundary(ball,field){
  return ball.x>=RADIUS-1e-6&&ball.x<=field.width-RADIUS+1e-6&&
   ball.y>=RADIUS-1e-6&&ball.y<=field.height-RADIUS+1e-6;
 }
-module.exports={candidate,sampleWall,boundary,RADIUS,GOAL_HALF_WIDTH};
+module.exports={candidate,sampleWall,boundary,RADIUS,GOAL_HALF_WIDTH,
+ ORIGINAL_RESTITUTION,DEFAULT_REBOUND_FACTOR,MIN_REBOUND_FACTOR,MAX_REBOUND_FACTOR};
