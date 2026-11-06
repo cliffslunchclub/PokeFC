@@ -10,6 +10,9 @@ const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window
 // 2.5D Watch is default in browsers. Keep legacy via explicit rollback query.
 const WATCH_CHOICE=window.location?new URLSearchParams(window.location.search||'').get('watch'):null;
 const SOCCERJS_PREVIEW=!!window.location&&WATCH_CHOICE!=='tacticmesh';
+ // Only opt-in PSE v1 exhibitions; knockout and saved modes remain legacy.
+ const setPieceOptions=()=>!CHALLENGE_MODE&&$('setPiecesMode')?.value==='v1'?
+  {setPieces:'v1'}:{};
 let SOCCERJS_READY=false;
 let soccerSession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
@@ -318,7 +321,7 @@ function stopWatch(){
 function quickSim(){
  try{
   stopWatch();preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
-  const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed,...setPieceOptions()});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
 }
@@ -331,7 +334,7 @@ function watchSoccerPreview(){
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
   preview=makePreview();latestSnapshot=null;liveEvents=[];drawPitch();renderLiveTimeline();
   // Lock the entire authoritative knockout before kickoff. No second draw at Record.
-  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed,...setPieceOptions()});
   const decision=CHALLENGE_MODE&&window.PFC_KNOCKOUT?
    window.PFC_KNOCKOUT.resolve(preview,regulation,{seed:preview.seed}):null;
   const official=decision?{...decision.match,
@@ -434,7 +437,7 @@ function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
  $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
- script.src='../watch/soccerjs/watch-bridge.js?v=8';
+ script.src='../watch/soccerjs/watch-bridge.js?v=9';
  script.onload=()=>{
   SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
   updateXI();
@@ -474,6 +477,8 @@ function start(){
   $('playIntroHeading').textContent='CHALLENGE MATCH.';
   $('playIntroText').textContent='Your locked Final XI, formation, tactics and items carry into this match. The result automatically advances or ends your Challenge attempt.';
   $('teamActions').hidden=true;
+  $('setPiecesPanel').hidden=true;$('setPiecesMode').value='legacy';
+  $('setPiecesMode').disabled=true;
   $('region').value='bosses';
   const challenger=getChallenge();if(challenger)$('tactic').value=challenger.locked.tactic;
   $('region').disabled=true;$('opponent').disabled=true;$('tactic').disabled=true;$('fillXI').disabled=true;
