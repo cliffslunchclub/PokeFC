@@ -348,8 +348,8 @@
    setCamera:(camera)=>['wide','follow'].includes(camera)&&send('camera',{camera}),
    setNumbers:(visible)=>send('numbers',{visible:!!visible}),
    // Highlight controls are presentation-only; no Sim-to-Watch handoff.
-   openHighlights:()=>!handedOff&&!closed&&!recorded&&send('highlights'),
-   replayHighlight:(id)=>!handedOff&&!closed&&!recorded&&
+   openHighlights:()=>!closed&&(!handedOff||finished)&&send('highlights'),
+   replayHighlight:(id)=>!closed&&(!handedOff||finished)&&
     typeof id==='string'&&/^(goal|pk)-\d+$/.test(id)&&send('replay',{id}),
    // Rewind/scrub is visual only. After Watch → Sim, replay cannot resume.
    seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=duration&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
