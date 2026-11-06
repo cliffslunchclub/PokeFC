@@ -50,7 +50,8 @@ assert.equal(steady,1/60,'1x must be exactly one match second per real second');
 assert.equal(playbackRate(goal.minute-.3,fixture.events,1),1/60,'Goal buildup must not speed up/slow real-time 1x');
 assert.equal(playbackRate(goal.minute+.1,fixture.events,1),1/60,'Goal aftermath must remain true 1:1');
 assert.equal(playbackRate(0,fixture.events,4),4/60,'4x advances four match seconds per real second');
-assert(playbackRate(goal.minute-.3,fixture.events,4)<4/60,'Faster rates can emphasize official goals');
+assert.equal(playbackRate(goal.minute-.3,fixture.events,4),4/60,
+ 'Selected Watch speed must remain constant before an official goal');
 assert.equal(playbackRate(0,[{type:'save',minute:0}],1),1/60,'A save cannot trigger goal slow-motion');
 assert.equal(playbackRate(15,[],2),2/60,'2x with no goals stays exact');
 assert.equal(playbackRate(0,[],1)*60*90,90,'90 minutes at 1x requires 90 real minutes');

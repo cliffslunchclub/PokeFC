@@ -17,11 +17,11 @@ for(let cycle=0;cycle<Math.floor(90*60/8);cycle++){
   assert(maxBoundary<.05,'Ball/player jumps at next possession cycle: '+maxBoundary);
  }
  // The ball is owned before the pass and in flight without a false carrier.
- const held=motionFrame(fixture,secToMin(start+8*.40),field);
- const launched=motionFrame(fixture,secToMin(start+8*.48),field);
- const middle=motionFrame(fixture,secToMin(start+8*.60),field);
- const finalPass=motionFrame(fixture,secToMin(start+8*.74),field);
- const received=motionFrame(fixture,secToMin(start+8*.76),field);
+ const held=motionFrame(fixture,secToMin(start+8*.55),field);
+ const launched=motionFrame(fixture,secToMin(start+8*.72),field);
+ const middle=motionFrame(fixture,secToMin(start+8*.82),field);
+ const finalPass=motionFrame(fixture,secToMin(start+8*.92),field);
+ const received=motionFrame(fixture,secToMin(start+8*.95),field);
  if([held,launched,middle,finalPass,received].some(x=>x.action==='official-goal'||x.action==='illustrative-goal-buildup'||x.action==='illustrative-shot'||x.action==='illustrative-kickoff'))continue;
  assert(Number.isInteger(held.ownerIndex)&&held.ownerIndex>=0,'No prior carrier');
  assert.equal(launched.ownerIndex,-1,'Carrier label must disappear during flight');
