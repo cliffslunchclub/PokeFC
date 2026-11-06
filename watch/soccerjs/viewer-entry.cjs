@@ -102,7 +102,8 @@ function returnToMatch(){
 function highlightEntryElement(entry,buttonLabel){
  const row=document.createElement('div');row.className='highlight-entry';
  const time=document.createElement('span');time.className='highlight-entry-time';
- time.textContent=entry.kind==='goal'?Math.floor(entry.minute+1)+"′":'PK '+entry.kickIndex;
+ time.textContent=entry.setPiece==='shootout'?'PK '+entry.kickIndex:
+   Math.floor(entry.minute+1)+"′";
  const info=document.createElement('div');info.className='highlight-entry-info';
  const title=document.createElement('strong');title.textContent=entry.title;
  const detail=document.createElement('small');detail.textContent=entry.description;
@@ -125,7 +126,7 @@ function renderHighlightCatalog(force=false){
  if(!shown.length){
   const empty=document.createElement('p');empty.className='highlight-empty';
   empty.textContent=highlightFilter==='set'?
-   'No official set-piece incidents recorded yet. Corners and free kicks remain disabled until PSE records them.':
+   'No official set-piece incidents recorded yet. They appear only when PSE includes them.':
    'Official highlights become available after each recorded incident.';
   list.append(empty);
  }else for(const entry of shown)list.append(highlightEntryElement(entry,'▶ REPLAY'));
