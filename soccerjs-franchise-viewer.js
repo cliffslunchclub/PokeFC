@@ -70,14 +70,13 @@
   unmount();
   const bridge=root.FXI_PHASE10_WATCH,canvas=$('tacticalPitch');
   const pitch=canvas?.parentElement,note=$('engineInstallStatus');
-  if(!bridge?.mountInline||!pitch){if(note)note.textContent='Soccer-JS 2.5D unavailable. Select Legacy TacticMesh or Quick Sim schematic.';return false}
+  if(!bridge?.mountInline||!pitch){if(note)note.textContent='Soccer-JS 2.5D unavailable. Select the Quick Sim schematic instead.';return false}
   const m={data,finish,canvas,pitch,session:null,ready:false,failed:false,minute:0,finished:false,handedOff:false,recorded:false,playing:false};
   current=m;canvas.hidden=true;pitch.classList.add('soccerjs-franchise-active');
   $('viewerSoccerRecord').hidden=false;$('viewerSoccerRecord').disabled=true;
   $('viewerFullscreen').hidden=true;
   $('viewerHighlights').hidden=false;$('viewerHighlights').disabled=true;
   $('viewerSoccerCancel').hidden=false;$('viewerSoccerCancel').disabled=false;
-  $('viewerTMFull').hidden=true;
   $('viewerProjection').value='orthographic';$('viewerCamera').value='follow';
   $('viewerComplete').textContent='⚡ SIM TO END';
   $('viewerComplete').disabled=true;$('viewerPlay').disabled=true;$('viewerReset').disabled=true;
