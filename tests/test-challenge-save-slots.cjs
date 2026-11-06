@@ -1,7 +1,7 @@
 'use strict';
-/* Manual Challenge slots regression: one per Classic/National × Standard/Legends.
- * Confirms separately versioned snapshots, overwrite/cancel, cross-division load,
- * legacy autosave, corruption rejection and display of all four slots. */
+/* Challenge continuity after removing explicit manual Save/Load UI. Verify that
+ * automatic active-run persistence, old snapshots, and historical leaderboards
+ * remain intact, and that the home Challenge Card shows top archived scores. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
@@ -62,102 +62,58 @@ function launch(storage,initial){
  const slots=()=>JSON.parse(storage.get(SLOT_KEY)||'{}');
  return {get,state,slots,storage,app,ctx};
 }
-const storage=new Map();
-for(let i=0;i<divisions.length;i++){
- const [id,pool,legends]=divisions[i],g=launch(storage,fixture(pool,legends,10000+i));
- assert.equal(g.get('saveChallengeSlot').disabled,false,'Save available during a run');
- assert.match(g.get('challengeSaveStatus').textContent,/NO MANUAL SAVE YET/);
- g.get('saveChallengeSlot').onclick();
- assert.equal(g.get('challengeMessageTitle').textContent,'RUN SAVED');
- assert.equal(g.slots()[id].state.rng,10000+i);
- assert.equal(g.slots()[id].version,1);
- assert.match(g.slots()[id].savedAt,/^\d{4}-\d{2}-\d{2}T/);
- assert.equal(Object.keys(g.slots()).length,i+1,'Exactly one slot is used for each division');
- assert.match(g.get('challengeSaveStatus').textContent,/SLOT SAVED/);
-}
-const game=launch(storage,fixture(9,true,20004));
-const savedBefore=JSON.stringify(game.slots()['national-legends']);
-game.get('saveChallengeSlot').onclick();
-assert.match(game.get('challengeMessageTitle').textContent,/OVERWRITE NATIONAL · LEGENDS/);
-game.get('challengeMessageCancel').onclick();
-assert.equal(JSON.stringify(game.slots()['national-legends']),savedBefore,'Cancel preserves the existing slot');
-game.get('saveChallengeSlot').onclick();
-game.get('challengeMessageConfirm').onclick();
-assert.equal(game.slots()['national-legends'].state.rng,20004,'Confirm overwrites only its own category');
-assert.equal(Object.keys(game.slots()).length,4,'Overwrite never creates a second slot');
-assert.equal(game.slots()['classic-standard'].state.rng,10000,'Different division unchanged');
-game.get('reset').onclick();
-game.get('challengeMessageConfirm').onclick();
-assert.equal(game.state().phase,'setup');
-assert.equal(game.get('saveChallengeSlot').disabled,true,'Setup cannot save an empty run');
-assert.equal(Object.keys(game.slots()).length,4,'Abandoning run leaves all manual slots intact');
-game.get('loadChallengeSlot').onclick();
-assert.equal(game.get('challengeSaveLoadModal').open,true,'Native branded load dialog opens');
-for(const [id] of divisions){
- assert.equal(game.get('loadSlot-'+id).disabled,false,'Occupied slot is available for '+id);
- assert.match(game.get('slotStatus-'+id).textContent,/SHOP · MATCH 1\/6/);
-}
-game.get('loadSlot-classic-standard').onclick();
-assert.equal(game.state().phase,'shop','Loaded snapshot restores phase');
-assert.equal(game.state().pool,4);
-assert.equal(game.state().legends,false);
-assert.equal(game.state().rng,10000);
-assert.equal(game.get('challengeSaveLoadModal').open,false,'Load selector closes');
-assert.equal(game.get('challengeMessageTitle').textContent,'RUN LOADED');
-assert.equal(game.slots()['classic-standard'].state.rng,10000,'Loading does not consume the slot');
-const current=JSON.stringify(game.state());
-game.get('loadChallengeSlot').onclick();
-game.get('loadSlot-national-legends').onclick();
-assert.match(game.get('challengeMessageTitle').textContent,/LOAD NATIONAL · LEGENDS/,'A different active run requires confirmation');
-game.get('challengeMessageCancel').onclick();
-assert.equal(JSON.stringify(game.state()),current,'Cancelled load preserves the autosave');
-game.get('loadChallengeSlot').onclick();
-game.get('loadSlot-national-legends').onclick();
-game.get('challengeMessageConfirm').onclick();
-assert.equal(game.state().pool,9);
-assert.equal(game.state().legends,true);
-assert.equal(game.state().rng,20004,'Confirmed load replaces active run');
-assert.equal(game.slots()['national-legends'].state.rng,20004,'Loaded slot stays unchanged');
-const reloaded=launch(storage);
-assert.equal(reloaded.state().rng,20004,'Loaded run also survives browser refresh');
-assert.equal(Object.keys(reloaded.slots()).length,4,'Four slots survive browser refresh');
 
-// Include locked-match phase and historical results in a snapshot, never re-simulate.
-const locked=fixture(4,false,77777,'locked');
-locked.round=2;
-locked.history=[{boss:'Lorelei',round:1,score:[2,1],outcome:'Victory',origin:'quick-sim'},
- {boss:'Bruno',round:2,score:[1,0],outcome:'Victory',origin:'quick-sim'}];
-const advanced=launch(storage,locked);
-advanced.get('saveChallengeSlot').onclick();
-advanced.get('challengeMessageConfirm').onclick();
-assert.equal(advanced.slots()['classic-standard'].state.history.length,2,'Match history saved');
-const fromSetup=launch(storage,{...fixture(4,false,3333),phase:'setup',roster:Array(11).fill(null)});
-fromSetup.get('loadChallengeSlot').onclick();
-fromSetup.get('loadSlot-classic-standard').onclick();
-assert.equal(fromSetup.state().phase,'locked');
-assert.equal(fromSetup.state().round,2);
-assert.equal(fromSetup.state().history.length,2,'Historical scores and progression restore');
-assert.equal(fromSetup.state().rng,77777,'Seeded run is restored exactly');
+const archived={
+ 'classic-standard':[{id:'classic-standard-old',champion:false,wins:4,teamScore:69.2}],
+ 'classic-legends':[
+  {id:'classic-legends-champ',champion:true,wins:6,teamScore:77.3},
+  {id:'classic-legends-other',champion:false,wins:4,teamScore:72.1}
+ ],
+ 'national-standard':[],
+ 'national-legends':[{id:'national-legends-champ',champion:true,wins:6,teamScore:88.8}]
+};
+const manualLegacy={
+ 'classic-standard':{version:1,savedAt:'2026-11-05T01:00:00.000Z',state:fixture(4,false,44444)}
+};
+const storage=new Map([
+ [SLOT_KEY,JSON.stringify(manualLegacy)],
+ ['pokefc-challenge-local-runs-v1',JSON.stringify(archived)],
+ ['pokefc-challenge-personal-records-v1',JSON.stringify({
+  'classic-standard':{attempts:4,best:4,champions:0},
+  'classic-legends':{attempts:13,best:6,champions:1},
+  'national-standard':{attempts:1,best:4,champions:0},
+  'national-legends':{attempts:7,best:6,champions:1}
+ })]
+]);
+const beforeManual=storage.get(SLOT_KEY),beforeHistory=storage.get('pokefc-challenge-local-runs-v1');
+const active=launch(storage,fixture(4,true,271828,'shop'));
+assert.equal(active.state().rng,271828,'Current run auto-resumes deterministically');
+assert.equal(active.state().phase,'shop','Current phase remains intact');
+assert.equal(active.state().roster.length,11,'XI remains intact');
+assert.equal(active.state().pool,4);
+const again=launch(storage);
+assert.equal(again.state().rng,271828,'Auto-progress survives browser refresh without manual Save');
+assert.equal(again.state().phase,'shop','Auto-progress restores original stage');
+assert.equal(again.state().legends,true);
+assert.equal(storage.get(SLOT_KEY),beforeManual,'Removing Save/Load UI does not delete legacy user snapshots');
+assert.equal(storage.get('pokefc-challenge-local-runs-v1'),beforeHistory,'Completed leaderboard records remain intact');
 
-// A malformed slot is disabled instead of corrupting the active run.
-const corrupted=fromSetup.slots();
-corrupted['national-standard'].state.roster=['invalid'];
-storage.set(SLOT_KEY,JSON.stringify(corrupted));
-const blocked=launch(storage,fixture(4,true,60001));
-blocked.get('loadChallengeSlot').onclick();
-assert.equal(blocked.get('loadSlot-national-standard').disabled,true);
-assert.equal(blocked.get('slotStatus-national-standard').textContent,'UNAVAILABLE / INVALID SAVE');
-blocked.get('loadSlot-national-standard').onclick();
-assert.equal(blocked.get('challengeMessageTitle').textContent,'SAVE UNAVAILABLE');
-assert.equal(blocked.state().rng,60001,'Invalid slot cannot replace active run');
-assert.equal(Object.keys(blocked.slots()).length,4,'Invalid saves are not silently removed');
+const setup=launch(storage,{...fixture(4,false,9277),phase:'setup',roster:Array(11).fill(null)});
+assert.match(setup.app.innerHTML,/CHOOSE YOUR CHALLENGE/);
+assert.match(setup.app.innerHTML,/TOP TEAM SCORE/,'All four division cards show a top score field');
+assert.match(setup.app.innerHTML,/77\.3/,'Classic Legends displays best archived XI score');
+assert.match(setup.app.innerHTML,/88\.8/,'National Legends displays best archived XI score');
+assert.match(setup.app.innerHTML,/69\.2/,'Classic Standard displays best archived XI score');
+assert.match(setup.app.innerHTML,/TOP TEAM SCORE<\/small><\/strong>/,'Score label has accessible visible text');
+assert.match(setup.app.innerHTML,/13 runs · 1 champions/,'Existing run and champion totals still display');
+assert.doesNotMatch(setup.app.innerHTML,/MANUAL SAVE|LOAD SAVED RUN|SAVE RUN/,'No manual save controls appear');
 
-assert.match(html,/id="saveChallengeSlot"/);
-assert.match(html,/id="loadChallengeSlot"/);
-assert.match(html,/id="challengeSaveLoadModal"/);
-for(const [id] of divisions)assert(html.includes('id="loadSlot-'+id+'"'));
-assert(css.includes('.challenge-save-toolbar'));
-assert(css.includes('.challenge-save-slot-grid'));
-assert(css.includes('@media(max-width:540px)'));
+assert.doesNotMatch(html,/id="saveChallengeSlot"|id="loadChallengeSlot"|id="challengeSaveLoadModal"|id="challengeSaveStatus"/,
+ 'Manual Save/Load buttons and dialog are removed from document');
+assert.doesNotMatch(inline,/MANUAL_SAVE_KEY|readManualSaves|validManualSave|saveChallengeSnapshot|loadChallengeSnapshot|wireManualSaveControls/,
+ 'Removed manual snapshot handlers rather than leaving unusable hidden controls');
+assert.doesNotMatch(css,/\.challenge-save-toolbar|\.challenge-save-slot-grid/,'Unused manual save CSS removed');
+assert.match(css,/\.challenge-record-metrics/,'New score and win record layout present');
+assert.match(html,/challenge\.css\?v=33/,'Style changes use refreshed cache version');
 assert.doesNotMatch(inline,/\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/,'No native popup methods used');
-console.log('PASS Challenges manual save slots: four isolated categories, overwrite confirmation, cancel, load, match-history restore, refresh and corruption safety');
+console.log('PASS Challenges: automatic run resume, legacy snapshots untouched, leaderboard records retained, top team scores and no manual Save/Load UI');
