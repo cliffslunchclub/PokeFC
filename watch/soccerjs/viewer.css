@@ -186,7 +186,8 @@ html.pfc-inline main>.layout>.viewer { border:0;border-radius:0; }
 /* Broadcast-style lower third. Intentionally contained inside the same
    Soccer-JS canvas frame used by Quick Play, Challenges, and Franchise. */
 .watch-commentary{
- position:absolute;z-index:10;bottom:8px;left:8px;right:8px;
+ /* Below replay (z9), fullscreen controls (z12) and goal modal (z14). */
+ position:absolute;z-index:7;bottom:8px;left:8px;right:8px;
  border:1px solid #899199;border-left:4px solid #e53935;
  border-radius:8px;background:rgba(13,15,20,.92);
  color:#f7f7f5;box-shadow:0 7px 20px #0009;
