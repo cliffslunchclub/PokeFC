@@ -20,7 +20,7 @@ const document={getElementById(id){return id==='app'?app:(controls[id]??={
  id,value:'',textContent:'',scrollTop:0,onclick:null,setAttribute(){},hidden:false})}};
 const win={},ctx=vm.createContext({window:win,document,console,crypto:{getRandomValues(a){a[0]=1337;return a}},
  localStorage:{getItem(){return saved},setItem(k,v){saved=v}},alert:e=>{throw Error(e)},confirm:()=>true});
-for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','challenge/item-optimizer.js','play/opponents.js'])
+for(const file of ['assets/js/national-assets/js/species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','challenge/item-optimizer.js','play/opponents.js'])
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),ctx,{filename:'challenge-inline',timeout:15000});

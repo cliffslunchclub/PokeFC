@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
-const qs=require('../quick-sim.js'),knockout=require('../pse-knockout.js'),
+const qs=require('../assets/js/quick-sim.js'),knockout=require('../assets/js/pse-knockout.js'),
  bridge=require('../watch/soccerjs/watch-bridge.js');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id,offset){return {id,name:id+' FC',tactic:'balanced',
