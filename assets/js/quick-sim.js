@@ -54,7 +54,8 @@
   const usePosition=opts.positionEffectiveness==='v1'||usePokemon;
   const pokemonModel=usePokemon?(typeof module!=='undefined'&&module.exports?require('./position-effectiveness.js'):root.PFC_POSITION_EFFECTIVENESS):null;
   if(usePokemon&&!pokemonModel?.preciseFit)throw Error('PSE v2 requires Pokémon positional model');
-  const eff=p=>usePosition?clamp(p?.positionEfficiency??1,usePokemon?.70:.88,1):1;
+  const eff=p=>usePosition?clamp(p?.positionEfficiency??1,usePokemon ? .70 : .88,1):1;
+  if(usePokemon&&teams.some(t=>t.lineup.some(p=>!p.pokemonStats||!p.exactPosition||!Number.isFinite(Number(p.positionFit))||!Number.isFinite(Number(p.positionEfficiency)))))throw Error('PSE v2 requires effective Pokémon stats and precise slot ratings for every player');
   const positionStrength=p=>usePokemon&&p?.pokemonStats?Number(p.positionFit??pokemonModel.preciseFit(p.pokemonStats,p.exactPosition||p.pos)):strength(p);
   const skill=(p,key)=>{
    if(!usePokemon||!p?.pokemonStats)return n(p.main?.[key])*eff(p);
