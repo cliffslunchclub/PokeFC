@@ -1305,3 +1305,9 @@
 .challenge-formation-analysis>div:nth-of-type(2) b{color:#ffc9b6}
 .challenge-formation-analysis>small{color:#aac7bc;font-size:9px;line-height:1.4}
 @media(prefers-reduced-motion:reduce){.challenge-pitch.is-formation-preview .slot{transition:none!important}}
+
+/* Competitive position suitability shown beside the tier on pitch cards. */
+.challenge-pitch .slot-fit-badges{display:flex;align-items:center;justify-content:center;gap:3px;max-width:100%;white-space:nowrap;pointer-events:none}
+.challenge-pitch .slot-fit-badges .slot-tier{margin:0!important;padding:1px 3px!important;font-size:9px!important;line-height:1.2}
+.challenge-pitch .slot-efficiency{font-size:9px;font-weight:1000;color:#f5e4a5;line-height:1.2;font-variant-numeric:tabular-nums}
+@media(max-width:560px){.challenge-pitch .slot-fit-badges{gap:2px}.challenge-pitch .slot-fit-badges .slot-tier{font-size:8px!important;padding:1px 2px!important}.challenge-pitch .slot-efficiency{font-size:8px}}
