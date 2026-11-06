@@ -53,8 +53,7 @@ done < <(
 # Superseded but NEVER merged heads must be explicitly allowlisted,
 # immutable and archived before deletion. No wildcard deletions are allowed.
 # The values below were audited against the current branch/PR head SHAs.
-while IFS=
-\t' read -r branch expected_sha; do
+while read -r branch expected_sha; do
   [[ -n "$branch" && -n "$expected_sha" ]] || continue
   ((checked+=1))
   case "$branch" in
