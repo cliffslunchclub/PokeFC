@@ -106,7 +106,7 @@ function makePlan(f,field){
    pattern==='one-two'?24:pattern==='through'?24:29;
   if(dice('wall-bank:'+salt,100)>=chance)return null;
   const axes=[['y','min'],['y','max'],['x','min'],['x','max']];
-  const strength=(10+dice('wall-softness:'+salt,101)/10)/100;
+  const strength=(3+dice('wall-softness:'+salt,41)/10)/100;
   const candidates=axes.map(([axis,edge])=>
    Wall.candidate(from,to,field,axis,edge,strength))
    .filter(w=>w&&w.originalPathLength<Math.min(45,time*10.8+7) &&
@@ -180,7 +180,7 @@ function makePlan(f,field){
     to:point(field,ball.x-5.5,ball.y-1.5)}
   ];
   const duration=2.6+dice('loose-duration',23)/10;
-  const strength=(10+dice('loose-softness',101)/10)/100;
+  const strength=(3+dice('loose-softness',41)/10)/100;
   const choices=options.filter(c=>c.gap<13.5).map(c=>({
    ...c,wall:Wall.candidate(ball,c.to,field,c.axis,c.edge,strength)
   })).filter(c=>c.wall&&c.wall.originalPathLength<duration*9.3+5);
