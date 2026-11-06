@@ -357,6 +357,7 @@ function render(t,options={}){
   'illustrative-bank-pass':'Bank pass off the boards',
   'illustrative-wall-rebound':'Loose ball off the wall',
   'illustrative-wall-pickup':'Rebound recovered',
+  'illustrative-keeper-collection':'Goalkeeper collects loose ball',
 
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
@@ -379,7 +380,8 @@ function render(t,options={}){
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
   animation:script.action,pressPhase:script.pressPhase||null,
   pressingSide:script.pressingSide??null,
-  pressingPlayers:script.pressingPlayers||[],visualTactic:script.visualTactic||null,
+  pressingPlayers:script.pressingPlayers||[],goalkeeperRushSide:script.goalkeeperRushSide??null,
+  visualTactic:script.visualTactic||null,
   sequenceType:script.sequenceType||null,
   sequenceIndex:script.sequenceIndex??null,
   ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
