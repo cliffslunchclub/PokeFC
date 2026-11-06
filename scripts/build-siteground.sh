@@ -8,14 +8,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf dist
-mkdir -p dist/ratings dist/challenge dist/play dist/franchise
+mkdir -p dist/ratings dist/challenge dist/play dist/franchise dist/assets/js dist/assets/css dist/assets/icons
 
 # Apache cache policy scoped to this dedicated subdomain (not other sites).
 cp .htaccess dist/.htaccess
 
-# National free builder and shared Quick Sim library.
-cp index.html builder.css builder.js site.css newtro.css favicon.svg national-species.js \
-   quick-sim.js pse-knockout.js position-effectiveness.js calibration-profile.js dist/
+# Shared static assets, published once and referenced by every game mode.
+cp index.html dist/
+cp assets/icons/favicon.svg dist/assets/icons/
+for file in builder.css site.css newtro.css career.css; do
+  cp "assets/css/$file" "dist/assets/css/$file"
+done
+for file in builder.js national-species.js quick-sim.js pse-knockout.js \
+            position-effectiveness.js calibration-profile.js species.js \
+            career.js tactical-viewer.js soccerjs-franchise-viewer.js; do
+  cp "assets/js/$file" "dist/assets/js/$file"
+done
 
 # Ratings explainer is linked from the Free Builder, not a fourth game mode.
 cp ratings/index.html dist/ratings/
@@ -27,12 +35,8 @@ cp challenge/index.html challenge/challenge.css challenge/special-items-data.js 
 # Exhibition: PSE computes the result; Soccer-JS renders the Watch.
 cp play/index.html play/play.css play/play.js play/opponents.js dist/play/
 
-# Current 32-gym Franchise stays pinned to its Gen I–IV 493-species database.
+# Current 32-gym Franchise stays pinned to Gen I–IV and loads the shared assets.
 cp franchise/index.html dist/franchise/
-for file in career.css career.js species.js calibration-profile.js quick-sim.js pse-knockout.js \
-            tactical-viewer.js soccerjs-franchise-viewer.js; do
-  cp "$file" "dist/franchise/$file"
-done
 
 # The shared authoritative Watch bridge is used by all game modes. The native
 # Soccer-JS assets are included when explicitly requested by the build.
@@ -91,11 +95,11 @@ for page in pages:
     for word in ["QUICK PLAY","CHALLENGES","FRANCHISE"]:
         if word not in h:raise SystemExit(f"Missing global nav entry {word}: {page}")
     expected='../' if page.parent!=root else './'
-    if f'href="{expected}favicon.svg?v=2"' not in h:
+    if f'href="{expected}assets/icons/favicon.svg?v=2"' not in h:
         raise SystemExit(f"Missing shared favicon link: {page}")
-    if f'src="{expected}favicon.svg?v=2"' not in h:
+    if f'src="{expected}assets/icons/favicon.svg?v=2"' not in h:
         raise SystemExit(f"Missing shared Poké Ball brand icon: {page}")
-    if f'href="{expected}newtro.css?v=1"' not in h:
+    if f'href="{expected}assets/css/newtro.css?v=1"' not in h:
         raise SystemExit(f"Missing final newtro theme: {page}")
     for mode in ["play","challenge","franchise"]:
         if f'href="{expected}{mode}/"' not in h:raise SystemExit(f"Missing game mode link: {page}: {mode}")
@@ -104,9 +108,9 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["position-effectiveness.js","watch/soccerjs/watch-bridge.js","favicon.svg","newtro.css","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["assets/js/position-effectiveness.js","watch/soccerjs/watch-bridge.js","assets/icons/favicon.svg","assets/css/newtro.css","ratings/index.html","assets/js/national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","assets/js/builder.js","assets/css/site.css","assets/js/quick-sim.js","assets/js/pse-knockout.js","assets/js/career.js","assets/css/career.css","assets/js/species.js","assets/js/tactical-viewer.js","assets/js/soccerjs-franchise-viewer.js"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
-for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","career.js","tm-worker.js","tm-engine-bridge.js","hybrid-sim.js","tacticmesh/vendor","play/tm-worker.js","play/tm-engine-bridge.js","play/hybrid-sim.js","play/tacticmesh","franchise/tm-worker.js","franchise/tm-engine-bridge.js","franchise/hybrid-sim.js","franchise/tacticmesh"]:
+for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","career.js","tm-worker.js","tm-engine-bridge.js","hybrid-sim.js","tacticmesh/vendor","play/tm-worker.js","play/tm-engine-bridge.js","play/hybrid-sim.js","play/tacticmesh","franchise/tm-worker.js","franchise/tm-engine-bridge.js","franchise/hybrid-sim.js","franchise/tacticmesh","assets/js/calibration-fit.js","assets/data"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
 assert '1,025' in (root/"index.html").read_text()
 assert 'XI GRADE' in (root/"index.html").read_text()
@@ -122,6 +126,10 @@ assert (root/"challenge/item-optimizer.js").is_file()
 assert 'id="downloadRunCard"' in (root/"challenge/index.html").read_text()
 assert (root/"challenge/challenge.css").is_file()
 assert 'WATCH MATCH' in (root/"play/index.html").read_text()
-print("PASS SiteGround build: Home, Ratings guide, Play, Challenges, Franchise; exactly three mode links, shared favicon")
+for folder in (root/"assets/js",root/"assets/css",root/"assets/icons"):
+    if not folder.is_dir():raise SystemExit("Missing shared asset folder: "+str(folder))
+for legacy in ["builder.js","quick-sim.js","national-species.js","career.js","builder.css","site.css","newtro.css","favicon.svg","franchise/career.js","franchise/quick-sim.js","franchise/species.js","franchise/career.css"]:
+    if (root/legacy).exists():raise SystemExit("Legacy flat asset leaked into build: "+legacy)
+print("PASS SiteGround build: Home + three modes, shared /assets/ scripts and styles, no duplicate legacy paths")
 PY
 echo "Built PokéFC National Free Builder + Play + Challenges + 32-gym Franchise."
