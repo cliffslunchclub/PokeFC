@@ -1,0 +1,31 @@
+name: Watch offside-aware passing and defensive pressure
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/phase10-play-director.cjs'
+      - 'watch/soccerjs/phase10-team-shape.cjs'
+      - 'watch/soccerjs/test-offside-aware-passing.cjs'
+      - 'watch/soccerjs/test-three-defender-press.cjs'
+      - '.github/workflows/watch-offside-press.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'watch/soccerjs/phase10-play-director.cjs'
+      - 'watch/soccerjs/phase10-team-shape.cjs'
+      - 'watch/soccerjs/test-offside-aware-passing.cjs'
+      - 'watch/soccerjs/test-three-defender-press.cjs'
+      - '.github/workflows/watch-offside-press.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check watch/soccerjs/phase10-play-director.cjs
+      - run: node --check watch/soccerjs/phase10-team-shape.cjs
+      - run: node watch/soccerjs/test-offside-aware-passing.cjs
+      - run: node watch/soccerjs/test-three-defender-press.cjs
+      - run: node watch/soccerjs/test-possession-continuity.cjs
+      - run: node watch/soccerjs/test-isometric-motion.cjs
