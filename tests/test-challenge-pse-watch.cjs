@@ -68,7 +68,7 @@ const document={
  getElementById:el,
  querySelector(selector){assert.equal(selector,'.field-shell');return el('field-shell')},
  createElement(tag){assert.equal(tag,'script');return {src:'',onload:null,onerror:null}},
- head:{append(s){assert.match(s.src,/watch-bridge\.js$/);s.onload()}}
+ head:{append(s){assert.match(s.src,/watch-bridge\.js(?:\?v=\d+)?$/);s.onload()}}
 };
 const context=vm.createContext({
  window:{location:{search:'?challenge=1&watch=soccerjs'},addEventListener(){},FXI_PHASE10_WATCH:bridge},
