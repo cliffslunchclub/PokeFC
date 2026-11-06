@@ -154,3 +154,31 @@ html.pfc-inline main>.layout>.viewer { border:0;border-radius:0; }
  .watch-floating-controls button,.watch-floating-controls select{padding:6px;font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.watch-floating-controls{transition:none}}
+
+/* Same embedded Watch canvas is shared by Quick Play, Challenges and Franchise.
+   Zoom lives inside the pitch, below the outer Fullscreen control. */
+.watch-zoom-controls{
+ position:absolute;z-index:8;top:54px;right:9px;
+ display:flex;align-items:center;gap:4px;
+ padding:4px;border:1px solid #a2aba7;border-radius:9px;
+ color:#fff;background:rgba(12,17,19,.88);
+ box-shadow:0 4px 13px #0009;
+ font-size:12px;font-weight:800;
+}
+.watch-zoom-controls button{
+ display:grid;place-items:center;min-width:38px;min-height:38px;
+ border:1px solid #616f6d;border-radius:6px;
+ background:#292f31;color:#fff;font-size:22px;font-weight:800;
+ cursor:pointer;touch-action:manipulation;
+}
+.watch-zoom-controls button:disabled{opacity:.4;cursor:default}
+.watch-zoom-controls button:focus-visible{
+ outline:2px solid #f4f4f4;outline-offset:2px;
+}
+.watch-zoom-controls output{
+ min-width:43px;text-align:center;font-variant-numeric:tabular-nums;
+}
+@media(max-width:620px){
+ .watch-zoom-controls{top:49px;right:5px;gap:3px;padding:3px}
+ .watch-zoom-controls button{min-width:36px;min-height:36px}
+}
