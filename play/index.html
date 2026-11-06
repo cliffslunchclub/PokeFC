@@ -37,17 +37,11 @@
   <label class="play-label" for="tactic">Your tactics</label><select id="tactic" class="play-select">
     <option value="balanced">Balanced</option><option value="attacking">Attacking</option><option value="defensive">Defensive</option><option value="press">High Press</option><option value="counter">Counterattack</option><option value="possession">Possession</option>
   </select>
-  <label class="play-label" id="setPiecesPanel" for="setPiecesMode">PSE set pieces · exhibition beta
-   <select id="setPiecesMode" class="play-select" aria-label="Set-piece simulation rules">
-    <option value="v1" selected>ON · Corners, fouls, free kicks &amp; match penalties</option>
-    <option value="legacy">OFF · Legacy PSE simulation</option>
-   </select>
-  </label>
   <div class="play-actions">
    <button id="quick" class="play-btn primary" type="button">⚡ QUICK SIM</button>
    <button id="watch" class="play-btn watch" type="button">▶ WATCH MATCH</button>
   </div>
-  <p class="pfc-footnote">PSE v1 set pieces are experimental in exhibitions. Switch OFF for a classic match; Challenges and Franchise are unaffected.</p><p class="pfc-footnote">Exhibition only. Your Free Builder lineup stays saved and unchanged. Gym squads are generated from Pokémon matching each leader's type.</p>
+  <p class="pfc-footnote">Enclosed PokéFC pitch: continuous play off the boards, no throw-ins, corners, free kicks, fouls or in-match penalties. Knockout shootouts remain.</p><p class="pfc-footnote">Exhibition only. Your Free Builder lineup stays saved and unchanged. Gym squads are generated from Pokémon matching each leader's type.</p>
  </section>
  <section class="play-panel match-panel" aria-label="Match screen">
   <div class="play-panel-title"><span class="section-number">02</span><h2>LIVE MATCH CENTER</h2><span id="modeTag" class="tiny-label">READY</span></div>
@@ -76,7 +70,7 @@
   <section class="play-live-events" aria-label="Match timeline commentary and recorded events">
    <div class="play-live-head"><h3>MATCH TIMELINE</h3><span id="liveEventCount">0 RECORDED</span></div>
    <div id="liveEventFeed" class="play-live-feed" aria-live="polite" aria-relevant="additions text"><p class="match-event-empty">Events appear here as they occur and remain here after full time.</p></div>
-   <p class="play-event-disclaimer">Goals, cards, fouls and substitutions appear only when recorded. Saves appear where the simulation records the goalkeeper and shooter; unreported chances are never invented.</p>
+   <p class="play-event-disclaimer">Goals and saves are official PSE events. Standing tackles do not award free kicks or penalties. The ball remains in play until a goal; no throw-ins or corners.</p>
   </section>
   <div id="matchResult" class="match-result"><div class="empty-state"><span>⚽</span><strong>YOUR NEXT FIXTURE</strong><p>Build your eleven, select a gym, then kick off.</p></div></div>
   <a id="returnChallenge" class="play-btn watch return-challenge" href="../challenge/" hidden>RETURN TO CHALLENGES ↗</a>
@@ -87,5 +81,5 @@
 <script src="../national-species.js?v=1"></script>
 <script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=4"></script><script src="../pse-knockout.js?v=1"></script>
 <script src="./opponents.js?v=1"></script><script src="../challenge/special-items-data.js"></script><script src="../challenge/leaderboard.js?v=1"></script><script src="../challenge/match-report.js?v=7"></script>
-<script src="./play.js?v=15"></script>
+<script src="./play.js?v=16"></script>
 </body></html>
