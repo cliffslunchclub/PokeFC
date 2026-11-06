@@ -11,7 +11,7 @@ const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,kickIndex=0,kickElapsed=0;
-let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,highlightFilter='all',
+let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
 const validViews=new Set(['isometric','orthographic','topdown']);
@@ -57,7 +57,7 @@ function highlightEntries(){
  return catalog(match,position.minute,position.kickIndex);
 }
 function clearHighlightNotice(){
- replayNotice=null;$('highlightNotice').hidden=true;
+ pendingGoal=null;replayNotice=null;$('highlightNotice').hidden=true;
 }
 function showHighlightNotice(entry){
  if(replaySession||!entry||entry.kind!=='goal')return;
@@ -312,6 +312,11 @@ function advanceKick(){
  kickIndex++;kickElapsed=0;render(minute);return true;
 }
 function step(now){
+ // Let the ball settle beyond the goal line before showing Replay/Continue.
+ // This is a fixed 800 ms real-time hold, not a change to match time.
+ if(pendingGoal&&!replaySession&&now>=pendingGoal.showAt){
+  const {entry}=pendingGoal;pendingGoal=null;showHighlightNotice(entry);
+ }
  if(replaySession){
   if(replayLast!==null){
    const delta=Math.max(0,(now-replayLast)/1000);
@@ -349,7 +354,7 @@ function step(now){
    const entry=catalog(match,newGoal.minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
    if(entry&&!promptedGoals.has(entry.id)){
     promptedGoals.add(entry.id);minute=newGoal.minute;playing=false;last=null;
-    render(minute);showHighlightNotice(entry);
+    render(minute);pendingGoal={entry,showAt:now+800};
    }else render(minute);
   }else render(minute);
  }
@@ -459,12 +464,12 @@ async function boot(){
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
     }
-    if(replayNotice)clearHighlightNotice();
+    if(replayNotice||pendingGoal)clearHighlightNotice();
     stopAt=match.durationMinutes;lastSent=-2;last=null;playing=true;
    };
   $('playFive').onclick=()=>{
     if(minute>=match.durationMinutes){playing=true;last=null;return}
-    if(replayNotice)clearHighlightNotice();
+    if(replayNotice||pendingGoal)clearHighlightNotice();
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
@@ -481,7 +486,7 @@ async function boot(){
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
   $('fullscreenPause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
-   if(replayNotice)clearHighlightNotice();
+   if(replayNotice||pendingGoal)clearHighlightNotice();
    lastSent=-2;
    if(minute<match.durationMinutes){playing=true;last=null;}
    render(minute);
@@ -513,7 +518,7 @@ async function boot(){
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
     $('speed').value=String([1,2,4,8,16].includes(speed)?speed:1);
-    if(replayNotice)clearHighlightNotice();
+    if(replayNotice||pendingGoal)clearHighlightNotice();
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
