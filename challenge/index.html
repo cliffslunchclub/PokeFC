@@ -763,7 +763,7 @@ function render(){const app=document.getElementById('app');
 const slots=FORMS[st.formation],filled=st.roster.filter(Boolean).length,used=st.items.reduce((a,n,i)=>a+(itemFor(BY.get(st.roster[i]),n)?.[1]||0),0);
 const draftTierCache=new Map();
 const rankTier={S:0,A:1,B:2,C:3,D:4};
-const roleGroup=pos=>pos==='GK'?'GK':['CB','LB','RB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
+const roleGroup=pos=>window.PFC_POSITION_EFFECTIVENESS.archetype(pos);
 const cachedDraftTier=(pokemon,pos)=>{
  const key=pokemon.id+':'+roleGroup(pos);
  if(!draftTierCache.has(key))draftTierCache.set(key,tierFor(pokemon,pos));
