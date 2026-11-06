@@ -211,7 +211,11 @@ function motionFrame(fixture,t,field,options=false){
    }
   }
   const attack=side===0?1:-1;
-  const finish={x:origin(side,.83,field),y:field.height*.50};
+  // Late receiving touches may already be inside the box. Keep every
+  // part of the buildup moving toward the goal, never retreat to 83%.
+  const firstProgress=(side===0?p0.x:field.width-p0.x)/field.width;
+  const finishProgress=Math.min(.998,Math.max(.83,firstProgress+.025));
+  const finish={x:origin(side,finishProgress,field),y:field.height*.50};
   const wing=(hash(String(event.player)+':'+String(event.minute))%2?1:-1);
   // Goal line is the end of the field, not 98.5% of its length.
   // Finish with the ball visibly BEHIND the keeper and the line.
