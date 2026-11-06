@@ -1,5 +1,5 @@
 /* PokéFC public Free Builder — no backend, separate from ranked Challenge/Franchise.
- * Position ratings follow Challenge alpha's provisional raw-stat formula. */
+ * Position ratings use the shared Pokemon-stat precise-role formula. */
 (()=>{'use strict';
 const S=Array.isArray(window.FXI_SPECIES)?window.FXI_SPECIES:[];
 const BY=new Map(S.map(s=>[s.id,s]));
@@ -12,24 +12,19 @@ const FORMATIONS={
  '5-3-2':[['GK',50,88],['LWB',12,58],['CB',25,75],['CB',50,77],['CB',75,75],['RWB',88,58],['CM',27,44],['CM',50,47],['CM',73,44],['ST',33,20],['ST',67,20]]
 };
 const ROLES={GK:'Goalkeeper',LB:'Left Back',RB:'Right Back',CB:'Centre Back',LWB:'Left Wing Back',RWB:'Right Wing Back',CDM:'Defensive Midfielder',CM:'Central Midfielder',LM:'Left Midfielder',RM:'Right Midfielder',LW:'Left Winger',RW:'Right Winger',CAM:'Attacking Midfielder',ST:'Striker'};
-const WEIGHT_GK={hp:.2,defense:.3,spDefense:.3,speed:.2};
-const WEIGHT_DEF={defense:.35,hp:.2,attack:.2,speed:.25};
-const WEIGHT_ATTACK={attack:.35,spAttack:.2,speed:.35,hp:.1};
-const WEIGHT_MID={spAttack:.3,spDefense:.25,attack:.2,speed:.25};
 function rating(s,role){
  if(!s)return 0;
- const w=role==='GK'?WEIGHT_GK:['CB','LB','RB','LWB','RWB'].includes(role)?WEIGHT_DEF:['ST','LW','RW'].includes(role)?WEIGHT_ATTACK:WEIGHT_MID;
- return Math.min(100,20+.55*Object.entries(w).reduce((sum,[k,v])=>sum+s.baseStats[k]*v,0));
+ return window.PFC_POSITION_EFFECTIVENESS.preciseFit(s.baseStats,role);
 }
-// The builder exposes broad grades instead of public numeric ratings or base attributes.
+// Shared S/A/B/C/D thresholds with Challenges.
 function grade(n){
- if(n==null || !Number.isFinite(n))return '—';
- return n>=83?'A':n>=72?'B':n>=62?'C':n>=52?'D':n>=42?'E':'F';
+ if(n==null||!Number.isFinite(n))return '—';
+ return n>=85?'S':n>=75?'A':n>=65?'B':n>=55?'C':'D';
 }
 function gradeFor(s,role){return s?grade(rating(s,role)):'—'}
 function escapeHtml(t){return String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 const $=id=>document.getElementById(id);
-// Highest combined Gen I positional fit under the existing builder rating weights.
+// Gen I starting showcase; saved lineups and deliberate clears stay intact.
 // Unique species, 4-3-3: GK, LB, CB, CB, RB, CM, CM, CM, LW, ST, RW.
 // Only a first-visit showcase; saved lineups and deliberate clears are preserved.
 const GEN1_SHOWCASE_XI=[144,91,76,151,112,135,65,145,149,150,142];
