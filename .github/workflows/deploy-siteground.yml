@@ -44,6 +44,7 @@ on:
       - "tests/test-challenge-gauntlet.cjs"
       - "tests/test-challenge-ui.cjs"
       - "tests/test-challenge-completed-run.cjs"
+      - "tests/test-challenge-result-replays.cjs"
       - "tests/test-challenge-leaderboard.cjs"
       - "tests/test-challenge-run-card.cjs"
       - "tests/test-challenge-v1-flow.cjs"
@@ -117,6 +118,7 @@ jobs:
           node tests/test-challenge-gauntlet.cjs
           node tests/test-challenge-ui.cjs
           node tests/test-challenge-completed-run.cjs
+          node tests/test-challenge-result-replays.cjs
           node tests/test-challenge-leaderboard.cjs
           node tests/test-challenge-run-card.cjs
           node tests/test-challenge-v1-flow.cjs
