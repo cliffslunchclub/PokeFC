@@ -23,12 +23,33 @@ function base(id,field){
  if(i<8)return point(field,x(.45),h*(.19+(i-5)*.29));
  return point(field,x(.69),h*(.17+(i-8)*.31));
 }
-function receiver(f,field,owner,aim,pattern,salt){
+// Only the attacking half is subject to offside. Check at release, never
+// at arrival. This visual eligibility rule cannot create official PSE events.
+function offsideLine(f,field,side,ballX){
+ const opponent=side===0?f.away:f.home;
+ const attackProgress=progress(side,ballX,field);
+ // Back four retreat toward goal as attacks enter the final third.
+ const drop=.12*smooth((attackProgress-.52)/.37);
+ const positions=opponent.lineup.map((player,i)=>{
+  const p=base((1-side)*11+i,field);
+  const depth=i>0&&i<5?drop*field.width:0;
+  return progress(side,p.x,field)*field.width+depth;
+ }).sort((a,b)=>b-a);
+ return positions[1]; // second-last opponent, including the goalkeeper
+}
+function isOffside(f,field,side,ballX,receiverX){
+ const attackX=progress(side,receiverX,field)*field.width;
+ const ball=progress(side,ballX,field)*field.width;
+ return attackX>field.width/2+1e-6&&
+  attackX>ball+1e-6&&attackX>offsideLine(f,field,side,ballX)+1e-6;
+}
+function receiver(f,field,owner,aim,pattern,salt,ballX){
  const side=sideOf(owner),team=side===0?f.home:f.away;
  const candidates=[];
  for(let i=1;i<11;i++){
   const id=side*11+i;if(id===owner)continue;
   const b=base(id,field),role=String(team.lineup[i]?.pos||'').toUpperCase();
+  if(isOffside(f,field,side,ballX,b.x))continue;
   const defender=i<5||/^(CB|DEF|LB|RB|LWB|RWB)$/.test(role);
   const mid=i>=5&&i<8||/^(CM|MID|CAM|CDM)$/.test(role);
   const wide=[1,4,8,10].includes(i);
@@ -43,7 +64,7 @@ function receiver(f,field,owner,aim,pattern,salt){
   candidates.push({id,score});
  }
  candidates.sort((a,b)=>a.score-b.score||a.id-b.id);
- return candidates[0]?.id??side*11+6;
+ return candidates[0]?.id??null;
 }
 const planCache=new WeakMap();
 function makePlan(f,field){
@@ -84,6 +105,21 @@ function makePlan(f,field){
  }
  function append(mode,duration,end,recipient,pattern,arc=0,forcedWall=null){
   if(seconds>=total)return;
+  // All passes, including give-and-go returns, must validate their receiver
+  // at release. Fallback is a controlled dribble, never a whistle or reset.
+  if(mode==='pass'&&recipient!=null){
+   const side=sideOf(owner),target=base(recipient,field);
+   if(isOffside(f,field,side,ball.x,target.x)){
+    const replacement=receiver(f,field,owner,end,pattern,
+     count+':fallback:'+actions.length,ball.x);
+    if(replacement!=null)recipient=replacement;
+    else{
+     mode='carry';recipient=owner;end=point(field,
+      ball.x+(side===0?1:-1)*Math.min(3,duration*1.3),ball.y);
+     arc=0;forcedWall=null;
+    }
+   }
+  }
   const length=Math.min(duration,total-seconds);
   if(length<.00001)return;
   const start=seconds,from={...ball},to=point(field,end.x,end.y),next=recipient??owner;
@@ -98,8 +134,11 @@ function makePlan(f,field){
  }
  const carry=(time,forward,dy,kind)=>append('carry',time,destination(forward,dy,time),owner,kind);
  function pass(time,target,kind,arc=0,prefer=kind){
-  const id=receiver(f,field,owner,target,prefer,count+':'+actions.length);
-  append('pass',time,target,id,kind,arc);
+  const id=receiver(f,field,owner,target,prefer,count+':'+actions.length,ball.x);
+  if(id==null){
+   // A dribble is preferable to a speculative illegal pass.
+   carry(time,Math.min(3,time*1.3),0,kind);
+  }else append('pass',time,target,id,kind,arc);
  }
  function looseRebound(kind){
   // Occasional genuine loose balls: an overrun dribble/cross hits a board,
@@ -301,5 +340,5 @@ function nextBoundary(f,field,after){
  const plan=planFor(f,field);
  return plan.actions.find(a=>a.start>=after-.000001)?.start??plan.duration;
 }
-module.exports={planFor,stageAt,ballAt,actorAt,sample,nextBoundary,base,hash,smooth};
+module.exports={planFor,stageAt,ballAt,actorAt,sample,nextBoundary,base,hash,smooth,isOffside,offsideLine};
 
