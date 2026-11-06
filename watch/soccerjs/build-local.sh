@@ -16,6 +16,7 @@ cp "$HERE/phase10-camera-zoom.cjs" "$TMP/upstream/phase10-camera-zoom.cjs"
 cp "$HERE/phase10-team-shape.cjs" "$TMP/upstream/phase10-team-shape.cjs"
 cp "$HERE/phase10-wall-physics.cjs" "$TMP/upstream/phase10-wall-physics.cjs"
 cp "$HERE/highlight-replay.cjs" "$TMP/upstream/highlight-replay.cjs"
+cp "$HERE/phase10-commentary.cjs" "$TMP/upstream/phase10-commentary.cjs"
 cp "$HERE"/pokemon-*.cjs "$TMP/upstream/"
 mkdir -p "$HERE/dist"
 "$TMP/upstream/node_modules/.bin/esbuild" "$TMP/upstream/phase10-viewer-entry.cjs" \
