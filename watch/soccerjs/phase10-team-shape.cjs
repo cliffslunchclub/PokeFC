@@ -133,7 +133,12 @@ function press(f,field,seconds,visual,shape,actors,ball){
   const finalThird=ease((attackProgress-.60)/.16);
   const danger=ease((attackProgress-.77)/.16);
   const ordinary=.48*ease(phase/.30)*(1-ease((phase-.62)/.36));
-  intensity=Math.max(ordinary,finalThird*(.64+.36*danger));
+  // Pressing assignments may change at director stage boundaries. Fade the
+  // threat press to zero before/after that boundary so an incoming third
+  // defender cannot snap several meters on the exact transition frame.
+  const edgeSeconds=Math.max(0,Math.min(seconds-stage.start,stage.start+stage.duration-seconds));
+  const settledThreat=finalThird*(.64+.36*danger)*ease(edgeSeconds/.55);
+  intensity=Math.max(ordinary,settledThreat);
   // Recovery pressure reaches zero at age 10. Ease ordinary marking back
   // in over the next 1.3 s; otherwise a defender can jump several meters
   // instantly at the recovery-to-settled boundary.
