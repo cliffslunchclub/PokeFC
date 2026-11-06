@@ -158,6 +158,7 @@ jobs:
           (cd soccer-js-upstream && npm install --no-audit --no-fund)
           cp watch/soccerjs/viewer-entry.cjs soccer-js-upstream/pfc-viewer-entry.cjs
           cp watch/soccerjs/phase10-motion.cjs soccer-js-upstream/
+          cp watch/soccerjs/highlight-replay.cjs soccer-js-upstream/
           cp watch/soccerjs/pokemon-*.cjs soccer-js-upstream/
           mkdir -p watch/soccerjs/dist
           ./soccer-js-upstream/node_modules/.bin/esbuild soccer-js-upstream/pfc-viewer-entry.cjs \
