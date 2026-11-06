@@ -1039,6 +1039,50 @@ const mountShopWindow=()=>{
   currentPosition:()=>shopWindowPosition,onMove:position=>{shopWindowPosition=position}
  })||null;
 };
+// Live formation preview touches the DOM only. It does NOT mutate st,
+// autosave, spend a change, move roster entries, or change item assignments.
+const paintFormationPreview=formation=>{
+ const choice=FORMS[formation]?formation:st.formation;
+ const previewing=formationWindowOpen&&choice!==st.formation;
+ formationPreview=previewing?choice:null;
+ const shape=formationPreview||st.formation;
+ const layout=FORMS[shape],coordinates=posMap[shape],guide=FORMATION_GUIDES[shape];
+ app.querySelectorAll('[data-slot-card]').forEach(card=>{
+  const i=Number(card.dataset?.slotCard);
+  if(!Number.isInteger(i)||i<0||i>=11)return;
+  const point=coordinates[i],pokemon=BY.get(st.roster[i]),item=st.items[i];
+  if(card.style){card.style.left=point[0]+'%';card.style.top=point[1]+'%'}
+  const role=card.querySelector?.('.slot-role');
+  if(role)role.textContent=layout[i];
+  const tier=card.querySelector?.('.slot-tier');
+  if(tier&&pokemon){
+   const value=tierFor(pokemon,layout[i],item);
+   tier.textContent=value+' TIER';
+   tier.className='slot-tier tier-'+value.toLowerCase();
+  }
+  const click=card.querySelector?.('button[data-slot]');
+  if(click){
+   click.disabled=previewing||!((isDraft&&!pokemon)||pokemon);
+   if(!pokemon)click.setAttribute?.('aria-label',layout[i]+' empty slot'+(previewing?' (preview only)':''));
+  }
+ });
+ const pitch=document.getElementById('challengePitch');
+ pitch?.classList?.toggle('is-formation-preview',previewing);
+ pitch?.setAttribute?.('aria-label',previewing?'Preview of '+shape+' formation; not applied':'Current '+st.formation+' formation');
+ const badge=document.getElementById('challengeFormationTag');
+ if(badge){
+  const score=filled===11?(st.roster.reduce((sum,id,i)=>sum+rating(BY.get(id),layout[i],st.items[i]),0)/11).toFixed(1)+' SCORE':'IN PROGRESS';
+  badge.textContent=shape+(previewing?' · PREVIEW':'')+' · '+score;
+ }
+ const status=document.getElementById('formationPreviewStatus');
+ if(status)status.textContent=previewing?'PREVIEW ONLY · '+shape+' · NOT APPLIED':'CURRENT · '+st.formation;
+ const pros=document.getElementById('formationPros');
+ if(pros)pros.textContent=guide.pro;
+ const cons=document.getElementById('formationCons');
+ if(cons)cons.textContent=guide.con;
+ const apply=document.getElementById('applyFormation');
+ if(apply)apply.disabled=!previewing||st.formationChanges<1;
+};
 // Formation and move/swap windows share the same keyboard/pointer movement
 // behavior as the draft and item windows. Positions survive a draft rerender.
 if(isDraft||isShop){
@@ -1060,8 +1104,11 @@ if(isDraft||isShop){
   const closeButton=document.getElementById(isFormation?'closeFormationWindow':'closeMoveWindow');
   const canOpen=()=>isFormation?st.formationChanges>0:st.moves>0&&st.roster.some(Boolean);
   const close=()=>{
-   if(isFormation){formationWindowOpen=false;formationWindowCleanup?.();formationWindowCleanup=null}
-   else{moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
+   if(isFormation){
+    formationWindowOpen=false;
+    paintFormationPreview(st.formation); // restore exact original cards/tiers
+    formationWindowCleanup?.();formationWindowCleanup=null;
+   }else{moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
    closeDialog(dialog);
    button?.setAttribute?.('aria-expanded','false');
   };
@@ -1072,23 +1119,40 @@ if(isDraft||isShop){
    const otherId=isFormation?'challengeMoveModal':'challengeFormationModal';
    const otherButton=document.getElementById(isFormation?'openMoveWindow':'openFormationWindow');
    if(isFormation){moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
-   else{formationWindowOpen=false;formationWindowCleanup?.();formationWindowCleanup=null}
+   else{
+    formationWindowOpen=false;
+    paintFormationPreview(st.formation); // swapping windows cancels the preview
+    formationWindowCleanup?.();formationWindowCleanup=null;
+   }
    closeDialog(document.getElementById(otherId));
    otherButton?.setAttribute?.('aria-expanded','false');
    if(isFormation)formationWindowOpen=true;else moveWindowOpen=true;
    openFloatingDialog(dialog);
    mountLineupWindow(dialog,grip,kind);
+   if(isFormation){
+    const selector=document.getElementById('formationChange');
+    if(selector)selector.value=st.formation;
+    paintFormationPreview(st.formation);
+   }
    button?.setAttribute?.('aria-expanded','true');
   };
   if(button)button.onclick=open;
   if(closeButton)closeButton.onclick=close;
   if(dialog){
-   dialog.oncancel=()=>{close()};
+   dialog.oncancel=e=>{e?.preventDefault?.();close()};
    dialog.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault?.();close();button?.focus?.()}};
+   if(isFormation)dialog.onclose=()=>{
+    if(formationWindowOpen){formationWindowOpen=false;paintFormationPreview(st.formation)}
+   };
    if((isFormation?formationWindowOpen:moveWindowOpen)&&canOpen())open();
   }
  };
  setupLineupWindow('formation');setupLineupWindow('move');
+ const formationChoice=document.getElementById('formationChange');
+ if(formationChoice){
+  formationChoice.onchange=()=>paintFormationPreview(formationChoice.value);
+  formationChoice.oninput=formationChoice.onchange; // live keyboard selection
+ }
 }
 const detailDialog=document.getElementById('challengePokemonDetailModal');
 const closePokemonDetail=()=>closeDialog(detailDialog);
@@ -1432,7 +1496,7 @@ if(isDraft||isShop){
   document.getElementById('applyFormation').onclick=()=>{
    const choice=document.getElementById('formationChange')?.value;
    if(!FORMS[choice]||choice===st.formation)return;
-   formationWindowOpen=false;st.formation=choice;st.formationChanges--;
+   formationWindowOpen=false;formationPreview=null;st.formation=choice;st.formationChanges--;
    if(st.phase==='draft')st.selected=nextDraftSlot();
    save();render();
   };
@@ -1546,6 +1610,7 @@ if(st.phase==='finished'){
 if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  const candidateIds=new Set(st.phase==='draft'?eligible().map(s=>s.id):[]);
  const canDrag=source=>{
+  if(formationPreview)return false; // do not drag or draft into a hypothetical layout
   if(source.type==='candidate')return st.phase==='draft'&&candidateIds.has(Number(source.value));
   if(source.type==='pokemon')return st.moves>0&&Boolean(st.roster[Number(source.value)]);
   if(source.type==='item')return st.phase==='shop'&&itemTargets(source.value).length>0;
