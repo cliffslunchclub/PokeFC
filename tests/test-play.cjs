@@ -44,6 +44,7 @@ assert.equal(play.getXI().lineup.filter(Boolean).length,11);
 const preview=play.makePreview();
 assert.equal(preview.home.lineup.length,11);
 assert.equal(preview.away.lineup.length,11);
+assert.equal((el('homePreview').innerHTML.match(/class="mini-fit"/g)||[]).length,11,'All Play XI cards show S-D tier and efficiency');
 assert(preview.home.lineup.every(x=>x.pokemonStats&&x.exactPosition&&x.positionEfficiency>=.70&&x.positionEfficiency<=1));
 assert(preview.away.lineup.every(x=>x.pokemonStats&&x.exactPosition&&x.positionFit>0));
 assert(preview.home.lineup.every(x=>x.pokemonStats&&x.exactPosition&&!('main' in x)&&!('detail' in x)));
