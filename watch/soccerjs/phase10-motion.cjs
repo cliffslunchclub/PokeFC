@@ -150,7 +150,7 @@ function motionFrame(fixture,t,field,options=false){
  const goals=ignoreGoal?[]:fixture.events.filter(e=>e.type==='goal');
  // Only PSE-recorded incidents can create an official set-piece sequence.
  // The underlying ball path/poses are illustrative and never score goals.
- const ordinaryGoal=goals.find(g=>g.setPiece!=='penalty'&&t>=g.minute-.7&&t<=g.minute+.22);
+ const ordinaryGoal=goals.find(g=>g.setPiece!=='penalty'&&t>=g.minute-.28&&t<=g.minute+.22);
  const setPieces=(!ignoreGoal&&fixture.setPieceRules==='v1'&&!ordinaryGoal)?
   fixture.events.filter(e=>['corner','foul','free-kick','penalty-kick'].includes(e.type)&&
    t>=e.minute-.20&&t<=e.minute+.22):[];
