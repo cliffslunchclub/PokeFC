@@ -1016,6 +1016,14 @@ if(isDraft||isShop){
   };
   const open=()=>{
    if(!canOpen())return;
+   // Keep only one small lineup popup open, particularly on phones where
+   // both use the same bottom-sheet position.
+   const otherId=isFormation?'challengeMoveModal':'challengeFormationModal';
+   const otherButton=document.getElementById(isFormation?'openMoveWindow':'openFormationWindow');
+   if(isFormation){moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
+   else{formationWindowOpen=false;formationWindowCleanup?.();formationWindowCleanup=null}
+   closeDialog(document.getElementById(otherId));
+   otherButton?.setAttribute?.('aria-expanded','false');
    if(isFormation)formationWindowOpen=true;else moveWindowOpen=true;
    openFloatingDialog(dialog);
    mountLineupWindow(dialog,grip,kind);
