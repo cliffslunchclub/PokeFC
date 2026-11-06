@@ -56,7 +56,7 @@ assert.match(el('matchResult').innerHTML,/Enclosed pitch/);
 const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
 assert(html.includes('WATCH MATCH')&&html.includes('QUICK SIM')&&html.includes('SIM TO END'));
 assert(!/tm-engine-bridge|hybrid-sim|tacticmesh/i.test(html),'Legacy TacticMesh scripts removed from Play');
-assert(html.includes('play.js?v=16'),'Enclosed Play runtime cache-version expected');
+assert(Number(html.match(/play\.js\?v=(\d+)/)?.[1])>=17,'Enclosed Play and attacking-run runtime remain versioned with Goal Replay updates');
 assert(!html.includes('id="setPiecesMode"'),'Retired set-piece selector remains visible');
 const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert(home.includes('href="./play/"'),'Home links to Play');

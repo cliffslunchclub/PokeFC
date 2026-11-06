@@ -10,7 +10,7 @@ const ids=[25,6,3,9,149,94,131,143,68,135,196];
 const lineup={version:1,name:'Quick Play 2.5D test XI',formation:'4-3-3',
  lineup:ids.slice(),selected:0,spriteStyle:'pixel'};
 const local=new Map([['pokefc-free-builder-v1',JSON.stringify(lineup)]]);
-const els=new Map(),sessions=[];
+const els=new Map(),sessions=[],replayCalls=[],seekCalls=[];let replayDestroyed=0;
 const drawing={clearRect(){},fillRect(){},strokeRect(){},beginPath(){},moveTo(){},
  lineTo(){},stroke(){},arc(){},fill(){},fillText(){},
  set fillStyle(v){},set strokeStyle(v){},set lineWidth(v){},
@@ -23,6 +23,7 @@ function el(id){
    innerHTML:'',textContent:'',disabled:false,hidden:id==='soccerWatchActions',events:{},
    classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
    addEventListener(type,fn){this.events[type]=fn},scrollIntoView(options){this.scrolledTo=options},
+   open:false,showModal(){this.open=true},close(){this.open=false;this.onclose?.()},
    getContext(){return drawing},appendChild(){},replaceChildren(){}
   };
   els.set(id,e);
@@ -34,6 +35,18 @@ const bridge={
  mountInline(options){
   assert.equal(active,false,'No overlapping 2.5D session');
   assert.equal(typeof options.onRecord,'function');
+  if(options.autoRecordOnSimToEnd===undefined){
+   assert.equal(options.result.origin,'quick-sim','Replay must use a locked official match');
+   assert(Array.isArray(options.result.events)&&options.result.events.some(e=>e.type==='goal'));
+   active=true;
+   const readonly={
+    seek(minute){seekCalls.push(minute);return true},
+    replayHighlight(id){replayCalls.push(id);return true},
+    destroy(){replayDestroyed++;active=false}
+   };
+   options.onReady(readonly);
+   return readonly;
+  }
   assert.equal(options.autoRecordOnSimToEnd,true,'Sim to End must auto-finalize official result');
   const original=JSON.stringify(options.result);
   active=true;let recorded=false,closed=false;
@@ -111,4 +124,30 @@ assert.equal(el('field-shell').classList.contains('soccerjs-active'),false);
 assert.equal(el('watch').disabled,false,'Watch can restart after cancel');
 assert.equal(el('soccerWatchActions').hidden,true);
 assert.match(el('engineStatus').textContent,/without recording/);
-console.log('PASS 2.5D Quick Play: Sim to End auto-records once and opens results, next Watch and cancel retain safeguards');
+// Instant Quick Sim uses the same Goal Replay control as the screenshot.
+const officialSim=context.window.FXI_QUICK.simulate;
+context.window.FXI_QUICK.simulate=(preview,_options)=>{
+ for(let s=0;s<120;s++){
+  const result=officialSim(preview,{seed:'replay-regression-'+s});
+  if(result.score[0]+result.score[1]>0)return result;
+ }
+ throw new Error('Deterministic replay fixture could not produce any goals');
+};
+el('quick').events.click();
+assert.equal(el('goalReplayActions').hidden,false,'Quick Sim match timeline displays Goal Replays');
+assert.match(el('goalReplayActions').innerHTML,/GOAL REPLAYS/,'Replay controls are placed above event feed');
+assert.match(el('goalReplayActions').innerHTML,/data-goal-replay="goal-0"/);
+assert.match(fs.readFileSync(path.join(root,'play/index.html'),'utf8'),/id="goalReplayModal"/,'Replay dialog is mounted in Quick Play');
+const resultBefore=el('matchResult').innerHTML;
+el('goalReplayActions').onclick({target:{closest:()=>({dataset:{goalReplay:'goal-0'}})}});
+assert.equal(el('goalReplayModal').open,true,'Clicking goal opens replay dialog');
+assert.deepEqual(replayCalls,['goal-0'],'Official first goal highlight starts');
+assert.deepEqual(seekCalls,[90],'Replay viewer seeks to official full-time before goal clip');
+assert.equal(el('matchResult').innerHTML,resultBefore,'Opening replay does not modify match results');
+assert.equal(active,true,'Read-only replay uses a live presentation session');
+el('closeGoalReplay').events.click();
+assert.equal(el('goalReplayModal').open,false,'Close exits replay modal');
+assert.equal(active,false,'Replay viewer is released without recording');
+assert.equal(replayDestroyed,1,'Replay session destroyed once');
+assert.equal(el('matchResult').innerHTML,resultBefore,'Final stats still present after replay');
+console.log('PASS 2.5D Quick Play: Sim to End, canceled Watch, and read-only Goal Replay from Quick Sim match timeline');

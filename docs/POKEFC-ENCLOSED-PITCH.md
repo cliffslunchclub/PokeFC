@@ -16,6 +16,7 @@
 - The retired `setPieces: 'v1'` option is ignored by new PSE simulations and cannot re-enable the experimental incidents.
 - Historical v1 result data is not rewritten or discarded. Bridge/report parsing can still recognize archived fields, but there is no new set-piece generation or presentation.
 - Soccer-JS Watch movement is illustrative and must keep the ordinary ball in bounds except when a recorded goal crosses into the net.
+- **Attack-third support (Watch presentation only):** midfielders move forward behind the attacking line, wide defenders make staggered overlaps, and central defenders retain cover. A goal credited by PSE to a defender or midfielder must show that specific scorer making a supporting run and finishing; never reassign the PSE goal to a different Pokémon.
 - All changes must preserve deterministic seeds and Watch → Sim to End behavior, including exactly-once match recording.
 
 ## Regression coverage

@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=34">
+<link rel="stylesheet" href="./challenge.css?v=35">
 <link rel="stylesheet" href="../assets/css/newtro.css?v=1">
 </head>
 <body>
@@ -73,7 +73,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 
 </div>
 <script src="../assets/js/national-species.js?v=1"></script><script src="../assets/js/calibration-profile.js"></script><script src="../assets/js/position-effectiveness.js?v=1"></script><script src="../assets/js/quick-sim.js?v=4"></script><script src="../assets/js/pse-knockout.js?v=1"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
+<script src="../watch/soccerjs/watch-bridge.js?v=10"></script><script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -288,6 +288,7 @@ const PICKER_WINDOW=window.PFC_CHALLENGE_PICKER_WINDOW;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
+let goalReplaySession=null;
 let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null,shopWindowPosition=null,shopWindowCleanup=null;
 let formationWindowOpen=false,moveWindowOpen=false,formationWindowPosition=null,moveWindowPosition=null,formationWindowCleanup=null,moveWindowCleanup=null;
 let pendingRollAnimation=false,slotAnimationBusy=false;
@@ -477,6 +478,36 @@ function individualShotsHtml(match){
   (rows||'<p>No Pokémon recorded a shot on goal in this match.</p>')+
   '<small>From individual match-box data. Penalty shootout attempts are excluded.</small></section>';
 }
+function matchReplayControls(match){
+ // New results retain their immutable official PSE fixture. Old match reports
+ // remain readable, but we never invent a replay from a newly simulated game.
+ const entry=(st.history||[]).find(m=>m.round===match?.round&&m.seed===match?.seed&&m.boss===match?.boss);
+ const data=entry?.replay;
+ if(!data||data.version!==1||data.result?.origin!=='quick-sim'||
+  !Array.isArray(data.result.events)||!data.preview?.home?.lineup||!data.preview?.away?.lineup)return '';
+ const goals=data.result.events.filter(e=>e?.type==='goal').slice().sort((a,b)=>a.minute-b.minute);
+ const score=data.result.score||[];
+ if(!goals.length||goals.length!==Number(score[0])+Number(score[1]))return '';
+ const teams=[data.preview.home,data.preview.away];
+ const buttons=goals.map((goal,i)=>{
+  const team=teams.find(t=>String(t.id)===String(goal.team));
+  const player=team?.lineup?.find(p=>String(p.id)===String(goal.player));
+  if(!team||!player||!Number.isFinite(Number(goal.minute)))return '';
+  return '<button type="button" class="challenge-goal-replay-button" data-match-replay="'+Number(match.round)+
+   '" data-replay-id="goal-'+i+'" aria-label="Replay goal by '+esc(player.name)+'">'+
+   '▶ '+(Math.floor(goal.minute)+1)+'′ · '+esc(player.name)+'</button>';
+ }).join('');
+ const kicks=data.result.shootout?.version==='pse-shootout-v1'?
+  data.result.shootout.attempts.map((kick,i)=>
+   '<button type="button" class="challenge-goal-replay-button" data-match-replay="'+Number(match.round)+
+   '" data-replay-id="pk-'+i+'" aria-label="Replay penalty attempt '+(i+1)+'">'+
+   '▶ PENALTY '+(i+1)+'</button>').join(''):'';
+ if(!buttons&&!kicks)return '';
+ return '<section class="challenge-replay-controls" aria-label="Match video highlights">'+
+  '<h4>GOAL REPLAYS <small>2.5D INSTANT REPLAY</small></h4>'+
+  '<div class="challenge-replay-buttons">'+buttons+kicks+'</div>'+
+  '<p>Illustrative Soccer-JS playback of official PSE events, not a video recording.</p></section>';
+}
 function matchReportHtml(match){
  if(!match)return '<p class="match-report-note">No game record available.</p>';
  const report=match.report;
@@ -519,6 +550,7 @@ function matchReportHtml(match){
  return '<div class="gauntlet-match-report">'+
   awardMarkup(match)+
   '<div class="match-report-heading"><span class="pfc-eyebrow">'+esc(source)+'</span><strong>YOUR XI&nbsp; '+scoreText+'&nbsp; '+esc(match.boss||'OPPONENT')+'</strong></div>'+
+  matchReplayControls(match)+
   '<h4>MATCH TIMELINE</h4>'+timelineHtml+incomplete+
   (table?'<h4>MATCH STATISTICS</h4><div class="match-stats">'+
   '<div class="match-stats-label"><span>YOUR XI</span><span>OPPONENT</span></div>'+table+'</div>':'<p class="match-report-note">Detailed match statistics were not saved for this game.</p>')+
@@ -666,6 +698,7 @@ function render(){const app=document.getElementById('app');
  draftWindowCleanup?.();draftWindowCleanup=null;
  shopWindowCleanup?.();shopWindowCleanup=null;
  formationWindowCleanup?.();formationWindowCleanup=null;
+ goalReplaySession?.destroy?.();goalReplaySession=null;
  moveWindowCleanup?.();moveWindowCleanup=null;
  window.PFC_CHALLENGE_DND?.cancel?.();
  let awardsAdded=false;
@@ -964,6 +997,11 @@ if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><d
  '<div id="runFinishOverviewStep" class="challenge-run-step" hidden>'+
  '<div class="challenge-overview-back"><button type="button" id="backToFinalMatch">← BACK TO FINAL MATCH</button></div>'+
  completedRunCard()+'</div></dialog>';
+if(st.phase==='result'||st.phase==='finished')body+='<dialog id="challengeGoalReplayModal" class="challenge-dialog challenge-goal-replay-dialog" aria-labelledby="challengeGoalReplayTitle">'+
+ '<div class="challenge-dialog-bar"><span id="challengeGoalReplayTitle">2.5D INSTANT REPLAY</span><button type="button" id="closeGoalReplayModal">✕ CLOSE</button></div>'+
+ '<div class="challenge-goal-replay-content"><p id="challengeReplayStatus" role="status">Loading official goal highlight…</p>'+
+ '<div id="challengeReplayStage" class="challenge-goal-replay-stage"></div>'+
+ '<p>Visual reconstruction of the recorded PSE event. No gameplay or saved result changes.</p></div></dialog>';
 body+='</div></div>'+
  '<dialog id="challengePokemonDetailModal" class="challenge-dialog challenge-pokemon-detail-dialog" aria-labelledby="pokemonDetailTitle">'+
  '<div class="challenge-dialog-bar"><span id="pokemonDetailTitle">POKÉMON PROFILE · FINAL XI</span>'+
@@ -1052,6 +1090,66 @@ app.querySelectorAll('[data-pokemon-info]').forEach(button=>button.onclick=e=>{
  e?.stopPropagation?.();
  openPokemonDetail(Number(button.dataset.pokemonInfo));
 });
+if(st.phase==='result'||st.phase==='finished'){
+ const replayModal=document.getElementById('challengeGoalReplayModal');
+ const closeReplay=()=>{
+  goalReplaySession?.destroy?.();goalReplaySession=null;
+  closeDialog(replayModal);
+ };
+ const replayCloseButton=document.getElementById('closeGoalReplayModal');
+ if(replayCloseButton)replayCloseButton.onclick=closeReplay;
+ if(replayModal){
+  replayModal.oncancel=e=>{e?.preventDefault?.();closeReplay()};
+  replayModal.onclick=e=>{if(e?.target===replayModal)closeReplay()};
+  replayModal.onclose=()=>{goalReplaySession?.destroy?.();goalReplaySession=null};
+ }
+ app.querySelectorAll('[data-match-replay]').forEach(button=>button.onclick=()=>{
+  const round=Number(button.dataset.matchReplay),id=String(button.dataset.replayId||'');
+  if(!Number.isInteger(round)||round<1||round>6||!/^(goal|pk)-\d+$/.test(id))return;
+  const match=(st.history||[]).find(m=>m.round===round&&m.replay?.version===1);
+  const replay=match?.replay,bridge=window.FXI_PHASE10_WATCH;
+  const status=document.getElementById('challengeReplayStatus');
+  const stage=document.getElementById('challengeReplayStage');
+  if(!replay||!bridge?.mountInline||!replayModal||!stage)return;
+  goalReplaySession?.destroy?.();goalReplaySession=null;
+  stage.textContent='';
+  if(status)status.textContent='Loading recorded '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
+  openDialog(replayModal);
+  let requested=false,readySession=null;
+  const start=session=>{
+   if(requested||!session)return;
+   requested=true;
+   if(!session.replayHighlight(id)&&status)status.textContent='Replay clip is unavailable.';
+  };
+  try{
+   goalReplaySession=bridge.mountInline({
+    preview:replay.preview,result:replay.result,container:stage,
+    // Read-only: the replay session is not allowed to write match results.
+    onRecord:()=>{if(status)status.textContent='This replay cannot record a new result.'},
+    onCancel:closeReplay,
+    onReady:session=>{
+     if(!replayModal?.open||goalReplaySession&&goalReplaySession!==session)return;
+     readySession=session;
+     if(status)status.textContent='2.5D reconstruction · official match events';
+     if(id.startsWith('pk-')){
+      if(!session.simToEnd()&&status)status.textContent='Penalty clip could not load.';
+     }else{
+      const duration=replay.result.durationMinutes===120?120:90;
+      if(session.seek(duration))start(session);
+      else if(status)status.textContent='Goal replay could not load.';
+     }
+    },
+    onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished)start(readySession||goalReplaySession)},
+    onStatus:({state,message})=>{
+     if(state==='error'&&status)status.textContent=message||'Could not load replay.';
+    }
+   });
+  }catch(error){
+   goalReplaySession=null;
+   if(status)status.textContent='Replay unavailable: '+String(error?.message||error);
+  }
+ });
+}
 if(st.phase==='result'){
  const modal=document.getElementById('challengeMatchResultModal');
  const reopen=document.getElementById('openMatchResultModal');
@@ -1518,7 +1616,7 @@ function playBoss(){
   const position=window.PFC_POSITION_EFFECTIVENESS?.profile(b,exactPos);
   const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
   const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
-  return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,pos,
+  return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,speciesId:s.spriteId||s.id,pos,
    positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
  };
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,FORMS[st.formation][i],'c',st.items[i]))};
@@ -1549,7 +1647,8 @@ function playBoss(){
    extraTime:ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events}:null}:{}),
   shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),
   outcome,tiebreak,shootout,seed,origin:'quick-sim',
-  report:MATCH_REPORT?.fromResult(out,preview)||null};
+  report:MATCH_REPORT?.fromResult(out,preview)||null,
+  ...(out.origin==='quick-sim'?{replay:{version:1,preview:{home:ours,away:theirs},result:out}}:{})};
 }
 save();render();
 })();
