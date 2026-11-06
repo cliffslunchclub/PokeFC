@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 const fixture=require('./fixture.json');
 const {motionFrame}=require('./phase10-motion.cjs');
+const {nextBoundary}=require('./phase10-play-director.cjs');
 const field={width:106,height:68},original=JSON.stringify(fixture);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 let tested=0;
@@ -36,7 +37,7 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
  assert(distance(after.ball,{x:field.width/2,y:field.height/2})<.001);
  assert.equal(after.officialEvent,null,'Kickoff is not an invented official PSE event');
  const restartStart=(pos+.22)*60;
- const restartEnd=Math.ceil((restartStart+4)/8)*8;
+ const restartEnd=nextBoundary(fixture,field,restartStart+4);
  const mid=motionFrame(fixture,((restartStart+restartEnd)/2)/60,field);
  assert.equal(mid.action,'illustrative-kickoff');
  const landingBefore=motionFrame(fixture,(restartEnd-1e-5)/60,field);
