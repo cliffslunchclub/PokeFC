@@ -11,7 +11,7 @@ const captured=[];
 const context=vm.createContext({window:{},document:{getElementById:id=>id==='app'?app:(elems[id]??={value:'balanced'})},
  localStorage:{getItem:key=>key==='pokefc-challenge-alpha-1'?stored:null,setItem:(key,v)=>{if(key==='pokefc-challenge-alpha-1')stored=v}},
  crypto:{getRandomValues(a){a[0]=12345;return a}},console,confirm:()=>true,alert:e=>{throw Error(e)}});
-for(const name of ['assets/js/national-species.js','challenge/special-items-data.js','challenge/match-report.js','challenge/performance.js','play/opponents.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name});
+for(const name of ['assets/js/position-effectiveness.js','assets/js/national-species.js','challenge/special-items-data.js','challenge/match-report.js','challenge/performance.js','play/opponents.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),context,{filename:name});
 context.window.FXI_QUICK={simulate(preview){
  captured.push(preview);
  return {score:[2,0],stats:[{shots:8,shotsOnTarget:5,passes:320,possession:56.2},{shots:4,shotsOnTarget:2,passes:210,possession:43.8}],
@@ -47,12 +47,6 @@ const roleMap={
  '3-5-2':['GK','CB','CB','CB','LWB','RWB','CM','CM','CAM','ST','ST'],
  '5-3-2':['GK','LWB','CB','CB','CB','RWB','CM','CM','CM','ST','ST']
 };
-const weightByGroup={
- GK:{hp:.2,defense:.3,spDefense:.3,speed:.2},
- DEF:{defense:.35,hp:.2,attack:.2,speed:.25},
- MID:{spAttack:.3,spDefense:.25,attack:.2,speed:.25},
- FWD:{attack:.35,spAttack:.2,speed:.35,hp:.1}
-};
 const pokemonById=new Map(context.window.FXI_SPECIES.map(s=>[s.id,s]));
 function independentBossRating(boss){
  return boss.roster.reduce((sum,id,i)=>{
@@ -61,9 +55,7 @@ function independentBossRating(boss){
   if(item==='Light Ball'){stats.attack*=2;stats.spAttack*=2}
   else if(item){const form=context.window.PFC_CHALLENGE_SPECIAL.megas[id]?.find(m=>m.stone===item);assert(form,'Mega form available: '+item);Object.assign(stats,form.stats)}
   const pos=roleMap[boss.formation][i];
-  const group=pos==='GK'?'GK':['CB','LB','RB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
-  const weighted=Object.entries(weightByGroup[group]).reduce((v,[k,w])=>v+stats[k]*w,0);
-  return sum+Math.min(100,20+.55*weighted);
+  return sum+context.window.PFC_POSITION_EFFECTIVENESS.preciseFit(stats,pos);
  },0)/11;
 }
 

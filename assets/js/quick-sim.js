@@ -43,20 +43,32 @@
   }
   return {status:'provisional',referenceMatches:0,engineCommit:null,parameters:{...DEFAULTS},version:'v0.7b'};
  }
- function possession(home,away,P,eff=()=>1){
-  const middle=t=>{const a=t.lineup.filter(x=>x.pos==='MID');return a.length?a.reduce((s,p)=>s+strength(p)*eff(p),0)/a.length:45};
+ function possession(home,away,P,eff=()=>1,positionStrength=strength){
+  const middle=t=>{const a=t.lineup.filter(x=>x.pos==='MID');return a.length?a.reduce((s,p)=>s+positionStrength(p)*eff(p),0)/a.length:45};
   return clamp(50+P.possessionHomeOffset+(middle(home)-middle(away))*P.possessionMidfieldSlope+(home.tactic==='possession'?P.possessionTacticBonus:0)-(away.tactic==='possession'?P.possessionTacticBonus:0),29,71);
  }
  function simulate(preview,opts={}){
   if(!preview||!preview.home||!preview.away||preview.home.lineup?.length!==11||preview.away.lineup?.length!==11)throw Error('Quick Sim requires two valid starting XIs');
   const current=profile(),P=validParams(opts.parameters||current.parameters),next=randomizer(opts.seed||preview.seed||'FXI'),tackleNext=randomizer(String(opts.seed||preview.seed||'FXI')+':tackle-ledger-v1'),teams=[preview.home,preview.away];
-  const usePosition=opts.positionEffectiveness==='v1';
-  const eff=p=>usePosition?clamp(p?.positionEfficiency??1,.88,1):1;
-  const skill=(p,key)=>n(p.main?.[key])*eff(p);
-  const perSide=teams.map(t=>({attack:(()=>{let a=t.lineup.filter(p=>p.pos==='FWD');return a.reduce((s,p)=>s+strength(p)*eff(p),0)/Math.max(a.length,1)})(),
-   defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+strength(p)*eff(p),0)/Math.max(a.length,1)})(),
-   gk:(()=>{const p=t.lineup.find(p=>p.pos==='GK')||t.lineup[0];return strength(p)*eff(p)})()}));
-  const possHome=possession(teams[0],teams[1],P,eff),poss=[possHome,100-possHome];
+  const usePokemon=opts.positionEffectiveness==='v2';
+  const usePosition=opts.positionEffectiveness==='v1'||usePokemon;
+  const pokemonModel=usePokemon?(typeof module!=='undefined'&&module.exports?require('./position-effectiveness.js'):root.PFC_POSITION_EFFECTIVENESS):null;
+  if(usePokemon&&!pokemonModel?.preciseFit)throw Error('PSE v2 requires Pokémon positional model');
+  const eff=p=>usePosition?clamp(p?.positionEfficiency??1,usePokemon ? .70 : .88,1):1;
+  if(usePokemon&&teams.some(t=>t.lineup.some(p=>!p.pokemonStats||!p.exactPosition||!Number.isFinite(Number(p.positionFit))||!Number.isFinite(Number(p.positionEfficiency)))))throw Error('PSE v2 requires effective Pokémon stats and precise slot ratings for every player');
+  const positionStrength=p=>usePokemon&&p?.pokemonStats?Number(p.positionFit??pokemonModel.preciseFit(p.pokemonStats,p.exactPosition||p.pos)):strength(p);
+  const skill=(p,key)=>{
+   if(!usePokemon||!p?.pokemonStats)return n(p.main?.[key])*eff(p);
+   const stats=p.pokemonStats;
+   const ability=key==='finishing'?pokemonModel.finishingIndex(stats):
+    key==='tackling'?pokemonModel.preciseFit(stats,'CB'):
+    pokemonModel.preciseFit(stats,'CAM');
+   return ability*eff(p);
+  };
+  const perSide=teams.map(t=>({attack:(()=>{let a=t.lineup.filter(p=>p.pos==='FWD');return a.reduce((s,p)=>s+positionStrength(p)*eff(p),0)/Math.max(a.length,1)})(),
+   defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+positionStrength(p)*eff(p),0)/Math.max(a.length,1)})(),
+   gk:(()=>{const p=t.lineup.find(p=>p.pos==='GK')||t.lineup[0];return positionStrength(p)*eff(p)})()}));
+  const possHome=possession(teams[0],teams[1],P,eff,positionStrength),poss=[possHome,100-possHome];
   const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{goals:0,assists:0,saves:0,shots:0,shotsOnTarget:0,tackleAttempts:0,tackles:0,minutes:90}])));
   const stats=teams.map(()=>({shots:0,shotsOnTarget:0,goals:0,saves:0,passes:0,completedPasses:0,tackleAttempts:0,tackles:0,possession:0})),events=[];
   const score=[0,0];
@@ -111,7 +123,7 @@
    if(stats[side].tackles>stats[side].tackleAttempts)throw Error('Won tackles exceed attempts');
   }
   return {home:teams[0].id,away:teams[1].id,score,stats,events,box,
-   origin:'quick-sim',...(usePosition?{positionEffectiveness:'v1'}:{}),
+   origin:'quick-sim',...(usePosition?{positionEffectiveness:usePokemon?'v2':'v1'}:{}),
     statsModel:opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
    calibration:current.status==='calibrated'?{referenceMatches:current.referenceMatches,engineCommit:current.engineCommit}:null,
    methodology:{shotStops:'Approximate saves in Quick Sim; not directly comparable to TacticMesh shotStops.',shotsOnTarget:'Estimated; genuine TacticMesh reports this as unavailable.'}};

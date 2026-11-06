@@ -8,6 +8,16 @@
  const requireValid=(ok,msg)=>{if(!ok)throw Error('PSE Knockout: '+msg)};
  const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,Number(x)||0));
  const value=(p,key,fallback=65)=>Number(p?.detail?.[key]??p?.main?.[key]??fallback)||fallback;
+ const positionModel=(typeof module!=='undefined'&&module.exports)?require('./position-effectiveness.js'):root.PFC_POSITION_EFFECTIVENESS;
+ function pokemonValue(p,key){
+  if(!p?.pokemonStats)return value(p,key);
+  if(!positionModel?.preciseFit)throw Error('PSE knockout requires Pokémon positional model');
+  const stats=p.pokemonStats;
+  if(['finishing','composure'].includes(key))return positionModel.finishingIndex(stats);
+  if(['tackling','strength'].includes(key))return positionModel.preciseFit(stats,'CB');
+  if(['reflexes','handling','positioning','diving'].includes(key))return positionModel.preciseFit(stats,'GK');
+  return positionModel.preciseFit(stats,'CAM');
+ }
  const avg=(arr)=>arr.reduce((s,x)=>s+x,0)/Math.max(1,arr.length);
  const choose=(rng,players,weight)=>{
   const weights=players.map(p=>Math.max(1,weight(p))),total=weights.reduce((a,b)=>a+b,0);
@@ -37,12 +47,14 @@
   validatePreview(preview);
   requireValid(typeof seed==='string'&&seed.length>0,'Extra-time seed required');
   const teams=[preview.home,preview.away],rng=qs.randomizer(seed+':pse-et-v1');
-  const eff=p=>options.positionEffectiveness==='v1'?clamp(p?.positionEfficiency??1,.88,1):1;
-  const skill=(p,k)=>value(p,k)*eff(p);
+  const v2=options.positionEffectiveness==='v2';
+  const eff=p=>v2?clamp(p?.positionEfficiency??1,.70,1):
+   options.positionEffectiveness==='v1'?clamp(p?.positionEfficiency??1,.88,1):1;
+  const skill=(p,k)=>(v2?pokemonValue(p,k):value(p,k))*eff(p);
   const strength=teams.map(t=>({
-   attack:avg(t.lineup.filter(p=>p.pos==='FWD').map(p=>skill(p,'finishing'))),
-   defense:avg(t.lineup.filter(p=>p.pos==='DEF').map(p=>skill(p,'tackling'))),
-   keeper:avg(['reflexes','handling','positioning','diving'].map(k=>{const p=t.lineup.find(p=>p.pos==='GK')||t.lineup[0];return skill(p,k)}))
+   attack:avg(t.lineup.filter(p=>p.pos==='FWD').map(p=>v2?(p.positionFit??positionModel.preciseFit(p.pokemonStats,p.exactPosition||'ST'))*eff(p):skill(p,'finishing'))),
+   defense:avg(t.lineup.filter(p=>p.pos==='DEF').map(p=>v2?(p.positionFit??positionModel.preciseFit(p.pokemonStats,p.exactPosition||'CB'))*eff(p):skill(p,'tackling'))),
+   keeper:avg(['reflexes','handling','positioning','diving'].map(k=>{const p=t.lineup.find(p=>p.pos==='GK')||t.lineup[0];return v2?(p.positionFit??positionModel.preciseFit(p.pokemonStats,'GK'))*eff(p):skill(p,k)}))
   }));
   const stats=teams.map(()=>({shots:0,shotsOnTarget:0,goals:0,saves:0,passes:0,completedPasses:0,tackleAttempts:0,tackles:0}));
   const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{
@@ -103,8 +115,10 @@
   validatePreview(preview);
   requireValid(typeof seed==='string'&&seed.length>0,'Shootout seed required');
   const rng=qs.randomizer(seed+':pse-shootout-v1'),teams=[preview.home,preview.away];
-  const eff=p=>options.positionEffectiveness==='v1'?clamp(p?.positionEfficiency??1,.88,1):1;
-  const skill=(p,k)=>value(p,k)*eff(p);
+  const v2=options.positionEffectiveness==='v2';
+  const eff=p=>v2?clamp(p?.positionEfficiency??1,.70,1):
+   options.positionEffectiveness==='v1'?clamp(p?.positionEfficiency??1,.88,1):1;
+  const skill=(p,k)=>(v2?pokemonValue(p,k):value(p,k))*eff(p);
   const order=teams.map(t=>t.lineup.filter(p=>p.pos!=='GK').slice().sort((a,b)=>
    (skill(b,'finishing')+skill(b,'composure'))-(skill(a,'finishing')+skill(a,'composure'))||
    String(a.id).localeCompare(String(b.id))));
