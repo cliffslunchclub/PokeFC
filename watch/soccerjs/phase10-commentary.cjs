@@ -142,7 +142,7 @@ function build(f,field){
  const entries=[{id:PREFIX+'opening',seconds:0,kind:'visual',type:'intro',
   text='We are underway! Both sides looking to settle into the match.',
   minute:0,priority:1}];
- let last=-100,visualNumber=0;
+ let last=0,visualNumber=0;
  const seed=String(f.visualSeed||f.seed||'pfc');
  for(let i=0;i<plan.actions.length;i++){
   const a=plan.actions[i];
