@@ -87,7 +87,12 @@ async function serve(){
    await page.locator('#pause').click();
    // A scored ball stays in the goal before a deliberate broadcast CUT to
    // center-circle kickoff, never gliding backwards across the field.
-   const holdMinute=firstGoal.minute+.14,restartMinute=firstGoal.minute+.22001;
+   // The range control quantizes input by its step; seek the two adjacent
+   // selectable moments around the goal-to-kickoff boundary.
+   const scrubStep=Number(await page.locator('#scrub').getAttribute('step'))||.05;
+   const cutMinute=firstGoal.minute+.22;
+   const holdMinute=Math.floor((cutMinute-1e-7)/scrubStep)*scrubStep;
+   const restartMinute=Math.ceil((cutMinute+1e-7)/scrubStep)*scrubStep;
    await page.locator('#scrub').evaluate((el,v)=>{
     el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
    },holdMinute);
