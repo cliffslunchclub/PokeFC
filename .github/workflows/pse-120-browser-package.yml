@@ -34,8 +34,8 @@ jobs:
       - name: Validate optional SiteGround release allowlist
         run: |
           PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
-          test -s dist/pse-knockout.js
-          test -s dist/franchise/pse-knockout.js
+          test -s dist/assets/js/pse-knockout.js
+          test -s dist/franchise/assets/js/pse-knockout.js
           test -s dist/watch/soccerjs/dist/viewer.bundle.js
           test -s dist/watch/soccerjs/watch-bridge.js
           test ! -e dist/watch/soccerjs/dist/fixture.json

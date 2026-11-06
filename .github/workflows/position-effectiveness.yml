@@ -3,9 +3,9 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'position-effectiveness.js'
-      - 'quick-sim.js'
-      - 'pse-knockout.js'
+      - 'assets/js/position-effectiveness.js'
+      - 'assets/js/quick-sim.js'
+      - 'assets/js/pse-knockout.js'
       - 'play/**'
       - 'challenge/**'
       - 'tests/test-position-effectiveness.cjs'
@@ -26,9 +26,9 @@ jobs:
           node-version: '22'
       - name: Syntax and PSE position effectiveness
         run: |
-          node --check position-effectiveness.js
-          node --check quick-sim.js
-          node --check pse-knockout.js
+          node --check assets/js/position-effectiveness.js
+          node --check assets/js/quick-sim.js
+          node --check assets/js/pse-knockout.js
           node --check play/play.js
           node tests/test-position-effectiveness.cjs
       - name: Quick Play and knockout baseline
@@ -45,7 +45,7 @@ jobs:
           'use strict';
           const assert=require('node:assert/strict');
           const prior=require('/tmp/pfc-position-baseline/quick-sim.js');
-          const current=require('./quick-sim.js');
+          const current=require('./assets/js/quick-sim.js');
           const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
           const team=id=>({id,tactic:id==='h'?'press':'possession',
             lineup:roles.map((pos,i)=>({id:id+i,pos,main:{

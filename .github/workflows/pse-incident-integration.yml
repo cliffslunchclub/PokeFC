@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "quick-sim.js"
+      - "assets/js/quick-sim.js"
       - "watch/soccerjs/**"
       - "challenge/**"
       - "play/play.js"
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntax validation
         run: |
-          node --check quick-sim.js
+          node --check assets/js/quick-sim.js
           node --check watch/soccerjs/watch-bridge.js
           node --check watch/soccerjs/phase10-motion.cjs
           node --check watch/soccerjs/viewer-entry.cjs

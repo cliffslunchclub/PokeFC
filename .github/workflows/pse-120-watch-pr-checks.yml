@@ -18,7 +18,7 @@ jobs:
       - name: Check code syntax
         run: |
           node --check play/play.js
-          node --check pse-knockout.js
+          node --check assets/js/pse-knockout.js
           node --check watch/soccerjs/watch-bridge.js
           node --check watch/soccerjs/phase10-motion.cjs
           node --check watch/soccerjs/viewer-entry.cjs
