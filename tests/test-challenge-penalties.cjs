@@ -16,7 +16,7 @@ function caseFor(sequence){
    setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},onclick:null};
  }},localStorage:{getItem:k=>k==='pokefc-challenge-alpha-1'?saved:null,setItem(k,v){if(k==='pokefc-challenge-alpha-1')saved=v}},
  crypto:{getRandomValues(a){a[0]=921;return a}},console,confirm:()=>true,alert:e=>{throw Error(e)}});
- for(const f of ['assets/js/national-species.js','challenge/special-items-data.js','challenge/tiers.js','challenge/match-report.js','challenge/performance.js','play/opponents.js'])
+ for(const f of ['assets/js/position-effectiveness.js','assets/js/national-species.js','challenge/special-items-data.js','challenge/tiers.js','challenge/match-report.js','challenge/performance.js','play/opponents.js'])
   vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f,timeout:15000});
  ctx.window.FXI_QUICK={
   simulate(fixture){return{score:[1,1],stats:[
