@@ -3,7 +3,7 @@
 Unofficial Pokémon-themed football management and match-play project. **Private product source** lives in this repository; the public research/test harness lives in [pokefc-simulation](https://github.com/cliffslunchclub/pokefc-simulation).
 
 **Public alpha:** https://pfc.cliffslunchclub.com/  
-**Last status review:** 2026-11-05 (retirement cleanup staged; verify CI and deployment before calling it live)  
+**Last status review:** 2026-11-05 — TacticMesh retired in merged PR #60; SiteGround deployment #184 succeeded.  
 **Authoritative roadmap:** [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md)
 
 > **Important distinction:** “Available” below means implemented on the current `main` deployment path, not a claim of newly verified live-site availability. An experimental branch/PR is **not deployed** until merged and verified through the SiteGround workflow.
@@ -27,10 +27,14 @@ Unofficial Pokémon-themed football management and match-play project. **Private
 
 - **Soccer-JS 2.5D is the deployed primary Watch**, through merged [PR #21](https://github.com/cliffslunchclub/PokeFC/pull/21) (Quick Play opt-in), [PR #26](https://github.com/cliffslunchclub/PokeFC/pull/26) (Challenge/Franchise integration) and [PR #28](https://github.com/cliffslunchclub/PokeFC/pull/28) (Quick Play default). The [real desktop hosted-site browser run](https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/42097420753) verified all three modes and save lifecycles; [native 390px mobile fixture run](https://github.com/cliffslunchclub/pokefc-simulation/actions/runs/42099546920) passed. Live hosted-mobile verification remains limited by intermittent HTTP 202 replies to cloud automation.
 - **Match Director** includes deterministic read-only shot/goal visuals for the precomputed fixture. Movements other than official goal times are illustrative; natural full-match player and keeper movement remains subject to realism and long-play QA; official knockout and shootouts are implemented.
-- **Final architecture:** PokéFC Sim Engine (PSE), invoked by Quick Sim, owns official match outcomes; Soccer-JS renders 2.5D in all three modes. TacticMesh source cleanup is staged separately for validation; see [retirement audit](docs/TACTICMESH-RETIREMENT.md).
+- **Final architecture:** PokéFC Sim Engine (PSE), invoked by Quick Sim, owns official match outcomes; Soccer-JS renders 2.5D in all three modes. TacticMesh was retired from the active runtime and removed from SiteGround by PR #60; see [retirement audit](docs/TACTICMESH-RETIREMENT.md).
 - **One-way Watch → Sim to End** is the currently locked Soccer-JS UX. Mid-match **Sim → Watch** is not implemented. Tactical changes during a simulated match require a future resumable Quick Sim state API (start with halftime).
 
 The old experimental [PR #11](https://github.com/cliffslunchclub/PokeFC/pull/11) is closed and unmerged. The public `pokefc-simulation` repo remains a test bed, not another product or public match page. Arcade/FIFA-like direct control remains a separate idea, not a shipped mode.
+
+## Save and API compatibility
+
+The `FXI_*` JavaScript namespaces and older `futbol-xi-*` browser-storage keys intentionally remain for existing saved careers. Franchise exports retain `PokeFC-v08-<seed>.json` conventions. Do not change save serialization, seeds, or player IDs as part of cosmetic housekeeping. See [product scope](docs/PRODUCT_SCOPE.md).
 
 ## Repository and deployment boundaries
 
@@ -53,6 +57,6 @@ node tests/test-challenge-gauntlet.cjs
 
 Production deploy workflow: [`.github/workflows/deploy-siteground.yml`](.github/workflows/deploy-siteground.yml) on changes to specified runtime paths on `main`, with validation before FTPS publishing to the PokeFC **subdomain only**. See [SITEGROUND_DEPLOY.md](SITEGROUND_DEPLOY.md) for safeguards. The CI workflow now compiles the pinned native Soccer-JS assets and includes the allowlisted runtime during a validated deployment. Soccer-JS is the only active Watch path; Franchise retains an optional Quick Sim schematic. Challenges and Franchise use the same authoritative viewer. Research fixtures, stand-alone demos and private Quick Sim source are **not** copied to the webroot.
 
-More detail: [development TODO](DEVELOPMENT_TODO.md) · [repository cleanup notes](docs/REPOSITORY_CLEANUP.md) · [older source/calibration history](CHANGES_v0.8b1.md).
+More detail: [development TODO](DEVELOPMENT_TODO.md) · [product scope](docs/PRODUCT_SCOPE.md) · [repository cleanup notes](docs/REPOSITORY_CLEANUP.md). v0.5–v0.8b1 version notes and benchmarks remain accessible in Git history.
 
 Pokémon characters and artwork belong to their respective owners. PokéFC is an unofficial project, not affiliated with Pokémon or FIFA/EA.

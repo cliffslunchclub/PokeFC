@@ -1,0 +1,47 @@
+name: Prune merged branch refs (guarded one-time cleanup)
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prune-merged-branches-once.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prune-merged:
+    if: github.repository == 'cliffslunchclub/PokeFC'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate pruning script
+        run: |
+          set -euo pipefail
+          gh --version
+          jq --version
+          bash -n scripts/prune-merged-branches.sh
+      - name: Backup branch SHAs and merged PR heads
+        run: |
+          set -euo pipefail
+          mkdir -p prune-audit
+          gh api --paginate "repos/$GITHUB_REPOSITORY/branches?per_page=100" | jq -sr 'add | .[] | [.name,.commit.sha] | @tsv' > prune-audit/branch-heads-before.tsv
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" | jq -sr 'add | .[] | select(.merged_at != null) | [.number,.head.ref,.head.sha] | @tsv' > prune-audit/merged-pr-heads.tsv
+          wc -l prune-audit/*.tsv
+      - name: Dry-run safe pruning
+        run: bash scripts/prune-merged-branches.sh --dry-run | tee prune-audit/dry-run.log
+      - name: Apply safe pruning
+        run: bash scripts/prune-merged-branches.sh --apply | tee prune-audit/apply.log
+      - name: Capture remaining branch SHAs
+        if: always()
+        run: |
+          mkdir -p prune-audit
+          gh api --paginate "repos/$GITHUB_REPOSITORY/branches?per_page=100" | jq -sr 'add | .[] | [.name,.commit.sha] | @tsv' > prune-audit/branch-heads-after.tsv
+          echo "Remaining branches: $(wc -l < prune-audit/branch-heads-after.tsv)"
+      - name: Archive ref audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pokefc-merged-branch-prune-audit
+          path: prune-audit/
+          retention-days: 90
