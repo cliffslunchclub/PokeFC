@@ -112,7 +112,7 @@
   try{
    m.session=bridge.mountInline({
     preview:{home:data.home,away:data.away},result:data.result,container:pitch,
-    viewerUrl:options.viewerUrl||'../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=5',
+    viewerUrl:options.viewerUrl||'../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=6',
     onReady:session=>{
      if(!lookup())return;
      m.ready=true;session.setProjection('orthographic');session.setCamera('follow');
