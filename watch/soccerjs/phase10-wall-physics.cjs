@@ -38,7 +38,12 @@ function candidate(from,to,field,axis,edge){
  // timing; PSE and subsequent possession staging stay untouched.
  const restitution=.82;
  const timeAt=inLength/(inLength+outLength/restitution);
- return {axis,edge,hit:impact,ratio:timeAt,pathLength:total,
+ // Precompute the inverse of the global cubic easing for exact impact time.
+ let lo=0,hi=1;
+ for(let i=0;i<24;i++){const mid=(lo+hi)/2;
+  if(ease(mid)<timeAt)lo=mid;else hi=mid;}
+ const impactU=(lo+hi)/2;
+ return {axis,edge,hit:impact,ratio:timeAt,impactU,pathLength:total,
   restitution,goalOpeningPreserved:axis==='x'};
 }
 function bankAt(stage,seconds){
@@ -55,9 +60,7 @@ function bankAt(stage,seconds){
   y:lerp(from.y,to.y,clamp(part,0,1)),
   z:.23+.10*Math.sin(Math.PI*u),contact:incoming?'approaching-wall':'rebounding',
   wallAxis:wall.axis,wallEdge:wall.edge,
-  hit:wall.hit,impactSeconds:stage.start+duration*(
-   Math.acos(1-2*impactFraction)/Math.PI // diagnostic only; ease inverse approximated below
-  )};
+  hit:wall.hit,impactSeconds:stage.start+duration*wall.impactU};
 }
 function sampleWall(stage,seconds){
  if(!stage.wall)return null;
