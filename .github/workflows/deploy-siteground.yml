@@ -105,6 +105,7 @@ jobs:
           node tests/test-play.cjs
           node tests/test-phase10-quickplay-lifecycle.cjs
           node watch/soccerjs/test-isometric-motion.cjs
+          node watch/soccerjs/test-goal-kickoff-reset.cjs
           node watch/soccerjs/test-possession-continuity.cjs
           node tests/test-watch-fullscreen.cjs
           node watch/soccerjs/test-inline-bridge.cjs
