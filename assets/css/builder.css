@@ -40,6 +40,7 @@
 .pitch-slot .ovr{display:inline-grid;place-items:center;min-width:25px;line-height:22px;padding:0 5px;border-radius:5px;background:#193e35;color:#a4ffc7;font-size:14px;font-weight:950;margin-top:2px}
 .prospect .overall b{font-size:28px;line-height:1;color:#9effbb;font-weight:950}
 .prospect .overall small{margin-top:4px;white-space:nowrap}
+.pitch-slot .grade-s,.prospect .overall .grade-s{color:#9fffc3}
 .pitch-slot .grade-a,.prospect .overall .grade-a{color:#8cfdba}
 .pitch-slot .grade-b,.prospect .overall .grade-b{color:#baf4c4}
 .pitch-slot .grade-c,.prospect .overall .grade-c{color:#f2de90}
