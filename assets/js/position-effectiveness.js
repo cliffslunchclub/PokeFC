@@ -44,7 +44,8 @@
  function archetype(pos){
   const p=String(pos||'').toUpperCase();
   if(p==='GK')return 'GK';
-  if(p==='CB'||p==='DEF')return 'CB';
+  if(['GK','CB','FB','WB','CDM','CM','CAM','WING','ST'].includes(p))return p;
+  if(p==='DEF')return 'CB';
   if(['LB','RB'].includes(p))return 'FB';
   if(['LWB','RWB','LM','RM'].includes(p))return 'WB';
   if(p==='CDM')return 'CDM';
