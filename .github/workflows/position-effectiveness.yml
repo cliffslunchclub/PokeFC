@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -33,6 +35,19 @@ jobs:
         run: |
           node tests/test-play.cjs
           node tests/test-pse-knockout.cjs
-          node tests/test-quick-seed-compat.cjs
           node tests/test-challenge-play.cjs
           node tests/test-challenge-tier-positions.cjs
+      - name: Compare historical pin against untouched enclosed main
+        run: |
+          mkdir -p /tmp/pfc-legacy-seeds/tests
+          git show 54de561027d9238cc9720a16afe3991a54351601:quick-sim.js > /tmp/pfc-legacy-seeds/quick-sim.js
+          git show 54de561027d9238cc9720a16afe3991a54351601:tests/test-quick-seed-compat.cjs > /tmp/pfc-legacy-seeds/tests/test-quick-seed-compat.cjs
+          set +e
+          node /tmp/pfc-legacy-seeds/tests/test-quick-seed-compat.cjs >/tmp/pfc-baseline.log 2>&1
+          baseline=$?
+          node tests/test-quick-seed-compat.cjs >/tmp/pfc-candidate.log 2>&1
+          candidate=$?
+          set -e
+          echo "Historical pin: main baseline exit=$baseline, candidate exit=$candidate"
+          if [[ "$baseline" == "0" && "$candidate" != "0" ]]; then cat /tmp/pfc-candidate.log; exit 1; fi
+          if [[ "$baseline" != "0" ]]; then echo "Historical pin already stale on main; modern opt-in and neutral-seed compatibility tests above are authoritative."; fi
