@@ -26,7 +26,7 @@ const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),ctx,{filename:'challenge-inline',timeout:15000});
 const state=()=>JSON.parse(saved);
 const score=()=>{
- const p=app.innerHTML.match(/<span class="formation-tag">4-3-3 · ([\d.]+) SCORE<\/span>/);
+ const p=app.innerHTML.match(/<span class="formation-tag"[^>]*>4-3-3 · ([\d.]+) SCORE<\/span>/);
  assert(p,'Visible team score');
  return Number(p[1]);
 };
