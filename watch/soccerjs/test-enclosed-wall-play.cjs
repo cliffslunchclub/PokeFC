@@ -16,6 +16,19 @@ const byWall=new Set(plan.actions.filter(s=>s.wall).map(s=>s.wall.axis+s.wall.ed
 assert.deepEqual([...byWall].sort(),['xmax','xmin','ymax','ymin'],
  'Both sideboards and both endboards need playable rebounds');
 let maxBoundary=0,looseRecoveries=0,turnovers=0;
+const strengths=new Set();
+for(const stage of [...banks,...rebounds]){
+ const wall=stage.wall;
+ assert(wall.reboundFactor>=.10-1e-9&&wall.reboundFactor<=.20+1e-9,
+  'Wall strength must stay between 10% and 20% of previous rebound');
+ strengths.add(Math.round(wall.reboundFactor*1000));
+ assert(Math.abs(wall.restitution-Physics.ORIGINAL_RESTITUTION*
+  wall.reboundFactor)<1e-10,'Rebound velocity must be damped');
+ assert(Math.abs(distance(wall.hit,stage.to)/
+  (wall.originalPathLength-distance(stage.from,wall.hit))-
+  wall.reboundFactor)<1e-8,'Rebound distance must be damped');
+}
+assert(strengths.size>8,'Multiple deterministic rebound strengths should appear');
 for(let i=1;i<plan.actions.length;i++){
  const left=plan.actions[i-1],right=plan.actions[i];
  assert(distance(left.to,right.from)<.000001,'Bank stage broke continuous play');
@@ -98,7 +111,7 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
   'Goal still needs to cross open goal line');
 }
 assert.equal(JSON.stringify(fixture),before,'Watch altered PSE goal ledger');
-console.log('PASS all-mode enclosed wall trajectories: '+banks.length+
+console.log('PASS soft all-mode enclosed wall trajectories: '+banks.length+
  ' bank passes, '+rebounds.length+' loose pickups, '+turnovers+
  ' steals, four board faces, '+maxBoundary.toFixed(7)+
  'm maximum seam, goals and overtime intact');

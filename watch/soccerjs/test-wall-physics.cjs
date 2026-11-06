@@ -14,12 +14,19 @@ for(const {name,from,to,axis,edge} of cases){
  assert(wall,name+' must be a legal wall');
  assert.equal(wall.axis,axis);assert.equal(wall.edge,edge);
  assert(wall.impactU>0&&wall.impactU<1);
- const stage={mode:'pass',from,to,start:25,duration:4.7,end:29.7,wall};
+ // The incoming impact is unchanged, while outgoing distance and speed
+ // are only 15% of the former full-strength bank by default.
+ assert(Math.abs(wall.reboundFactor-.15)<1e-12);
+ assert(Math.abs(wall.restitution-Physics.ORIGINAL_RESTITUTION*.15)<1e-12);
+ assert(Math.abs(Math.hypot(wall.exit.x-wall.hit.x,wall.exit.y-wall.hit.y)/
+  Math.hypot(to.x-wall.hit.x,to.y-wall.hit.y)-.15)<1e-12);
+ assert(wall.pathLength<wall.originalPathLength);
+ const stage={mode:'pass',from,to:wall.exit,start:25,duration:4.7,end:29.7,wall};
  const origin=Physics.sampleWall(stage,25);
  const hit=Physics.sampleWall(stage,25+4.7*wall.impactU);
  const arrival=Physics.sampleWall(stage,29.7);
  assert(Math.hypot(origin.x-from.x,origin.y-from.y)<tolerance);
- assert(Math.hypot(arrival.x-to.x,arrival.y-to.y)<tolerance);
+ assert(Math.hypot(arrival.x-wall.exit.x,arrival.y-wall.exit.y)<tolerance);
  assert(Math.hypot(hit.x-wall.hit.x,hit.y-wall.hit.y)<tolerance,
   name+' must actually TOUCH wall, not visually turn early');
  assert(Math.abs(hit[axis]-(edge==='min'?r:field[axis==='x'?'width':'height']-r))<tolerance);
@@ -45,8 +52,25 @@ for(const side of ['min','max']){
   {x:side==='min'?24:82,y:field.height/2},field,'x',side),null,
   'Must never bounce across an open goal mouth');
 }
+// Rebound variation changes outgoing speed and distance together, without
+// moving the collision point, the contact timestamp or the goal openings.
+for(const strength of [.10,.12,.15,.18,.20]){
+ const from={x:44,y:9},to={x:68,y:14};
+ const wall=Physics.candidate(from,to,field,'y','min',strength);
+ const normal=Physics.candidate(from,to,field,'y','min',.15);
+ assert(wall&&normal);
+ assert(Math.abs(wall.restitution-Physics.ORIGINAL_RESTITUTION*strength)<1e-12);
+ assert(Math.hypot(wall.hit.x-normal.hit.x,wall.hit.y-normal.hit.y)<1e-12);
+ assert(Math.abs(wall.impactU-normal.impactU)<1e-10);
+ assert(Math.abs(Math.hypot(wall.exit.x-wall.hit.x,wall.exit.y-wall.hit.y)/
+  Math.hypot(to.x-wall.hit.x,to.y-wall.hit.y)-strength)<1e-12);
+ const stage={mode:'rebound',from,to:wall.exit,wall,start:0,end:5,duration:5};
+ assert.deepEqual(
+  {x:Physics.sampleWall(stage,5).x,y:Physics.sampleWall(stage,5).y},
+  wall.exit);
+}
 assert.equal(Physics.sampleWall({wall:null},4),null);
 assert.equal(Physics.boundary({x:-.5,y:30},field),false);
 assert.equal(Physics.boundary({x:54,y:69},field),false);
-console.log('PASS enclosed wall geometry: four boards, rebound velocity reversals, '+
+console.log('PASS soft enclosed wall physics: 10–20% speed/distance, four boards, rebound velocity reversals, '+
  'goal-mouth openings, exact impact/contact, complete in-bounds path');

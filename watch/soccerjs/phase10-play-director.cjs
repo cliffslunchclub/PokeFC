@@ -104,12 +104,14 @@ function makePlan(f,field){
    pattern==='one-two'?24:pattern==='through'?24:29;
   if(dice('wall-bank:'+salt,100)>=chance)return null;
   const axes=[['y','min'],['y','max'],['x','min'],['x','max']];
-  const candidates=axes.map(([axis,edge])=>Wall.candidate(from,to,field,axis,edge))
-   .filter(w=>w&&w.pathLength<Math.min(45,time*10.8+7) &&
-    w.pathLength>Math.hypot(to.x-from.x,to.y-from.y)+1.4);
+  const strength=(10+dice('wall-softness:'+salt,101)/10)/100;
+  const candidates=axes.map(([axis,edge])=>
+   Wall.candidate(from,to,field,axis,edge,strength))
+   .filter(w=>w&&w.originalPathLength<Math.min(45,time*10.8+7) &&
+    w.originalPathLength>Math.hypot(to.x-from.x,to.y-from.y)+1.4);
   if(!candidates.length)return null;
-  candidates.sort((a,b)=>(a.pathLength+(hash(seed(f)+':wall:'+salt+':'+a.axis+a.edge)%700)/100)-
-   (b.pathLength+(hash(seed(f)+':wall:'+salt+':'+b.axis+b.edge)%700)/100));
+  candidates.sort((a,b)=>(a.originalPathLength+(hash(seed(f)+':wall:'+salt+':'+a.axis+a.edge)%700)/100)-
+   (b.originalPathLength+(hash(seed(f)+':wall:'+salt+':'+b.axis+b.edge)%700)/100));
   return candidates[0];
  }
  function append(mode,duration,end,recipient,pattern,arc=0,forcedWall=null){
@@ -131,9 +133,12 @@ function makePlan(f,field){
   }
   const length=Math.min(duration,total-seconds);
   if(length<.00001)return;
-  const start=seconds,from={...ball},to=point(field,end.x,end.y),next=recipient??owner;
+  const start=seconds,from={...ball},aim=point(field,end.x,end.y),next=recipient??owner;
   const wall=forcedWall||(mode==='pass'?
-   chooseWall(from,to,length,pattern,arc,actions.length):null);
+   chooseWall(from,aim,length,pattern,arc,actions.length):null);
+  // Softened wall banks land where their slowed ball actually stops, not
+  // at the pre-collision full-strength destination.
+  const to=wall?wall.exit:aim;
   const action={start,end:start+length,mode,from,to,owner,receiver:next,
    pattern,arc:wall?Math.min(arc,.25):arc,wall,sequence:count,duration:length};
   actions.push(action);
@@ -165,14 +170,15 @@ function makePlan(f,field){
     to:point(field,ball.x-5.5,ball.y-1.5)}
   ];
   const duration=2.6+dice('loose-duration',23)/10;
+  const strength=(10+dice('loose-softness',101)/10)/100;
   const choices=options.filter(c=>c.gap<13.5).map(c=>({
-   ...c,wall:Wall.candidate(ball,c.to,field,c.axis,c.edge)
-  })).filter(c=>c.wall&&c.wall.pathLength<duration*9.3+5);
+   ...c,wall:Wall.candidate(ball,c.to,field,c.axis,c.edge,strength)
+  })).filter(c=>c.wall&&c.wall.originalPathLength<duration*9.3+5);
   if(!choices.length)return;
   choices.sort((a,b)=>a.gap-b.gap||a.axis.localeCompare(b.axis));
   const choice=choices[0];
   let collector=owner;
-  const reboundTarget=choice.to;
+  const reboundTarget=choice.wall.exit;
   if(dice('loose-receiver',100)<55){
    const otherSide=dice('loose-steal',100)<20?1-side:side;
    const nearby=Array.from({length:10},(_,i)=>otherSide*11+i+1)
