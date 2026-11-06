@@ -7,9 +7,13 @@ const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
+const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
+let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,highlightFilter='all',
+ lastCatalogIds='',highlightDrawerOpen=false;
+const promptedGoals=new Set();
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -46,6 +50,88 @@ function verify(m){
 function scoreAt(t){
  const s=[0,0];for(const g of match.events)if(g.type==='goal'&&g.minute<=t)s[g.team===match.home.id?0:1]++;
  return s;
+}
+// The ledger is immutable; highlighting only controls a temporary view.
+function highlightEntries(){
+ const position=replaySession?.saved||{minute,kickIndex};
+ return catalog(match,position.minute,position.kickIndex);
+}
+function clearHighlightNotice(){
+ replayNotice=null;$('highlightNotice').hidden=true;
+}
+function showHighlightNotice(entry){
+ if(replaySession||!entry||entry.kind!=='goal')return;
+ replayNotice=entry.id;
+ $('highlightNoticeTitle').textContent="GOAL! · "+Math.floor(entry.minute+1)+"′ · "+entry.name;
+ $('highlightNotice').hidden=false;
+}
+function clearMotionTracking(){
+ smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;
+}
+function setHighlightDrawer(open){
+ highlightDrawerOpen=!!open;
+ $('highlightDrawer').hidden=!open;
+ $('highlightToggle').setAttribute('aria-expanded',open?'true':'false');
+ if(open){clearHighlightNotice();renderHighlightCatalog(true);}
+}
+function replayMoment(id){
+ if(!match||replaySession)return false;
+ const entry=resolveHighlight(match,String(id),minute,kickIndex);
+ const clip=clipFor(match,entry);
+ if(!clip)return false;
+ replaySession={entry,clip,elapsed:0,progress:0,saved:{minute,kickIndex,playing,stopAt}};
+ playing=false;last=null;replayLast=null;replaySpeed=.5;
+ clearHighlightNotice();setHighlightDrawer(false);clearMotionTracking();
+ $('highlightReplay').hidden=false;
+ $('highlightReplayTitle').textContent=entry.title+' · '+entry.name;
+ $('highlightReplaySpeed').textContent='0.5× SLOW MO';
+ $('highlightReplayProgress').textContent='0%';
+ render(clip.start,{replay:true,progress:0});
+ return true;
+}
+function returnToMatch(){
+ if(!replaySession)return false;
+ const saved=replaySession.saved;
+ replaySession=null;replayLast=null;last=null;clearMotionTracking();
+ minute=saved.minute;kickIndex=saved.kickIndex;stopAt=saved.stopAt;
+ playing=saved.playing&&minute<stopAt;
+ $('highlightReplay').hidden=true;
+ render(minute);
+ return true;
+}
+function highlightEntryElement(entry,buttonLabel){
+ const row=document.createElement('div');row.className='highlight-entry';
+ const time=document.createElement('span');time.className='highlight-entry-time';
+ time.textContent=entry.kind==='goal'?Math.floor(entry.minute+1)+"′":'PK '+entry.kickIndex;
+ const info=document.createElement('div');info.className='highlight-entry-info';
+ const title=document.createElement('strong');title.textContent=entry.title;
+ const detail=document.createElement('small');detail.textContent=entry.description;
+ info.append(title,detail);
+ const button=document.createElement('button');button.type='button';
+ button.textContent=buttonLabel;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
+ button.addEventListener('click',()=>replayMoment(entry.id));
+ row.append(time,info,button);return row;
+}
+function renderHighlightCatalog(force=false){
+ if(!match||!spriteRoster)return;
+ const all=highlightEntries();
+ const signature=all.map(e=>e.id).join('|')+'::'+highlightFilter;
+ if(!force&&signature===lastCatalogIds)return;
+ lastCatalogIds=signature;
+ $('highlightCount').textContent=String(all.length);
+ const list=$('highlightList'),aside=$('goals');
+ const shown=all.filter(e=>highlightFilter==='all'||e.kind===highlightFilter);
+ list.replaceChildren();aside.replaceChildren();
+ if(!shown.length){
+  const empty=document.createElement('p');empty.className='highlight-empty';
+  empty.textContent=highlightFilter==='set'?
+   'No official set-piece incidents recorded yet. Corners and free kicks remain disabled until PSE records them.':
+   'Official highlights become available after each recorded incident.';
+  list.append(empty);
+ }else for(const entry of shown)list.append(highlightEntryElement(entry,'▶ REPLAY'));
+ if(!all.length){const empty=document.createElement('p');empty.className='highlight-empty';
+  empty.textContent='No official highlights yet.';aside.append(empty);
+ }else for(const entry of all)aside.append(highlightEntryElement(entry,'▶ REPLAY'));
 }
 function cameraFit(canvas,field,ball){
  const p=Settings.projectionMode;
