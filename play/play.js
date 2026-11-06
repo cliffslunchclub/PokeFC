@@ -130,7 +130,7 @@ function selectOpponent(){
  const o=opponent();if(!o)return;
  $('awayName').textContent=o.leader.toUpperCase();
  $('opponentCard').innerHTML='<strong>'+esc(o.leader)+'</strong><p>'+esc(o.city)+' · '+esc(o.region)+' · '+(o.tier==='gym'?'GYM LEADER':o.tier==='elite'?'ELITE FOUR':'CHAMPION')+'</p><span class="type-chip">'+esc(o.type.toUpperCase())+' SPECIALIST</span> <span class="type-chip">'+(o.roster?'FIXED ELITE XI':'GENERATED XI')+'</span>';
- if(!busy){preview=null;currentResult=null;liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
+ if(!busy){closeGoalReplay();preview=null;currentResult=null;renderGoalReplayActions(null);liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
 }
 function drawPitch(){
  const el=$('matchPitch'),ctx=el.getContext('2d');if(!ctx)return;
@@ -523,6 +523,13 @@ function start(){
   $('returnChallenge').hidden=false;
  }
   if(S.length!==1025||OPP.length!==38){$('engineStatus').textContent='Game data incomplete. Reload this page.';return}
+ const replayDialog=$('goalReplayModal');
+ $('closeGoalReplay')?.addEventListener?.('click',closeGoalReplay);
+ if(replayDialog){
+  replayDialog.oncancel=e=>{e.preventDefault?.();closeGoalReplay()};
+  replayDialog.onclose=()=>{goalReplaySession?.destroy?.();goalReplaySession=null};
+ }
+ renderGoalReplayActions(null);
  $('region').addEventListener('change',fillOpponents);
  $('opponent').addEventListener('change',selectOpponent);
  $('fillXI').addEventListener('click',autoFill);
