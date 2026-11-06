@@ -5,7 +5,7 @@ const env={app:{innerHTML:''},exportBtn:{addEventListener(){}},importFile:{addEv
 const document={querySelectorAll:()=>[],getElementById:id=>env[id]||null,addEventListener:(type,fn)=>{document[type]=fn}};
 const store=new Map();const ctx={window:{},document,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},console,Math,confirm:()=>true,alert:()=>{},setTimeout:()=>{},URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},Blob:class{}};
 vm.createContext(ctx);
-for(const f of ['species.js','calibration-profile.js','quick-sim.js','hybrid-sim.js','career.js'])vm.runInContext(fs.readFileSync(root+'/'+f,'utf8'),ctx,{filename:f});
+for(const f of ['species.js','calibration-profile.js','quick-sim.js','career.js'])vm.runInContext(fs.readFileSync(root+'/'+f,'utf8'),ctx,{filename:f});
 const game=ctx.window.FXI_TEST, species=ctx.window.FXI_SPECIES;
 assert.equal(species.length,493);
 assert.equal(new Set(species.map(s=>s.id)).size,493);

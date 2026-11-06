@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf dist
-mkdir -p dist/ratings dist/challenge dist/play/tacticmesh/vendor dist/franchise/tacticmesh/vendor
+mkdir -p dist/ratings dist/challenge dist/play dist/franchise
 
 # Apache cache policy scoped to this dedicated subdomain (not other sites).
 cp .htaccess dist/.htaccess
@@ -24,34 +24,23 @@ cp ratings/index.html dist/ratings/
 cp challenge/index.html challenge/challenge.css challenge/special-items-data.js \
    challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/picker-window.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js dist/challenge/
 
-# Exhibition: its own watched-match worker and TacticMesh bridge; all resources
-# are relative to /play/ so Franchise and Play can independently start workers.
+# Exhibition: PSE computes the result; Soccer-JS renders the Watch.
 cp play/index.html play/play.css play/play.js play/opponents.js dist/play/
-cp tm-engine-bridge.js tm-worker.js hybrid-sim.js dist/play/
 
 # Current 32-gym Franchise stays pinned to its Gen I–IV 493-species database.
 cp franchise/index.html dist/franchise/
 for file in career.css career.js species.js calibration-profile.js quick-sim.js pse-knockout.js \
-            hybrid-sim.js tm-engine-bridge.js tactical-viewer.js soccerjs-franchise-viewer.js tm-worker.js; do
+            tactical-viewer.js soccerjs-franchise-viewer.js; do
   cp "$file" "dist/franchise/$file"
 done
 
-# Genuine pinned MIT-licensed TacticMesh runtime, required by both Watch modes.
-for mode in play franchise; do
-  cp tacticmesh/vendor/*.js tacticmesh/vendor/installed.json \
-     tacticmesh/vendor/LICENSE tacticmesh/vendor/THIRD_PARTY_NOTICES.md \
-     "dist/$mode/tacticmesh/vendor/"
-done
-
-# The public Watch bridge is loaded by Play/Franchise even when the native
-# Soccer-JS renderer bundle is excluded. It is safe to ship independently and
-# must be present for local resource validation and legacy Watch fallback.
+# The shared authoritative Watch bridge is used by all game modes. The native
+# Soccer-JS assets are included when explicitly requested by the build.
 mkdir -p dist/watch/soccerjs
 cp watch/soccerjs/watch-bridge.js dist/watch/soccerjs/
 
-# Optional, explicit development-only Soccer-JS packaging. Normal production
-# deployment is unchanged unless the environment flag is set to 1. Build native
-# Soccer-JS assets locally first; NEVER ship the experiments or Quick Sim source.
+# Build native Soccer-JS assets before production packaging and pass
+# PFC_INCLUDE_SOCCERJS=1. Developer-only partial builds may omit the bundle.
 if [[ "${PFC_INCLUDE_SOCCERJS:-0}" == "1" ]]; then
   for file in index.html viewer.css viewer.bundle.js SOCCER-JS-LICENSE.txt; do
     test -s "watch/soccerjs/dist/$file" || { echo "Missing compiled Soccer-JS asset: $file" >&2; exit 1; }
@@ -68,7 +57,7 @@ if [[ "${PFC_INCLUDE_SOCCERJS:-0}" == "1" ]]; then
   test ! -e dist/watch/soccerjs/dist/fixture.json
   test -s dist/watch/soccerjs/dist/viewer.bundle.js
   test -s dist/watch/soccerjs/dist/assets/pfc-soccer-ball.svg
-  echo "Included opt-in Soccer-JS 2.5D assets for a controlled development deploy."
+  echo "Included native Soccer-JS 2.5D assets for the production Watch."
 elif [[ "${PFC_INCLUDE_SOCCERJS:-0}" != "0" ]]; then
   echo "PFC_INCLUDE_SOCCERJS must be 0 or 1" >&2
   exit 1
@@ -110,9 +99,6 @@ for page in pages:
         raise SystemExit(f"Missing final newtro theme: {page}")
     for mode in ["play","challenge","franchise"]:
         if f'href="{expected}{mode}/"' not in h:raise SystemExit(f"Missing game mode link: {page}: {mode}")
-for mode in ["franchise","play"]:
-    for f in ["tm-worker.js","tm-engine-bridge.js","tacticmesh/vendor/installed.json","tacticmesh/vendor/core.js","tacticmesh/vendor/engine-facade.js","tacticmesh/vendor/LICENSE"]:
-        if not (root/mode/f).is_file():raise SystemExit("Missing real watched-match dependency: "+mode+"/"+f)
 policy=(root/".htaccess")
 if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htaccess")
 rules=policy.read_text()
@@ -120,7 +106,7 @@ if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" 
     raise SystemExit("PokéFC cache policy missing revalidation directives")
 for f in ["watch/soccerjs/watch-bridge.js","favicon.svg","newtro.css","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
-for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","tacticmesh/optimized","career.js","tm-worker.js","tacticmesh/vendor"]:
+for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","career.js","tm-worker.js","tm-engine-bridge.js","hybrid-sim.js","tacticmesh/vendor","play/tm-worker.js","play/tm-engine-bridge.js","play/hybrid-sim.js","play/tacticmesh","franchise/tm-worker.js","franchise/tm-engine-bridge.js","franchise/hybrid-sim.js","franchise/tacticmesh"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)
 assert '1,025' in (root/"index.html").read_text()
 assert 'XI GRADE' in (root/"index.html").read_text()

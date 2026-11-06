@@ -24,15 +24,12 @@ on:
       - "species.js"
       - "quick-sim.js"
       - "calibration-profile.js"
-      - "hybrid-sim.js"
-      - "tm-engine-bridge.js"
       - "tactical-viewer.js"
       - "soccerjs-franchise-viewer.js"
-      - "tm-worker.js"
-      - "tacticmesh/vendor/**"
       - "scripts/build-siteground.sh"
       - "tests/test-national-dex.cjs"
       - "tests/test-free-builder.cjs"
+      - "tests/test-tacticmesh-retired.cjs"
       - "tests/test-branding.cjs"
       - "tests/test-newtro-ui.cjs"
       - "tests/test-play.cjs"
@@ -48,7 +45,6 @@ on:
       - "tests/test-challenge-run-card.cjs"
       - "tests/test-challenge-v1-flow.cjs"
       - "tests/test-challenge-striker-first.cjs"
-      - "tests/test-challenge-watch-v1.cjs"
       - "tests/test-challenge-slot-reels.cjs"
       - "tests/test-challenge-unique-rerolls.cjs"
       - "tests/test-challenge-tier-positions.cjs"
@@ -67,7 +63,6 @@ on:
       - "tests/test-franchise-soccerjs-watch.cjs"
       - "tests/test-soccerjs-shot-ledger.cjs"
       - "tests/test-challenge-soccerjs-watch.cjs"
-      - "tests/test-hybrid.cjs"
       - ".github/workflows/deploy-siteground.yml"
 
 permissions:
@@ -103,6 +98,7 @@ jobs:
           node --check challenge/item-optimizer.js
           node tests/test-national-dex.cjs
           node tests/test-play.cjs
+          node tests/test-tacticmesh-retired.cjs
           node tests/test-phase10-quickplay-lifecycle.cjs
           node watch/soccerjs/test-isometric-motion.cjs
           node watch/soccerjs/test-goal-kickoff-reset.cjs
@@ -121,7 +117,6 @@ jobs:
           node tests/test-challenge-run-card.cjs
           node tests/test-challenge-v1-flow.cjs
           node tests/test-challenge-striker-first.cjs
-          node tests/test-challenge-watch-v1.cjs
           node tests/test-challenge-slot-reels.cjs
           node tests/test-challenge-unique-rerolls.cjs
           node tests/test-challenge-tier-positions.cjs
@@ -142,7 +137,6 @@ jobs:
           node tests/test-v08-league.cjs
           node tests/test-franchise-soccerjs-watch.cjs
           node tests/test-challenge-soccerjs-watch.cjs
-          node tests/test-hybrid.cjs
 
       - name: Check out pinned Soccer-JS native renderer
         uses: actions/checkout@v4
@@ -152,7 +146,7 @@ jobs:
           path: soccer-js-upstream
           persist-credentials: false
 
-      - name: Compile native Soccer-JS 2.5D for opt-in Watch
+      - name: Compile native Soccer-JS 2.5D Watch renderer
         shell: bash
         run: |
           set -euo pipefail
@@ -171,14 +165,14 @@ jobs:
           cp soccer-js-upstream/LICENSE watch/soccerjs/dist/SOCCER-JS-LICENSE.txt
           test -s watch/soccerjs/dist/viewer.bundle.js
 
-      - name: Build the public playtest (2.5D opt-in only)
+      - name: Build the public PSE + Soccer-JS release
         run: PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
 
       - name: Validate public output
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js play/hybrid-sim.js play/tm-engine-bridge.js play/tm-worker.js play/tacticmesh/vendor/installed.json play/tacticmesh/vendor/LICENSE challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/hybrid-sim.js franchise/tm-engine-bridge.js franchise/tm-worker.js franchise/tactical-viewer.js franchise/soccerjs-franchise-viewer.js franchise/tacticmesh/vendor/installed.json franchise/tacticmesh/vendor/LICENSE; do
+          for file in index.html favicon.svg ratings/index.html site.css builder.js builder.css national-species.js quick-sim.js calibration-profile.js play/index.html play/play.css play/play.js play/opponents.js challenge/index.html challenge/challenge.css challenge/leaderboard.js challenge/run-card.js challenge/slot-reels.js challenge/tiers.js challenge/match-report.js challenge/drag-drop.js challenge/performance.js challenge/item-optimizer.js challenge/special-items-data.js franchise/index.html franchise/career.js franchise/career.css franchise/tactical-viewer.js franchise/soccerjs-franchise-viewer.js ; do
             test -s "dist/$file"
           done
           test -s dist/.htaccess
@@ -196,6 +190,11 @@ jobs:
           test ! -e dist/legacy-v07c
           test ! -e dist/career.js
           test ! -e dist/tacticmesh/vendor
+          test ! -e dist/play/tacticmesh
+          test ! -e dist/franchise/tacticmesh
+          node tests/test-tacticmesh-retired.cjs
+          test ! -e dist/play/tm-worker.js
+          test ! -e dist/franchise/tm-engine-bridge.js
           test ! -e dist/calibration
           test ! -e dist/tests
           echo "All five pages validated: Home, Ratings guide and three modes (Play, Challenges, Franchise)."

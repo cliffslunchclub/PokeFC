@@ -1,5 +1,5 @@
 'use strict';
-// Quick Play integration lifecycle regression for the opt-in Soccer-JS path.
+// Quick Play integration lifecycle regression for the default Soccer-JS path.
 // Exercises the actual app controller with the real Quick Sim, but replaces the
 // network viewer iframe with a deterministic bridge stub (visual browser tests
 // run separately in the public simulation repository).
@@ -81,7 +81,8 @@ for(const filename of ['national-species.js','calibration-profile.js','quick-sim
 }
 assert(context.window.PFC_PLAY);
 assert.equal(el('watch').disabled,false,'Default 2.5D Watch button should be ready after bridge script');
-assert.equal(el('watchEngineSwitch').href,'?watch=tacticmesh','Explicit legacy rollback link is available');
+assert(!fs.readFileSync(path.join(root,'play/index.html'),'utf8').includes('watchEngineSwitch'),
+ 'Retired TacticMesh engine switch must not be exposed');
 assert.equal(el('soccerWatchActions').hidden,true,'Pre-match controls hidden');
 el('watch').events.click();
 assert.equal(sessions.length,1,'First Watch should start');

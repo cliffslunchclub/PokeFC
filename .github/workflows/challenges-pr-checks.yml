@@ -48,16 +48,14 @@ jobs:
             echo "Testing $file"
             node "$file"
           done
-      - name: Verify watched-match bridge and continuation
+      - name: Verify PSE and Soccer-JS match lifecycle
         run: |
           node --check play/play.js
-          node --check tm-engine-bridge.js
-          node --check tm-worker.js
-          node --check hybrid-sim.js
-          node tests/test-tm-worker.cjs
-          node tests/test-tm-bridge.cjs
-          node tests/test-tm-handoff.cjs
-          node tests/test-hybrid.cjs
+          node --check tactical-viewer.js
+          node --check soccerjs-franchise-viewer.js
+          node tests/test-phase10-quickplay-lifecycle.cjs
+          node tests/test-franchise-soccerjs-watch.cjs
+          node tests/test-tacticmesh-retired.cjs
           node tests/test-play.cjs
       - name: Validate build packaging when native Soccer-JS assets are available
         run: |
