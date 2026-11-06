@@ -129,6 +129,10 @@ function press(f,field,seconds,visual,shape,actors,ball){
   side=1-shape.active;
   // Ordinary defending closes space without a sudden pressure reset.
   intensity=.48*ease(phase/.30)*(1-ease((phase-.62)/.36));
+  // Recovery pressure reaches zero at age 10. Ease ordinary marking back
+  // in over the next 1.3 s; otherwise a defender can jump several meters
+  // instantly at the recovery-to-settled boundary.
+  if(shape.turnover)intensity*=ease((shape.age-10)/1.3);
   anchor=stage.from;
  }
  intensity*=shape.profiles[side].press;
