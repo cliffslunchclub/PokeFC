@@ -5,6 +5,7 @@ const {Simulator}=require('./kernel/providers/simulator/simulator.js');
 const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
+const Pace=require('./phase10-player-pace.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
@@ -186,17 +187,13 @@ function smoothMotion(script,t){
   trackedMinute=t;trackedPhase=script.action;return script;
  }
  const seconds=Math.max(0,(t-trackedMinute)*60);
- const follow=(prev,next,maxDistance)=>{
-  const dx=next.x-prev.x,dy=next.y-prev.y,distance=Math.hypot(dx,dy);
-  if(!distance||distance<=maxDistance)return {...next};
-  const ratio=maxDistance/distance;
-  return {...next,x:prev.x+dx*ratio,y:prev.y+dy*ratio};
- };
- const actors=script.actors.map((p,i)=>{
-  const prev=trackedActors[i];
-  return {...p,...follow(prev,p,seconds*6.5)};
- });
- const ball=follow(trackedBall,script.ball,seconds*28);
+ // Apply the same travel-speed rules after a pass as before it.
+ // Only active counterpressers get a short 5 m/s burst; neither their
+ // position nor that of a recent passer can jump to a new tactical target.
+ const actors=script.actors.map((p,i)=>({
+  ...p,...Pace.approach(trackedActors[i],p,seconds,Pace.speedFor(script,i))
+ }));
+ const ball=Pace.approach(trackedBall,script.ball,seconds,28);
  trackedActors=actors.map(p=>({x:p.x,y:p.y}));
  trackedBall={x:ball.x,y:ball.y,z:ball.z};
  trackedMinute=t;trackedPhase=script.action;
