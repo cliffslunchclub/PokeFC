@@ -39,7 +39,7 @@ const doc={
  return controls.get(id)}};
 const ctx=vm.createContext({window:{matchMedia:()=>({matches:reducedMotion})},document:doc,console,localStorage:{getItem(){return saved},setItem(k,v){saved=v}},
  crypto:{getRandomValues(a){a[0]=18391;return a}},alert:()=>{},confirm:()=>true});
-for(const file of ['assets/js/national-assets/js/species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
+for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js']){
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
 }
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');

@@ -53,7 +53,7 @@ function launch(storage,initial){
  confirm(){throw Error('Browser confirm forbidden')}
  };
  const ctx=vm.createContext(env);
- for(const file of ['assets/js/national-assets/js/species.js','assets/js/calibration-profile.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js','challenge/leaderboard.js']){
+ for(const file of ['assets/js/national-species.js','assets/js/calibration-profile.js','challenge/special-items-data.js','challenge/tiers.js','play/opponents.js','challenge/leaderboard.js']){
   vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
  }
  vm.runInContext(inline,ctx,{filename:'challenge-inline',timeout:15000});
