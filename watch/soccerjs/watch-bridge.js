@@ -350,7 +350,7 @@
    // Highlight controls are presentation-only; no Sim-to-Watch handoff.
    openHighlights:()=>!handedOff&&!closed&&!recorded&&send('highlights'),
    replayHighlight:(id)=>!handedOff&&!closed&&!recorded&&
-    typeof id==='string'&&/^(goal|pk)-\\d+$/.test(id)&&send('replay',{id}),
+    typeof id==='string'&&/^(goal|pk)-\d+$/.test(id)&&send('replay',{id}),
    // Rewind/scrub is visual only. After Watch → Sim, replay cannot resume.
    seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=duration&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
    simToEnd:()=>{
