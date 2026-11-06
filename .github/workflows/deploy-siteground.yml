@@ -23,6 +23,7 @@ on:
       - "assets/js/career.js"
       - "assets/js/species.js"
       - "assets/js/quick-sim.js"
+      - "assets/js/position-effectiveness.js"
       - "assets/js/calibration-profile.js"
       - "assets/js/tactical-viewer.js"
       - "assets/js/soccerjs-franchise-viewer.js"
@@ -98,6 +99,8 @@ jobs:
           node --check challenge/performance.js
           node --check challenge/item-optimizer.js
           node tests/test-national-dex.cjs
+          node tests/test-pokemon-position-v2.cjs
+          node tests/test-realistic-position-swaps.cjs
           node tests/test-play.cjs
           node tests/test-tacticmesh-retired.cjs
           node tests/test-phase10-quickplay-lifecycle.cjs
