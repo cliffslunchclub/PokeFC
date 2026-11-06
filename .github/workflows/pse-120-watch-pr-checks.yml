@@ -27,6 +27,7 @@ jobs:
         run: |
           node tests/test-watch-highlights.cjs
           node tests/test-watch-fullscreen.cjs
+          node tests/test-watch-badge-numbers.cjs
           node tests/test-pse-120-watch.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node watch/soccerjs/test-isometric-motion.cjs
