@@ -9,7 +9,7 @@ const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null;
+let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -105,7 +105,11 @@ function smoothMotion(script,t){
 }
 function render(t){
  const field=Utils.getFieldBounds(),s=scoreAt(t);
- const script=smoothMotion(motionFrame(match,t,field),t);
+ // Shootout poses are official incident visualizations: bypass locomotion
+ // smoothing at a fixed 120' clock, otherwise the ball would never move.
+ const script=match.shootout&&t>=match.durationMinutes&&kickIndex>0?
+  motionFrame(match,t,field,{kickIndex}):
+  smoothMotion(motionFrame(match,t,field),t);
  for(const p of script.actors){
   const actor=(p.side===0?sim.teamA:sim.teamB).players[p.index];
   actor.x=p.x;actor.y=p.y;actor.z=p.z;
@@ -188,17 +192,37 @@ function advanceKick(){
 function step(now){
  if(playing){
   if(last!==null){
-    const elapsed=Math.max(0,(now-last)/1000);
-    // Background/suspended tabs pause instead of teleporting 30 seconds ahead.
-    if(elapsed>2){playing=false;last=null;}
-    else minute=Math.min(stopAt,minute+elapsed*playbackRate(minute,match.events,speed));
-   }
-  if(minute>=stopAt)playing=false;
-  last=now;render(minute);
+   const elapsed=Math.max(0,(now-last)/1000);
+   // A suspended tab pauses rather than skipping extra time or penalty kicks.
+   if(elapsed>2){playing=false;last=null;}
+   else if(minute<stopAt)minute=Math.min(stopAt,
+    minute+elapsed*playbackRate(minute,match.events,speed));
+   else if(minute>=match.durationMinutes&&match.shootout&&
+    kickIndex<match.shootout.attempts.length){
+    kickElapsed+=elapsed*speed;
+    if(kickElapsed>=1.2)advanceKick();
+   }else playing=false;
+  }
+  if(minute>=stopAt&&(minute<match.durationMinutes||
+   !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
+  last=playing?now:null;
+  render(minute);
  }
  requestAnimationFrame(step);
 }
-function seek(t){playing=false;last=null;smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;minute=Math.max(0,Math.min(90,t));render(minute);}
+function seek(t){
+ playing=false;last=null;smoothedFocus=null;
+ trackedActors=null;trackedBall=null;trackedMinute=null;kickElapsed=0;
+ minute=Math.max(0,Math.min(match.durationMinutes,t));
+ if(minute<match.durationMinutes)kickIndex=0;
+ render(minute);
+}
+function finish(){
+ playing=false;last=null;smoothedFocus=null;
+ trackedActors=null;trackedBall=null;trackedMinute=null;
+ minute=match.durationMinutes;kickIndex=match.shootout?.attempts.length||0;
+ kickElapsed=0;render(minute);
+}
 async function boot(){
  try{
   window.__APP_ROOT__=new URL('./',location.href).href;
