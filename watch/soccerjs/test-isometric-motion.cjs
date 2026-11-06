@@ -6,8 +6,8 @@ const initial=JSON.stringify(fixture);
 const field={width:106,height:68};
 const types=new Set(),teamIds=[fixture.home.id,fixture.away.id];
 let runs=0;
-for(let second=0;second<=300;second++){
- const minute=second/60; // sample every match second so short first-touch phases are covered
+for(let tick=0;tick<=1200;tick++){
+ const minute=tick/240; // 0.25-second samples include short controlled first touches
  const frame=motionFrame(fixture,minute,field);
  assert.deepEqual(frame,motionFrame(fixture,minute,field));
  assert.equal(frame.actors.length,22);
