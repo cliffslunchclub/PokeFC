@@ -22,6 +22,7 @@ function grade(n){
  return n>=85?'S':n>=75?'A':n>=65?'B':n>=55?'C':'D';
 }
 function gradeFor(s,role){return s?grade(rating(s,role)):'—'}
+function efficiencyFor(s,role){return s?Math.round(window.PFC_POSITION_EFFECTIVENESS.competitiveProfile(s.baseStats,role).efficiency*100)+'%':'—'}
 function escapeHtml(t){return String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 const $=id=>document.getElementById(id);
 // Gen I starting showcase; saved lineups and deliberate clears stay intact.
@@ -58,7 +59,7 @@ function renderPitch(){
   const p=BY.get(state.lineup[i]);
   return '<button type="button" class="pitch-slot '+(i===state.selected?'selected ':'')+(!p?'empty':'')+'" data-slot="'+i+'" style="left:'+x+'%;top:'+y+'%" aria-label="'+escapeHtml(role+' '+(p?p.name:'empty'))+'">'+
     '<span class="role">'+role+'</span>'+
-    (p?'<img alt="" loading="lazy" src="'+sprite(p.id)+'"><span class="name">'+escapeHtml(p.name)+'</span><span class="ovr grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</span>':
+    (p?'<img alt="" loading="lazy" src="'+sprite(p.id)+'"><span class="name">'+escapeHtml(p.name)+'</span><span class="fit-badges"><span class="ovr grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</span><span class="efficiency" title="Competitive match efficiency">'+efficiencyFor(p,role)+'</span></span>':
      '<span class="slot-plus">+</span><span class="name">OPEN</span>')+'</button>';
  }).join('');
 }
@@ -68,7 +69,7 @@ function renderProspects(){
  const role=FORMATIONS[state.formation][state.selected][0],current=BY.get(state.lineup[state.selected]),q=normalizeSearch($('search').value.trim()),type=$('typeFilter').value,gen=$('genFilter').value;
  $('scoutTitle').textContent=ROLES[role];$('selectedRole').textContent=role;
  $('currentPick').innerHTML=current?
-   '<strong>'+escapeHtml(current.name)+'</strong> · '+gradeFor(current,role)+' '+role+' FIT <button id="removePick" class="btn" type="button" style="float:right;padding:4px 9px;min-height:26px;margin-top:-3px">Remove</button><span class="current-detail">'+escapeHtml(details(current))+'</span>':
+   '<strong>'+escapeHtml(current.name)+'</strong> · '+gradeFor(current,role)+' '+role+' FIT · '+efficiencyFor(current,role)+' EFFICIENCY <button id="removePick" class="btn" type="button" style="float:right;padding:4px 9px;min-height:26px;margin-top:-3px">Remove</button><span class="current-detail">'+escapeHtml(details(current))+'</span>':
    'Select a Pokémon to fill the '+escapeHtml(role)+' position.';
  const used=new Set(state.lineup.filter(Boolean));
  const opts=S.filter(p=>(!q||normalizeSearch(p.name).includes(q)||normalizeSearch(p.slug||'').includes(q)||String(p.id)===q||String(p.id).padStart(4,'0')===q)&&(!gen||String(p.gen)===gen)&&(!type||p.types.includes(type)))
@@ -79,7 +80,7 @@ function renderProspects(){
   return '<button type="button" class="prospect '+(chosen?'chosen':'')+'" data-species="'+p.id+'" '+(chosen&&!here?'disabled':'')+'>'+
     '<img src="'+sprite(p.id)+'" alt="" loading="lazy">'+
     '<span class="identity"><strong>'+escapeHtml(p.name)+'</strong><small>#'+String(p.id).padStart(4,'0')+' · '+p.types.map(escapeHtml).join(' / ')+'</small><small>'+escapeHtml(details(p))+'</small></span>'+
-    '<span class="overall"><b class="grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</b><small>'+role+' FIT</small></span>'+
+    '<span class="overall"><b class="grade-'+gradeFor(p,role).toLowerCase()+'">'+gradeFor(p,role)+'</b><small>'+efficiencyFor(p,role)+' EFF</small></span>'+
     '<span class="select-marker">'+(here?'✓':chosen?'●':'+')+'</span></button>';
  }).join('') || '<p class="empty-results">No Pokémon matched. Try a different search or type.</p>';
  $('prospects').dataset.expanded=limit>PAGE_SIZE?'true':'false';
