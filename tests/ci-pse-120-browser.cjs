@@ -85,6 +85,26 @@ async function serve(){
    assert.equal(restored.replay,null,'Replay return must restore live viewer');
    assert(restored.minute>=firstGoal.minute,'Watch position must resume after goal');
    await page.locator('#pause').click();
+   // A scored ball stays in the goal before a deliberate broadcast CUT to
+   // center-circle kickoff, never gliding backwards across the field.
+   const holdMinute=firstGoal.minute+.14,restartMinute=firstGoal.minute+.22001;
+   await page.locator('#scrub').evaluate((el,v)=>{
+    el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
+   },holdMinute);
+   const held=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(held.animation,'official-goal','Goal ball should stay in the net on '+device);
+   await page.locator('#scrub').evaluate((el,v)=>{
+    el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
+   },restartMinute);
+   const restarted=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(restarted.animation,'illustrative-kickoff','Missing kickoff broadcast cut on '+device);
+   assert.equal(restarted.ballContact,'kickoff-setup');
+   assert(restarted.carrier>=0,'Kickoff player has not established control on '+device);
+   assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)>15,
+    'A reset cut should not pretend the scored ball travels backwards to midfield');
+   assert.deepEqual(restarted.score,bridge.scoreAt(fixture,restartMinute),
+    'Kickoff visual must never change the official PSE score');
+   await page.screenshot({path:path.join(screenshotDir,'pse-kickoff-'+device+'.png')});
    await page.locator('#highlightToggle').click();
    assert((await page.locator('#highlightList .highlight-entry').count())>0,
     'A recorded goal must be replayable from the highlight drawer');
