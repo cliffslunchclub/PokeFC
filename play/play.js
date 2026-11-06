@@ -239,7 +239,12 @@ function saveChallengeResult(result){
   outcome,tiebreak,shootout,seed:preview.seed,origin:official.origin,
   ...(ko?{knockoutRules:'pse-knockout-v1',regulationScore:ko.regulationScore,
    extraTime:ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events}:null}:{}),
-  report:window.PFC_MATCH_REPORT?.fromResult(official,preview)||null};
+  report:window.PFC_MATCH_REPORT?.fromResult(official,preview)||null,
+  // Keep the exact PSE fixture and event ledger for a read-only 2.5D goal
+  // replay after Watch → Sim to End navigates back to Challenges. Do not
+  // regenerate the result from a later engine version or change progression.
+  ...(official.origin==='quick-sim'?{replay:{version:1,
+   preview:{home:preview.home,away:preview.away},result:official}}:{})};
  challenge.history=Array.isArray(challenge.history)?challenge.history:[];
  challenge.result=record;challenge.history.push({...record});
  challenge.phase=outcome!=='Victory'||challenge.round===5?'finished':'result';
