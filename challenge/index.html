@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=32">
+<link rel="stylesheet" href="./challenge.css?v=33">
 <link rel="stylesheet" href="../newtro.css?v=1">
 </head>
 <body>
@@ -61,13 +61,6 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
  <button id="challengeTabRun" type="button" class="active" aria-current="page">PLAY CHALLENGE</button>
  <button id="challengeTabRankings" type="button">LEADERBOARDS <span>LOCAL BETA</span></button>
 </nav>
-<section class="challenge-save-toolbar" aria-label="Challenge save and load">
- <div class="challenge-save-buttons">
-  <button id="saveChallengeSlot" type="button" disabled> <span aria-hidden="true">▣</span> SAVE RUN</button>
-  <button id="loadChallengeSlot" type="button"> <span aria-hidden="true">↶</span> LOAD RUN</button>
- </div>
- <span id="challengeSaveStatus" role="status" aria-live="polite">ONE MANUAL SAVE PER DIVISION · STORED IN THIS BROWSER</span>
-</section>
 <main id="app"></main>
 <dialog id="challengeMessageModal" class="challenge-dialog challenge-message-modal" aria-labelledby="challengeMessageTitle" aria-describedby="challengeMessageText">
  <div class="challenge-message-content">
@@ -77,19 +70,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
   <div class="challenge-message-actions"><button type="button" id="challengeMessageCancel">CANCEL</button><button type="button" id="challengeMessageConfirm" class="primary">OK</button></div>
  </div>
 </dialog>
-<dialog id="challengeSaveLoadModal" class="challenge-dialog challenge-save-load-modal" aria-labelledby="challengeSaveLoadTitle" aria-describedby="challengeSaveLoadHelp">
- <div class="challenge-dialog-bar"><span>POKÉFC · SAVED CHALLENGES</span><button type="button" id="closeChallengeSaveLoad">CLOSE</button></div>
- <div class="challenge-save-load-body">
-  <h2 id="challengeSaveLoadTitle">LOAD SAVED RUN</h2>
-  <p id="challengeSaveLoadHelp">One manual save per division. Loading replaces the current active run. Saves stay on this browser.</p>
-  <div class="challenge-save-slot-grid">
-   <button type="button" id="loadSlot-classic-standard"><strong>CLASSIC · STANDARD</strong><small id="slotStatus-classic-standard">EMPTY SLOT</small></button>
-   <button type="button" id="loadSlot-classic-legends"><strong>CLASSIC · LEGENDS</strong><small id="slotStatus-classic-legends">EMPTY SLOT</small></button>
-   <button type="button" id="loadSlot-national-standard"><strong>NATIONAL · STANDARD</strong><small id="slotStatus-national-standard">EMPTY SLOT</small></button>
-   <button type="button" id="loadSlot-national-legends"><strong>NATIONAL · LEGENDS</strong><small id="slotStatus-national-legends">EMPTY SLOT</small></button>
-  </div>
- </div>
-</dialog>
+
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=4"></script><script src="../pse-knockout.js?v=1"></script><script src="./special-items-data.js?v=2"></script>
 <script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
@@ -349,142 +330,6 @@ function showChallengeMessage(title,message,options={}){
 }
 
 
-/* One manual snapshot per leaderboard division; existing autosave and results
- * history remain separate. Saving does not advance the seeded RNG or simulate
- * a match. Loading is a deliberate replacement of the active browser run. */
-const MANUAL_SAVE_KEY='pokefc-challenge-manual-saves-v1';
-const SAVE_DIVISIONS=[
- {id:'classic-standard',label:'CLASSIC · STANDARD'},
- {id:'classic-legends',label:'CLASSIC · LEGENDS'},
- {id:'national-standard',label:'NATIONAL · STANDARD'},
- {id:'national-legends',label:'NATIONAL · LEGENDS'}
-];
-const saveDivision=run=>(run.pool===4?'classic':'national')+'-'+(run.legends?'legends':'standard');
-function readManualSaves(){
- try{
-  const value=JSON.parse(localStorage.getItem(MANUAL_SAVE_KEY)||'{}');
-  return value&&typeof value==='object'&&!Array.isArray(value)?value:{};
- }catch{return {}}
-}
-function validManualSave(slot,division){
- const run=slot?.state;
- if(!run||slot.version!==1||typeof slot.savedAt!=='string'||saveDivision(run)!==division)return false;
- if(run.version!==1||![4,9].includes(run.pool)||typeof run.legends!=='boolean')return false;
- if(!['draft','shop','locked','result','finished'].includes(run.phase)||!FORMS[run.formation])return false;
- if(!['balanced','attacking','defensive','press','counter','possession'].includes(run.tactic))return false;
- if(!Array.isArray(run.roster)||run.roster.length!==11||!Array.isArray(run.items)||run.items.length!==11)return false;
- if(!run.roster.every(id=>id===null||(Number.isInteger(id)&&BY.has(id))))return false;
- const taken=run.roster.filter(id=>id!==null);
- if(new Set(taken).size!==taken.length)return false;
- if(!run.items.every(item=>item===null||(typeof item==='string'&&item.length<=100)))return false;
- if(!Number.isInteger(run.rng)||run.rng<0||!Number.isInteger(run.round)||run.round<0||run.round>5)return false;
- if(!Number.isInteger(run.selected)||run.selected<0||run.selected>=11)return false;
- if(!Array.isArray(run.history)||run.history.length>6||!Array.isArray(run.rollHistory)||run.rollHistory.length>300)return false;
- if(run.roll!==null&&(!run.roll||!Number.isInteger(run.roll.gen)||typeof run.roll.type!=='string'))return false;
- if(['locked','result','finished'].includes(run.phase)){
-  if(!run.locked||!Array.isArray(run.locked.roster)||run.locked.roster.length!==11||
-    !Array.isArray(run.locked.items)||run.locked.items.length!==11)return false;
- }
- return true;
-}
-function resetManualView(){
- selectedShopItem=null;shopMessage='';shopScrollTop=0;dragStatus='';autoEquipSummary='';
- shopStatFilters.clear();draftPickerOpen=true;shopDrawerOpen=true;
- draftWindowPosition=null;shopWindowPosition=null;
- matchResultDismissed=false;runRecapDismissed=false;runRecapStage='match';
- pendingRollAnimation=false;slotAnimationBusy=false;draftScrollTop=0;challengeView='run';
-}
-function syncManualSaveBar(){
- const saveButton=document.getElementById('saveChallengeSlot');
- const status=document.getElementById('challengeSaveStatus');
- if(!saveButton||!status)return;
- saveButton.disabled=st.phase==='setup';
- if(st.phase==='setup'){status.textContent='ONE SAVE PER DIVISION · CHOOSE A MODE AND BEGIN TO SAVE';return}
- const division=saveDivision(st),found=validManualSave(readManualSaves()[division],division);
- const label=SAVE_DIVISIONS.find(d=>d.id===division)?.label||division;
- status.textContent=label+' · '+(found?'SLOT SAVED · SAVE AGAIN TO OVERWRITE':'NO MANUAL SAVE YET');
-}
-function refreshManualSlots(){
- const all=readManualSaves();
- for(const division of SAVE_DIVISIONS){
-  const slot=all[division.id],valid=validManualSave(slot,division.id);
-  const button=document.getElementById('loadSlot-'+division.id);
-  const status=document.getElementById('slotStatus-'+division.id);
-  if(!button||!status)continue;
-  button.disabled=!valid;
-  if(!slot)status.textContent='EMPTY SLOT';
-  else if(!valid)status.textContent='UNAVAILABLE / INVALID SAVE';
-  else {
-   const date=new Date(slot.savedAt);
-   const when=Number.isFinite(date.getTime())?date.toLocaleString():'DATE UNKNOWN';
-   status.textContent=slot.state.phase.toUpperCase()+' · MATCH '+(slot.state.round+1)+'/6 · '+when;
-  }
- }
-}
-function saveChallengeSnapshot(){
- if(st.phase==='setup')return;
- const division=saveDivision(st),label=SAVE_DIVISIONS.find(d=>d.id===division)?.label||division;
- const write=()=>{
-  const data=readManualSaves();
-  const slot={version:1,savedAt:new Date().toISOString(),state:JSON.parse(JSON.stringify(st))};
-  if(!validManualSave(slot,division)){
-   showChallengeMessage('SAVE UNAVAILABLE','This challenge state cannot be saved safely.');
-   return;
-  }
-  data[division]=slot;
-  try{
-   localStorage.setItem(MANUAL_SAVE_KEY,JSON.stringify(data));
-   syncManualSaveBar();
-   showChallengeMessage('RUN SAVED',label+' saved in its single local slot. Save again to overwrite it.');
-  }catch{
-   showChallengeMessage('SAVE FAILED','The browser could not store the run. Check available browser storage and try again.');
-  }
- };
- if(readManualSaves()[division]){
-  showChallengeMessage('OVERWRITE '+label+'?', 'This division only has one manual save slot. Replace the previous snapshot with your current run?',{
-   confirmLabel:'OVERWRITE SAVE',destructive:true,onConfirm:write
-  });
- }else write();
-}
-function loadChallengeSnapshot(division){
- const slot=readManualSaves()[division];
- if(!validManualSave(slot,division)){
-  showChallengeMessage('SAVE UNAVAILABLE','No valid manual save exists for that division.');
-  return;
- }
- const label=SAVE_DIVISIONS.find(d=>d.id===division)?.label||division;
- const restore=()=>{
-  const previous=st;
-  st=JSON.parse(JSON.stringify(slot.state));
-  try{save()}catch{
-   st=previous;
-   showChallengeMessage('LOAD FAILED','The browser could not update its autosave. Check available storage and try again.');
-   return;
-  }
-  resetManualView();
-  render();
-  showChallengeMessage('RUN LOADED',label+' restored from its manual save slot. Your active run is now this saved snapshot.');
- };
- if(st.phase!=='setup'){
-  showChallengeMessage('LOAD '+label+'?', 'Loading this save replaces the current active run and its autosave. Your manual save slots and leaderboard records remain unchanged.',{
-   confirmLabel:'LOAD SAVED RUN',destructive:true,onConfirm:restore
-  });
- }else restore();
-}
-function wireManualSaveControls(){
- document.getElementById('saveChallengeSlot').onclick=saveChallengeSnapshot;
- document.getElementById('loadChallengeSlot').onclick=()=>{
-  refreshManualSlots();openDialog(document.getElementById('challengeSaveLoadModal'));
- };
- document.getElementById('closeChallengeSaveLoad').onclick=()=>closeDialog(document.getElementById('challengeSaveLoadModal'));
- for(const division of SAVE_DIVISIONS){
-  document.getElementById('loadSlot-'+division.id).onclick=()=>{
-   closeDialog(document.getElementById('challengeSaveLoadModal'));
-   loadChallengeSnapshot(division.id);
-  };
- }
-}
-
 function syncChallengeNav(){
  const run=document.getElementById('challengeTabRun'),board=document.getElementById('challengeTabRankings');
  run.className=challengeView==='run'?'active':'';
@@ -740,13 +585,13 @@ function completedRunCard(){
  return '<section class="panel challenge-complete-panel">'+
   '<div class="run-result-heading"><span class="pfc-eyebrow">'+(r.champion?'CHALLENGE CHAMPION':'RUN COMPLETE')+'</span><span class="run-outcome '+(r.champion?'success':'ended')+'">'+(r.champion?'🏆 SIX WINS · CHAMPION':'LOSS · '+esc(versusLabel(last?.boss)))+'</span></div>'+
   '<h2 id="runResultTitle">'+(r.champion?'INDIGO CHAMPION.':'YOUR RUN RECAP.')+'</h2>'+
-  '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Save your squad and results or try another draft.')+'</p>'+
+  '<p>'+(r.champion?'An undefeated six-match gauntlet.':'Your run has ended. Your result is in the local leaderboard records.')+'</p>'+
   '<div class="run-metrics"><div><span>TEAM SCORE</span><strong>'+r.score.toFixed(1)+'</strong></div>'+
   '<div><span>RECORD</span><strong>'+r.wins+'W · '+r.lost+'L</strong></div>'+
   '<div><span>MATCHES PLAYED</span><strong>'+r.matches.length+' / 6</strong></div>'+
   '<div><span>FORMATION</span><strong>'+esc(r.formation)+'</strong></div></div>'+
   '<p class="run-category">'+esc(r.category)+'</p>'+
-  '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="downloadRunCard" class="run-download">↓ DOWNLOAD PNG CARD</button><button type="button" id="quickRestart" class="run-restart">↻ QUICK RESTART</button></div>'+
+  '<div class="run-actions"><button type="button" id="shareRun" class="primary">SHARE / POST RUN</button><button type="button" id="downloadRunCard" class="run-download">↓ DOWNLOAD PNG CARD</button><button type="button" id="startNewRun" class="run-restart">↻ START NEW RUN</button></div>'+
   '<div id="runSharePanel" class="run-share-panel" hidden>'+
    '<h3>SHARE YOUR RUN</h3><p>Your run card includes the Final XI sprites, team score, and all six gauntlet fixtures. Direct X posting and shareable profiles are coming later.</p>'+
    '<canvas id="runCardPreview" class="run-card-canvas" width="1200" height="1600" role="img" aria-label="PokéFC Challenge team results poster" hidden></canvas>'+ 
@@ -815,7 +660,6 @@ function pokemonDetailMarkup(index){
   '</section>';
 }
 function render(){const app=document.getElementById('app');
- syncManualSaveBar();
  if(st.phase==='shop'&&app?.querySelector){
   const drawer=app.querySelector('#challengeShopDrawer');
   if(drawer&&!drawer.hidden)shopScrollTop=drawer.scrollTop||0;
@@ -837,7 +681,11 @@ function render(){const app=document.getElementById('app');
  const categories=[['classic-standard','CLASSIC / STANDARD'],['classic-legends','CLASSIC / LEGENDS'],['national-standard','NATIONAL / STANDARD'],['national-legends','NATIONAL / LEGENDS']];
  const recordsHtml=categories.map(([key,label])=>{
   const record=records[key]||{attempts:0,best:0,champions:0};
-  return '<div class="challenge-record"><div><span class="record-name">'+label+'</span><small>'+record.attempts+' runs · '+record.champions+' champions</small></div><strong>'+record.best+'<small>BEST / 6</small></strong></div>';
+  const top=BOARD?.stats?.(key,localStorage);
+  const bestScore=top?.bestScore;
+  return '<div class="challenge-record"><div><span class="record-name">'+label+'</span><small>'+record.attempts+' runs · '+record.champions+' champions</small></div>'+
+   '<div class="challenge-record-metrics"><strong>'+record.best+'<small>BEST / 6</small></strong>'+
+   '<strong class="challenge-record-score">'+(bestScore==null?'—':Number(bestScore).toFixed(1))+'<small>TOP TEAM SCORE</small></strong></div></div>';
  }).join('');
  app.innerHTML='<div class="challenge-hub">'+
  '<section class="panel challenge-setup-panel"><div class="challenge-heading-row"><span class="challenge-step">01</span><h2>CHOOSE YOUR CHALLENGE</h2></div>'+
@@ -1485,9 +1333,15 @@ if(st.phase==='finished'){
   if(button.setAttribute)button.setAttribute('aria-expanded',String(!panel.hidden));
   if(!panel.hidden)createPreview();
  };
- document.getElementById('quickRestart').onclick=()=>{
-  const config={pool:st.pool,legends:st.legends,formation:st.locked?.formation||st.formation,tactic:st.locked?.tactic||st.tactic};
-  st=initial();runRecapDismissed=false;runRecapStage='match';matchResultDismissed=false;shopStatFilters.clear();autoEquipSummary='';draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;Object.assign(st,config);st.phase='draft';st.selected=nextDraftSlot();roll();save();render();
+ document.getElementById('startNewRun').onclick=()=>{
+  // Finished runs are archived in the local rankings before this result renders.
+  // Return to the Challenge mode chooser; never overwrite completed records.
+  closeDialog(document.getElementById('runCompleteModal'));
+  st=initial();challengeView='run';runRecapDismissed=false;runRecapStage='match';matchResultDismissed=false;
+  selectedShopItem=null;shopMessage='';shopScrollTop=0;dragStatus='';autoEquipSummary='';shopStatFilters.clear();
+  draftPickerOpen=true;shopDrawerOpen=true;draftWindowPosition=null;shopWindowPosition=null;
+  pendingRollAnimation=false;slotAnimationBusy=false;draftScrollTop=0;
+  save();render();
  };
  document.getElementById('copyRunSummary').onclick=()=>{
   const value=runShareText(),status=document.getElementById('runShareStatus');
@@ -1621,6 +1475,6 @@ function playBoss(){
   outcome,tiebreak,shootout,seed,origin:'quick-sim',
   report:MATCH_REPORT?.fromResult(out,preview)||null};
 }
-wireManualSaveControls();save();render();
+save();render();
 })();
 </script></body></html>
