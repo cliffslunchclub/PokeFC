@@ -21,6 +21,7 @@ jobs:
           node --check assets/js/pse-knockout.js
           node --check watch/soccerjs/watch-bridge.js
           node --check watch/soccerjs/phase10-motion.cjs
+          node --check watch/soccerjs/phase10-wall-physics.cjs
           node --check watch/soccerjs/viewer-entry.cjs
           node --check watch/soccerjs/highlight-replay.cjs
       - name: Validate 120-minute Watch, shootout, highlights and legacy compatibility
@@ -34,6 +35,8 @@ jobs:
           node watch/soccerjs/test-possession-continuity.cjs
           node watch/soccerjs/test-play-sequence-director.cjs
           node watch/soccerjs/test-hybrid-counterpress.cjs
+          node watch/soccerjs/test-wall-physics.cjs
+          node watch/soccerjs/test-enclosed-wall-play.cjs
           node watch/soccerjs/test-attacking-third-support.cjs
           node watch/soccerjs/test-goal-kickoff-reset.cjs
           node tests/test-pse-knockout.cjs

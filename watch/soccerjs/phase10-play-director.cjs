@@ -5,6 +5,7 @@
  * All patterns appear in ordinary non-scoring play as well as goal buildups.
  */
 const {styleFor}=require('./phase10-team-shape.cjs');
+const Wall=require('./phase10-wall-physics.cjs');
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
 const lerp=(a,b,u)=>a+(b-a)*u;
@@ -64,13 +65,32 @@ function makePlan(f,field){
   const delta=percent>.87&&run>0?-Math.min(5,run*.6):run;
   return point(field,ball.x+(side===0?delta:-delta),ball.y+dy);
  }
- function append(mode,duration,end,recipient,pattern,arc=0){
+ // A low pass can bank from a nearby board. One mirrored segment guarantees
+ // a real directional rebound at the exact wall contact; never cross an
+ // unprotected goal opening or fabricate a PSE goal.
+ function chooseWall(from,to,time,pattern,arc,salt){
+  if(arc>1.2)return null; // high crosses clear the rink-height boards
+  const chance=pattern==='cross'?48:pattern==='switch'?35:
+   pattern==='one-two'?24:pattern==='through'?24:29;
+  if(dice('wall-bank:'+salt,100)>=chance)return null;
+  const axes=[['y','min'],['y','max'],['x','min'],['x','max']];
+  const candidates=axes.map(([axis,edge])=>Wall.candidate(from,to,field,axis,edge))
+   .filter(w=>w&&w.pathLength<Math.min(45,time*10.8+7) &&
+    w.pathLength>Math.hypot(to.x-from.x,to.y-from.y)+1.4);
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>(a.pathLength+(hash(seed(f)+':wall:'+salt+':'+a.axis+a.edge)%700)/100)-
+   (b.pathLength+(hash(seed(f)+':wall:'+salt+':'+b.axis+b.edge)%700)/100));
+  return candidates[0];
+ }
+ function append(mode,duration,end,recipient,pattern,arc=0,forcedWall=null){
   if(seconds>=total)return;
   const length=Math.min(duration,total-seconds);
   if(length<.00001)return;
   const start=seconds,from={...ball},to=point(field,end.x,end.y),next=recipient??owner;
+  const wall=forcedWall||(mode==='pass'?
+   chooseWall(from,to,length,pattern,arc,actions.length):null);
   const action={start,end:start+length,mode,from,to,owner,receiver:next,
-   pattern,arc,sequence:count,duration:length};
+   pattern,arc:wall?Math.min(arc,.25):arc,wall,sequence:count,duration:length};
   actions.push(action);
   mark(owner,start,from);
   mark(mode==='carry'?owner:next,action.end,to);
@@ -80,6 +100,42 @@ function makePlan(f,field){
  function pass(time,target,kind,arc=0,prefer=kind){
   const id=receiver(f,field,owner,target,prefer,count+':'+actions.length);
   append('pass',time,target,id,kind,arc);
+ }
+ function looseRebound(kind){
+  // Occasional genuine loose balls: an overrun dribble/cross hits a board,
+  // returns inward and gets collected without a whistle or invented shot.
+  if(seconds>=total-2.1||dice('loose-chance',100)>=27)return;
+  const side=sideOf(owner),forward=side===0?1:-1;
+  const options=[
+   {axis:'y',edge:'min',gap:ball.y-Wall.RADIUS,
+    to:point(field,ball.x+forward*3.5,ball.y+5.5)},
+   {axis:'y',edge:'max',gap:field.height-Wall.RADIUS-ball.y,
+    to:point(field,ball.x+forward*3.5,ball.y-5.5)},
+   {axis:'x',edge:'min',gap:ball.x-Wall.RADIUS,
+    to:point(field,ball.x+5.5,ball.y+1.5)},
+   {axis:'x',edge:'max',gap:field.width-Wall.RADIUS-ball.x,
+    to:point(field,ball.x-5.5,ball.y-1.5)}
+  ];
+  const duration=2.6+dice('loose-duration',23)/10;
+  const choices=options.filter(c=>c.gap<13.5).map(c=>({
+   ...c,wall:Wall.candidate(ball,c.to,field,c.axis,c.edge)
+  })).filter(c=>c.wall&&c.wall.pathLength<duration*9.3+5);
+  if(!choices.length)return;
+  choices.sort((a,b)=>a.gap-b.gap||a.axis.localeCompare(b.axis));
+  const choice=choices[0];
+  let collector=owner;
+  const reboundTarget=choice.to;
+  if(dice('loose-receiver',100)<55){
+   const otherSide=dice('loose-steal',100)<20?1-side:side;
+   const nearby=Array.from({length:10},(_,i)=>otherSide*11+i+1)
+    .map(id=>({id,dist:Math.hypot(base(id,field).x-reboundTarget.x,
+     base(id,field).y-reboundTarget.y)}))
+    .sort((a,b)=>a.dist-b.dist||a.id-b.id);
+   // The pickup Pokémon must be able to reach the rebound; otherwise
+   // the original dribbler recovers it at the bank.
+   if(nearby[0]?.dist<34)collector=nearby[0].id;
+  }
+  append('rebound',duration,reboundTarget,collector,kind,0,choice.wall);
  }
  function choose(){
   // These are relative weights; all plays remain possible in every tactic.
@@ -134,6 +190,9 @@ function makePlan(f,field){
    carry(4+dice('switch-carry',60)/10,7,-sign*2,kind);
    if(dice('long-attack',3)===0)carry(5+dice('extra',70)/10,7,sign,kind);
   }
+  // Low rebounds and spontaneous pickups occur in ordinary play too.
+  // The next attacking pattern starts from whoever collects this ball.
+  looseRebound(kind);
   // The standing challenge is illustrative, not a PSE tackle or foul.
   const turnover=count%6===5||(count>0&&dice('turnover',100)<6);
   if(turnover&&seconds<total){
@@ -150,7 +209,9 @@ function makePlan(f,field){
  }
  while(seconds<total-.01&&count<1600){sequence(choose());count++}
  for(const t of tracks)t.sort((a,b)=>a.t-b.t);
- const turnovers=actions.filter(a=>a.mode==='challenge').map(a=>({
+ const turnovers=actions.filter(a=>
+  (a.mode==='challenge'||a.mode==='rebound')&&
+  sideOf(a.owner)!==sideOf(a.receiver)).map(a=>({
   time:a.end,oldSide:sideOf(a.owner),newSide:sideOf(a.receiver),
   ball:a.to,stageStart:a.start
  }));
@@ -172,6 +233,7 @@ function stageAt(plan,seconds){
  return arr[lo]||null;
 }
 function ballAt(stage,seconds){
+ if(stage.wall)return Wall.sampleWall(stage,seconds);
  const phase=smooth((seconds-stage.start)/Math.max(.001,stage.duration));
  return {x:lerp(stage.from.x,stage.to.x,phase),
   y:lerp(stage.from.y,stage.to.y,phase),
@@ -205,18 +267,25 @@ function sample(f,field,seconds){
  const u=(seconds-stage.start)/Math.max(.001,stage.duration);
  const ball=ballAt(stage,seconds);
  const ownerIndex=stage.mode==='carry'?stage.owner:
-  stage.mode==='challenge'&&u>.96?stage.receiver:-1;
+  (stage.mode==='challenge'||stage.mode==='rebound')&&u>.96?stage.receiver:-1;
  let action,contact;
  if(stage.mode==='carry'){
   action=u>.94?'illustrative-dribble':'illustrative-carry';
   contact='controlled';
  }else if(stage.mode==='challenge'){
   action='illustrative-challenge';contact='standing-challenge';
+ }else if(stage.mode==='rebound'){
+  action=u>.96?'illustrative-wall-pickup':'illustrative-wall-rebound';
+  contact=u>.96?'collected-loose-ball':
+   ball.contact==='approaching-wall'?'loose-wall-approach':'loose-wall-rebound';
  }else{
-  action=stage.pattern==='one-two'?'illustrative-give-and-go':
+  action=stage.wall?'illustrative-bank-pass':
+   stage.pattern==='one-two'?'illustrative-give-and-go':
    stage.pattern==='cross'?'illustrative-cross':
    stage.pattern==='through'?'illustrative-through-ball':'illustrative-pass';
-  contact=stage.arc>2?'lofted-through':'in-flight';
+  contact=stage.wall?
+   (ball.contact==='approaching-wall'?'bank-approach':'bank-rebound'):
+   stage.arc>2?'lofted-through':'in-flight';
  }
  return {plan,stage,ball,ownerIndex,action,contact,
   sequenceType:stage.pattern,sequenceIndex:stage.sequence,
@@ -224,7 +293,9 @@ function sample(f,field,seconds){
   passStart:stage.mode==='pass'?stage.start:null,
   passArrival:stage.mode==='pass'?stage.end:null,
   passOrigin:stage.mode==='pass'?stage.from:null,
-  passTarget:stage.mode==='pass'?stage.to:null};
+  passTarget:stage.mode==='pass'?stage.to:null,
+  wall:stage.wall||null,wallImpactSeconds:stage.wall?
+   stage.start+stage.duration*stage.wall.impactU:null};
 }
 function nextBoundary(f,field,after){
  const plan=planFor(f,field);

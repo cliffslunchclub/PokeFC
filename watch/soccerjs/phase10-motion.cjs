@@ -334,6 +334,10 @@ function motionFrame(fixture,t,field,options=false){
   if(phase>.84)actors[step.receiver].frame=3;
  }
  if(step.mode==='challenge'&&phase>.6)actors[step.receiver].frame=2;
+ if(step.mode==='rebound'){
+  if(phase>step.wall?.impactU)actors[step.receiver].frame=2; // chase the bank
+  if(phase>.88)actors[step.receiver].frame=3; // collect the loose ball
+ }
  // Hybrid Counterpress: 0–4 seconds pressure, 4–10 seconds recovery.
  // Away from turnovers the closest defenders still close passing lanes.
  const defensive=TeamShape.press(fixture,field,seconds,visual,shape,actors,ball);
@@ -344,7 +348,8 @@ function motionFrame(fixture,t,field,options=false){
   pressingPlayers:defensive.ids,visualTactic:teams[shape.active].tactic||'balanced',
   segmentStart:visual.segmentStart,segmentEnd:visual.segmentEnd,
   passStart:visual.passStart,passArrival:visual.passArrival,
-  passOrigin:visual.passOrigin,passTarget:visual.passTarget};
+  passOrigin:visual.passOrigin,passTarget:visual.passTarget,
+  wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds};
 
 }
 module.exports={motionFrame,base,hash,shotSummary,playbackRate};

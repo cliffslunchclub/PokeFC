@@ -291,6 +291,9 @@ function render(t,options={}){
   'illustrative-give-and-go':'Give-and-go combination',
   'illustrative-cross':'Cross or cutback',
   'illustrative-through-ball':'Through ball',
+  'illustrative-bank-pass':'Bank pass off the boards',
+  'illustrative-wall-rebound':'Loose ball off the wall',
+  'illustrative-wall-pickup':'Rebound recovered',
 
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
@@ -316,6 +319,11 @@ function render(t,options={}){
   sequenceType:script.sequenceType||null,
   sequenceIndex:script.sequenceIndex??null,
   ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
+  wallContact:script.wall?{
+   axis:script.wall.axis,edge:script.wall.edge,
+   hit:[script.wall.hit.x,script.wall.hit.y],
+   impactSeconds:script.wallImpactSeconds
+  }:null,
   carrier:ballCarrier,ballContact:script.contact||'continuous-play',
   officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
   soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
