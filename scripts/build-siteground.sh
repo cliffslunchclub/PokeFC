@@ -15,7 +15,7 @@ cp .htaccess dist/.htaccess
 
 # National free builder and shared Quick Sim library.
 cp index.html builder.css builder.js site.css newtro.css favicon.svg national-species.js \
-   quick-sim.js pse-knockout.js calibration-profile.js dist/
+   quick-sim.js pse-knockout.js position-effectiveness.js calibration-profile.js dist/
 
 # Ratings explainer is linked from the Free Builder, not a fourth game mode.
 cp ratings/index.html dist/ratings/
@@ -104,7 +104,7 @@ if not policy.is_file():raise SystemExit("Missing PokéFC cache policy: .htacces
 rules=policy.read_text()
 if "private, no-cache, max-age=0, must-revalidate" not in rules or "FilesMatch" not in rules:
     raise SystemExit("PokéFC cache policy missing revalidation directives")
-for f in ["watch/soccerjs/watch-bridge.js","favicon.svg","newtro.css","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
+for f in ["position-effectiveness.js","watch/soccerjs/watch-bridge.js","favicon.svg","newtro.css","ratings/index.html","national-species.js","challenge/drag-drop.js","challenge/performance.js","challenge/item-optimizer.js","challenge/leaderboard.js","challenge/run-card.js","challenge/slot-reels.js","challenge/picker-window.js","challenge/tiers.js","challenge/match-report.js","challenge/special-items-data.js","play/opponents.js","play/play.js","builder.js","site.css"]:
     if not (root/f).is_file():raise SystemExit("Missing public resource: "+f)
 for forbidden in ["legacy-v07c","legacy-v05","tests",".github","calibration","MVP.md","career.js","tm-worker.js","tm-engine-bridge.js","hybrid-sim.js","tacticmesh/vendor","play/tm-worker.js","play/tm-engine-bridge.js","play/hybrid-sim.js","play/tacticmesh","franchise/tm-worker.js","franchise/tm-engine-bridge.js","franchise/hybrid-sim.js","franchise/tacticmesh"]:
     if (root/forbidden).exists():raise SystemExit("Private/legacy content in public root: "+forbidden)

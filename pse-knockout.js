@@ -33,14 +33,16 @@
    requireValid(n===regulation.score[side]&&regulation.stats[side].goals===n,'Inconsistent regulation goal ledger');
   }
  }
- function extraTime(preview,seed){
+ function extraTime(preview,seed,options={}){
   validatePreview(preview);
   requireValid(typeof seed==='string'&&seed.length>0,'Extra-time seed required');
   const teams=[preview.home,preview.away],rng=qs.randomizer(seed+':pse-et-v1');
+  const eff=p=>options.positionEffectiveness==='v1'?clamp(p?.positionEfficiency??1,.88,1):1;
+  const skill=(p,k)=>value(p,k)*eff(p);
   const strength=teams.map(t=>({
-   attack:avg(t.lineup.filter(p=>p.pos==='FWD').map(p=>value(p,'finishing'))),
-   defense:avg(t.lineup.filter(p=>p.pos==='DEF').map(p=>value(p,'tackling'))),
-   keeper:avg(['reflexes','handling','positioning','diving'].map(k=>value(t.lineup.find(p=>p.pos==='GK')||t.lineup[0],k)))
+   attack:avg(t.lineup.filter(p=>p.pos==='FWD').map(p=>skill(p,'finishing'))),
+   defense:avg(t.lineup.filter(p=>p.pos==='DEF').map(p=>skill(p,'tackling'))),
+   keeper:avg(['reflexes','handling','positioning','diving'].map(k=>{const p=t.lineup.find(p=>p.pos==='GK')||t.lineup[0];return skill(p,k)}))
   }));
   const stats=teams.map(()=>({shots:0,shotsOnTarget:0,goals:0,saves:0,passes:0,completedPasses:0,tackleAttempts:0,tackles:0}));
   const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{
@@ -59,18 +61,18 @@
     (strength[side].attack-strength[1-side].defense)*qs.DEFAULTS.shotsAttackSlope+
     (side===0?qs.DEFAULTS.shotsHomeBonus:0))/90,.002,.85));
    for(let k=0;k<shots;k++){
-    const player=choose(rng,attackers,p=>(p.pos==='FWD'?2:p.pos==='MID'?1:.2)*value(p,'finishing'));
+    const player=choose(rng,attackers,p=>(p.pos==='FWD'?2:p.pos==='MID'?1:.2)*skill(p,'finishing'));
     const at=90+m+rng()*.98;
-    const onTarget=rng()<clamp(.30+.003*value(player,'finishing'),.1,.85);
+    const onTarget=rng()<clamp(.30+.003*skill(player,'finishing'),.1,.85);
     const quality=clamp(.09+.0019*(strength[side].attack-strength[1-side].defense)+rng()*.07,.025,.31);
-    const goal=onTarget&&rng()<clamp(quality/.60+.001*(value(player,'finishing')-strength[1-side].keeper),.025,.85);
+    const goal=onTarget&&rng()<clamp(quality/.60+.001*(skill(player,'finishing')-strength[1-side].keeper),.025,.85);
     s.shots++;box[player.id].shots++;
     if(onTarget){s.shotsOnTarget++;box[player.id].shotsOnTarget++;}
     const shot=incident('shot',side,player,at,{outcome:goal?'goal':onTarget?'saved':'off-target'});
     if(goal){
      s.goals++;score[side]++;box[player.id].goals++;
      const helper=rng()<qs.DEFAULTS.assistProbability?choose(rng,attackers.filter(p=>p.id!==player.id),
-      p=>value(p,'shortPassing')+value(p,'vision')):null;
+      p=>skill(p,'shortPassing')+skill(p,'vision')):null;
      if(helper)box[helper.id].assists++;
      incident('goal',side,player,at,{assist:helper?.id||null,causedBy:shot.id});
     }else if(onTarget){
@@ -82,7 +84,7 @@
    const passed=qs.poisson(rng,Math.max(.02,(qs.DEFAULTS.passesBase+qs.DEFAULTS.passesPossessionSlope*50)/90));
    s.passes+=passed;s.completedPasses+=qs.binomial(rng,passed,qs.DEFAULTS.passAccuracy);
    for(const player of attackers){
-    const wins=qs.poisson(rng,Math.max(0,qs.DEFAULTS.tacklesPerPlayer/90*(.5+value(player,'tackling')/130)));
+    const wins=qs.poisson(rng,Math.max(0,qs.DEFAULTS.tacklesPerPlayer/90*(.5+skill(player,'tackling')/130)));
     const attempts=wins+qs.poisson(rng,wins*.65);
     s.tackles+=wins;s.tackleAttempts+=attempts;
     box[player.id].tackles+=wins;box[player.id].tackleAttempts+=attempts;
@@ -97,20 +99,22 @@
   return {origin:'quick-sim',ruleset:'pse-extra-time-v1',phase:'extra-time',durationMinutes:30,
    home:teams[0].id,away:teams[1].id,score,events,box,stats};
  }
- function shootout(preview,seed){
+ function shootout(preview,seed,options={}){
   validatePreview(preview);
   requireValid(typeof seed==='string'&&seed.length>0,'Shootout seed required');
   const rng=qs.randomizer(seed+':pse-shootout-v1'),teams=[preview.home,preview.away];
+  const eff=p=>options.positionEffectiveness==='v1'?clamp(p?.positionEfficiency??1,.88,1):1;
+  const skill=(p,k)=>value(p,k)*eff(p);
   const order=teams.map(t=>t.lineup.filter(p=>p.pos!=='GK').slice().sort((a,b)=>
-   (value(b,'finishing')+value(b,'composure'))-(value(a,'finishing')+value(a,'composure'))||
+   (skill(b,'finishing')+skill(b,'composure'))-(skill(a,'finishing')+skill(a,'composure'))||
    String(a.id).localeCompare(String(b.id))));
   const keepers=teams.map(t=>t.lineup.find(p=>p.pos==='GK')||t.lineup[0]);
   let home=0,away=0,homeTaken=0,awayTaken=0;
   const attempts=[];
   function kick(side,round){
    const taker=order[side][(round-1)%order[side].length],keeper=keepers[1-side];
-   const chance=clamp(.72+(value(taker,'finishing')-65)*.002+
-    (value(taker,'composure')-65)*.001-(value(keeper,'reflexes')-65)*.0015,.48,.92);
+   const chance=clamp(.72+(skill(taker,'finishing')-65)*.002+
+    (skill(taker,'composure')-65)*.001-(skill(keeper,'reflexes')-65)*.0015,.48,.92);
    const scored=rng()<chance;
    const outcome=scored?'goal':rng()<.68?'saved':'off-target';
    const n=attempts.length+1;
@@ -158,9 +162,9 @@
   const old=JSON.stringify(regulation);
   let match=regulation,extra=null,kicks=null,winner,decidedBy='regulation';
   if(regulation.score[0]===regulation.score[1]){
-   extra=extraTime(preview,seed);match=merge(regulation,extra);decidedBy='extra-time';
+   extra=extraTime(preview,seed,{positionEffectiveness:regulation.positionEffectiveness});match=merge(regulation,extra);decidedBy='extra-time';
    if(match.score[0]===match.score[1]){
-    kicks=shootout(preview,seed);decidedBy='shootout';
+    kicks=shootout(preview,seed,{positionEffectiveness:regulation.positionEffectiveness});decidedBy='shootout';
     winner=kicks.winner;
    }
   }

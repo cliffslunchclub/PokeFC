@@ -43,17 +43,20 @@
   }
   return {status:'provisional',referenceMatches:0,engineCommit:null,parameters:{...DEFAULTS},version:'v0.7b'};
  }
- function possession(home,away,P){
-  const middle=t=>{const a=t.lineup.filter(x=>x.pos==='MID');return a.length?a.reduce((s,p)=>s+strength(p),0)/a.length:45};
+ function possession(home,away,P,eff=()=>1){
+  const middle=t=>{const a=t.lineup.filter(x=>x.pos==='MID');return a.length?a.reduce((s,p)=>s+strength(p)*eff(p),0)/a.length:45};
   return clamp(50+P.possessionHomeOffset+(middle(home)-middle(away))*P.possessionMidfieldSlope+(home.tactic==='possession'?P.possessionTacticBonus:0)-(away.tactic==='possession'?P.possessionTacticBonus:0),29,71);
  }
  function simulate(preview,opts={}){
   if(!preview||!preview.home||!preview.away||preview.home.lineup?.length!==11||preview.away.lineup?.length!==11)throw Error('Quick Sim requires two valid starting XIs');
   const current=profile(),P=validParams(opts.parameters||current.parameters),next=randomizer(opts.seed||preview.seed||'FXI'),tackleNext=randomizer(String(opts.seed||preview.seed||'FXI')+':tackle-ledger-v1'),teams=[preview.home,preview.away];
-  const perSide=teams.map(t=>({attack:(()=>{let a=t.lineup.filter(p=>p.pos==='FWD');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
-   defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+strength(p),0)/Math.max(a.length,1)})(),
-   gk:strength(t.lineup.find(p=>p.pos==='GK')||t.lineup[0])}));
-  const possHome=possession(teams[0],teams[1],P),poss=[possHome,100-possHome];
+  const usePosition=opts.positionEffectiveness==='v1';
+  const eff=p=>usePosition?clamp(p?.positionEfficiency??1,.88,1):1;
+  const skill=(p,key)=>n(p.main?.[key])*eff(p);
+  const perSide=teams.map(t=>({attack:(()=>{let a=t.lineup.filter(p=>p.pos==='FWD');return a.reduce((s,p)=>s+strength(p)*eff(p),0)/Math.max(a.length,1)})(),
+   defense:(()=>{let a=t.lineup.filter(p=>p.pos==='DEF');return a.reduce((s,p)=>s+strength(p)*eff(p),0)/Math.max(a.length,1)})(),
+   gk:(()=>{const p=t.lineup.find(p=>p.pos==='GK')||t.lineup[0];return strength(p)*eff(p)})()}));
+  const possHome=possession(teams[0],teams[1],P,eff),poss=[possHome,100-possHome];
   const box=Object.fromEntries(teams.flatMap(t=>t.lineup.map(p=>[p.id,{goals:0,assists:0,saves:0,shots:0,shotsOnTarget:0,tackleAttempts:0,tackles:0,minutes:90}])));
   const stats=teams.map(()=>({shots:0,shotsOnTarget:0,goals:0,saves:0,passes:0,completedPasses:0,tackleAttempts:0,tackles:0,possession:0})),events=[];
   const score=[0,0];
@@ -66,14 +69,14 @@
     const trailing=score[side]<score[1-side]?1.08:score[side]>score[1-side]?.93:1;
     const shots=poisson(next,clamp((P.shotsBase+(atkStrength-opp.defense)*P.shotsAttackSlope+(side===0?P.shotsHomeBonus:0))*trailing/90,.001,.95));
     for(let k=0;k<shots;k++){
-     const shooter=choice(next,attackers,p=>p.pos==='FWD'?n(p.main.finishing)*2:p.pos==='MID'?n(p.main.finishing):Math.max(2,n(p.main.finishing)*.14));if(!shooter)continue;
+     const shooter=choice(next,attackers,p=>p.pos==='FWD'?skill(p,'finishing')*2:p.pos==='MID'?skill(p,'finishing'):Math.max(2,skill(p,'finishing')*.14));if(!shooter)continue;
      t.shots++;box[shooter.id].shots++;
-     if(next()>=clamp(P.onTargetBase+P.onTargetFinishingSlope*n(shooter.main.finishing),.1,.85))continue;
+     if(next()>=clamp(P.onTargetBase+P.onTargetFinishingSlope*skill(shooter,'finishing'),.1,.85))continue;
      t.shotsOnTarget++;box[shooter.id].shotsOnTarget++;
      const baseQuality=clamp(.09+.0019*(atkStrength-opp.defense)+next()*.07,.025,.31);
-     const goalChance=clamp((baseQuality/.60+.001*(n(shooter.main.finishing)-opp.gk))*P.goalConversionScale,.025,.85);
+     const goalChance=clamp((baseQuality/.60+.001*(skill(shooter,'finishing')-opp.gk))*P.goalConversionScale,.025,.85);
      if(next()<goalChance){t.goals++;score[side]++;box[shooter.id].goals++;
-      const helper=next()<P.assistProbability?choice(next,attackers.filter(p=>p.id!==shooter.id),p=>n(p.main.shortPassing)+n(p.main.vision)):null;
+      const helper=next()<P.assistProbability?choice(next,attackers.filter(p=>p.id!==shooter.id),p=>skill(p,'shortPassing')+skill(p,'vision')):null;
       if(helper)box[helper.id].assists++;
       const when=minute+next();
       events.push({minute:when,minuteLabel:String(Math.floor(when)+1),type:'goal',team:team.id,player:shooter.id,assist:helper?.id||null,origin:'quick-sim'});
@@ -87,7 +90,7 @@
     const passed=poisson(next,Math.max(.05,(P.passesBase+P.passesPossessionSlope*poss[side])/90));t.passes+=passed;t.completedPasses+=binomial(next,passed,P.passAccuracy);
     for(const player of challengers){
      // FWD, MID and DEF can all challenge, as in TM's real event ledger.
-     const expectedWins=Math.max(0,P.tacklesPerPlayer/90*(.5+Math.max(0,n(player.main.tackling))/130));
+     const expectedWins=Math.max(0,P.tacklesPerPlayer/90*(.5+Math.max(0,skill(player,'tackling'))/130));
      // Keep the ORIGINAL Quick Sim RNG calls for defenders and midfielders,
      // so the same seed retains its pre-alignment goals/pass/shots outcomes.
      // Failed attempts and extra forward challenges use a separate seed.
@@ -108,7 +111,7 @@
    if(stats[side].tackles>stats[side].tackleAttempts)throw Error('Won tackles exceed attempts');
   }
   return {home:teams[0].id,away:teams[1].id,score,stats,events,box,
-   origin:'quick-sim',
+   origin:'quick-sim',...(usePosition?{positionEffectiveness:'v1'}:{}),
     statsModel:opts.parameters?'calibration-evaluation':current.status+'-v0.7b',
    calibration:current.status==='calibrated'?{referenceMatches:current.referenceMatches,engineCommit:current.engineCommit}:null,
    methodology:{shotStops:'Approximate saves in Quick Sim; not directly comparable to TacticMesh shotStops.',shotsOnTarget:'Estimated; genuine TacticMesh reports this as unavailable.'}};

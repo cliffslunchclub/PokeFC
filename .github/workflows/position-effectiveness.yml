@@ -1,0 +1,62 @@
+name: PSE position effectiveness in Quick Play and Challenges
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'position-effectiveness.js'
+      - 'quick-sim.js'
+      - 'pse-knockout.js'
+      - 'play/**'
+      - 'challenge/**'
+      - 'tests/test-position-effectiveness.cjs'
+      - 'tests/test-play.cjs'
+      - '.github/workflows/position-effectiveness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  position-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and PSE position effectiveness
+        run: |
+          node --check position-effectiveness.js
+          node --check quick-sim.js
+          node --check pse-knockout.js
+          node --check play/play.js
+          node tests/test-position-effectiveness.cjs
+      - name: Quick Play and knockout baseline
+        run: |
+          node tests/test-play.cjs
+          node tests/test-pse-knockout.cjs
+          node tests/test-challenge-play.cjs
+          node tests/test-challenge-tier-positions.cjs
+      - name: Confirm no change to default PSE results from enclosed-pitch baseline
+        run: |
+          mkdir -p /tmp/pfc-position-baseline
+          git show 54de561027d9238cc9720a16afe3991a54351601:quick-sim.js > /tmp/pfc-position-baseline/quick-sim.js
+          node <<'NODE'
+          'use strict';
+          const assert=require('node:assert/strict');
+          const prior=require('/tmp/pfc-position-baseline/quick-sim.js');
+          const current=require('./quick-sim.js');
+          const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
+          const team=id=>({id,tactic:id==='h'?'press':'possession',
+            lineup:roles.map((pos,i)=>({id:id+i,pos,main:{
+              sprintSpeed:70+i,shortPassing:66+i,firstTouch:65+i,vision:68+i,tackling:73+i,finishing:64+i},
+              detail:{strength:72+i,reflexes:69+i,positioning:70+i,handling:71+i,
+                diving:67+i,kicking:76+i,decisionMaking:68+i,composure:75+i}}))});
+          const preview={home:team('h'),away:team('a')};
+          for(let i=0;i<500;i++){
+            const seed='PFC-POS-DEFAULT-'+i;
+            assert.deepStrictEqual(current.simulate(preview,{seed}),prior.simulate(preview,{seed}),
+              'New position feature must not alter existing default PSE output for '+seed);
+          }
+          console.log('PASS 500 seeded PSE matches unchanged when position effects are not enabled');
+          NODE

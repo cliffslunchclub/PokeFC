@@ -71,10 +71,12 @@ function posClass(role){return role==='GK'?'GK':['LB','RB','CB','LWB','RWB'].inc
 function player(id,i,role,prefix,held){
  const p=BY.get(id);if(!p)throw Error('Missing Pokédex species #'+id);
  const b=heldStats(p,held);
+ const position=window.PFC_POSITION_EFFECTIVENESS?.profile(b,role);
  const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
  const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2});
  const defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
  return {id:prefix+'-'+i+'-'+id,name:p.name,species:p.name,speciesId:id,pos:posClass(role),
+  positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,
   main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},
   detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
 }
@@ -247,6 +249,7 @@ function officialStatHtml(result){
  return '<div class="stat-table">'+table+'</div><h4>POKÉMON SHOTS ON TARGET</h4>'+
   (detail?'<div class="stat-table">'+detail+'</div>':
    '<p class="result-meta">No individual shots on target recorded.</p>')+
+  (result.positionEffectiveness==='v1'?'<p class="result-meta">Positional suitability affects official PSE match efficiency.</p>':'')+
   '<p class="result-meta">Enclosed pitch · continuous play · no corners, free kicks or in-match penalties.</p>';
 }
 function showResult(result){
@@ -287,7 +290,7 @@ function stopWatch(){
 function quickSim(){
  try{
   stopWatch();preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
-  const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed,positionEffectiveness:'v1'});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
 }
@@ -300,9 +303,9 @@ function watchSoccerMatch(){
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
   preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
   // Lock the entire authoritative knockout before kickoff. No second draw at Record.
-  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed});
+  const regulation=window.FXI_QUICK.simulate(preview,{seed:preview.seed,positionEffectiveness:'v1'});
   const decision=CHALLENGE_MODE&&window.PFC_KNOCKOUT?
-   window.PFC_KNOCKOUT.resolve(preview,regulation,{seed:preview.seed}):null;
+   window.PFC_KNOCKOUT.resolve(preview,regulation,{seed:preview.seed,positionEffectiveness:'v1'}):null;
   const official=decision?{...decision.match,
    knockoutDecision:{version:'pse-knockout-v1',winner:decision.winner,
     decidedBy:decision.decidedBy},
