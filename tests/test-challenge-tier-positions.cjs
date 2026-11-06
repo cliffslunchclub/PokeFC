@@ -96,4 +96,10 @@ assert.equal(JSON.parse(saved).selected,1,'occupied slot not treated as new draf
 const css=fs.readFileSync(path.join(root,'challenge/challenge.css'),'utf8');
 assert.match(css,/\.challenge-pitch \.slot button\[data-slot\][^\n]*position:absolute/,'Full-tile click overlay');
 assert.match(css,/\.challenge-pitch \.slot\.empty:hover/,'Hover indication');
+const skin=fs.readFileSync(path.join(root,'newtro.css'),'utf8');
+assert.match(skin,/\.challenge-frame button:hover:not\(:disabled\):not\(\.primary\)/,
+ 'Shared newtro style contains the generic button hover that must not cover a pitch card');
+assert.match(css,/\.challenge-frame \.challenge-pitch \.slot button\[data-slot\]:is\(:hover,:focus,:active\)\{\s*background:transparent!important;\s*border:0!important;\s*box-shadow:none!important;/,
+ 'Full-tile click target stays visually transparent during hover/focus instead of hiding the slot');
+assert.match(html,/challenge\.css\?v=32/,'The fixed hover CSS has a refreshed production cache version');
 console.log('PASS fast S-D tier sorting: cached previews, one DOM batch, max 12 animated cards, no same-role reflow and reduced motion');
