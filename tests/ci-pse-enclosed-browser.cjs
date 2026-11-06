@@ -12,7 +12,7 @@ function team(id,offset){
   detail:{reflexes:72,handling:73,positioning:75,diving:73,kicking:74,composure:73}
  }))};
 }
-const preview={seed:'PSE-SET-BROWSER',home:team('home',0),away:team('away',11)};
+const preview={seed:'PSE-ENCLOSED-BROWSER',home:team('home',0),away:team('away',11)};
 let result;
 for(let n=0;n<100;n++){
  const next=qs.simulate(preview,{seed:'ENCLOSED-BROWSER-'+n});
@@ -34,7 +34,7 @@ async function serve(){
   try{const res=await fetch(url);if(res.ok)return}catch{}
   await new Promise(resolve=>setTimeout(resolve,250));
  }
- throw Error('Set-piece browser server did not initialize');
+ throw Error('Enclosed-pitch browser server did not initialize');
 }
 (async()=>{
  let browser;

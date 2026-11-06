@@ -29,8 +29,8 @@ jobs:
           fi
       - name: Real desktop and mobile 120-minute Watch smoke test
         run: node tests/ci-pse-120-browser.cjs
-      - name: Real desktop and mobile PSE v1 set-piece Watch QA
-        run: node tests/ci-pse-setpiece-browser.cjs
+      - name: Real desktop and mobile enclosed-pitch Watch QA
+        run: node tests/ci-pse-enclosed-browser.cjs
       - name: Validate optional SiteGround release allowlist
         run: |
           PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
