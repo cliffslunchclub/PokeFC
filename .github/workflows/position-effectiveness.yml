@@ -37,17 +37,26 @@ jobs:
           node tests/test-pse-knockout.cjs
           node tests/test-challenge-play.cjs
           node tests/test-challenge-tier-positions.cjs
-      - name: Compare historical pin against untouched enclosed main
+      - name: Confirm no change to default PSE results from enclosed-pitch baseline
         run: |
-          mkdir -p /tmp/pfc-legacy-seeds/tests
-          git show 54de561027d9238cc9720a16afe3991a54351601:quick-sim.js > /tmp/pfc-legacy-seeds/quick-sim.js
-          git show 54de561027d9238cc9720a16afe3991a54351601:tests/test-quick-seed-compat.cjs > /tmp/pfc-legacy-seeds/tests/test-quick-seed-compat.cjs
-          set +e
-          node /tmp/pfc-legacy-seeds/tests/test-quick-seed-compat.cjs >/tmp/pfc-baseline.log 2>&1
-          baseline=$?
-          node tests/test-quick-seed-compat.cjs >/tmp/pfc-candidate.log 2>&1
-          candidate=$?
-          set -e
-          echo "Historical pin: main baseline exit=$baseline, candidate exit=$candidate"
-          if [[ "$baseline" == "0" && "$candidate" != "0" ]]; then cat /tmp/pfc-candidate.log; exit 1; fi
-          if [[ "$baseline" != "0" ]]; then echo "Historical pin already stale on main; modern opt-in and neutral-seed compatibility tests above are authoritative."; fi
+          mkdir -p /tmp/pfc-position-baseline
+          git show 54de561027d9238cc9720a16afe3991a54351601:quick-sim.js > /tmp/pfc-position-baseline/quick-sim.js
+          node <<'NODE'
+          'use strict';
+          const assert=require('node:assert/strict');
+          const prior=require('/tmp/pfc-position-baseline/quick-sim.js');
+          const current=require('./quick-sim.js');
+          const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
+          const team=id=>({id,tactic:id==='h'?'press':'possession',
+            lineup:roles.map((pos,i)=>({id:id+i,pos,main:{
+              sprintSpeed:70+i,shortPassing:66+i,firstTouch:65+i,vision:68+i,tackling:73+i,finishing:64+i},
+              detail:{strength:72+i,reflexes:69+i,positioning:70+i,handling:71+i,
+                diving:67+i,kicking:76+i,decisionMaking:68+i,composure:75+i}}))});
+          const preview={home:team('h'),away:team('a')};
+          for(let i=0;i<500;i++){
+            const seed='PFC-POS-DEFAULT-'+i;
+            assert.deepStrictEqual(current.simulate(preview,{seed}),prior.simulate(preview,{seed}),
+              'New position feature must not alter existing default PSE output for '+seed);
+          }
+          console.log('PASS 500 seeded PSE matches unchanged when position effects are not enabled');
+          NODE
