@@ -86,7 +86,7 @@ const baseCharizard=window.FXI_SPECIES.find(x=>x.id===6).baseStats;
 assert.deepEqual(statsFor('Porygon2'),expected(basePory),'pitch shows six base stats before equipment');
 assert.match(app.innerHTML,/HOW POSITION FIT WORKS/);
 assert.match(app.innerHTML,/Fit score = min\(100, 20 \+ 0\.55/);
-assert.match(app.innerHTML,/DEF 35% · HP 20% · ATK 20% · SPE 25%/);
+assert.match(app.innerHTML,/HP 20% · SPE 20% · ATK 15% · DEF 15% · SpA 15% · SpD 15%/);
 const poryTier=()=>app.innerHTML.match(/<span class="slot-name">Porygon2<\/span>[\s\S]*?<span class="slot-tier tier-([sabcd])">/)?.[1];
 assert.equal(poryTier(),'b','Porygon2 initial midfield tier');
 function choose(name){

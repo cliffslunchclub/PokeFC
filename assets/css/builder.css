@@ -134,3 +134,9 @@
   .builder-confirm-dialog .builder-confirm-body{padding:18px}
 }
 @media(prefers-reduced-motion:reduce){.builder-confirm-dialog .btn{transition:none}}
+
+/* Precise-role tier and match efficiency share one compact row on every XI card. */
+.pitch-slot .fit-badges{display:flex;align-items:center;justify-content:center;gap:3px;max-width:100%;white-space:nowrap}
+.pitch-slot .fit-badges .ovr{margin-top:0}
+.pitch-slot .efficiency{font-size:9px;font-weight:900;color:#f7e7ac;line-height:18px;font-variant-numeric:tabular-nums}
+@media(max-width:650px){.pitch-slot .fit-badges{gap:2px}.pitch-slot .efficiency{font-size:8px;line-height:16px}}

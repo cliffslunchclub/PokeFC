@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=36">
+<link rel="stylesheet" href="./challenge.css?v=37">
 <link rel="stylesheet" href="../assets/css/newtro.css?v=1">
 </head>
 <body>
@@ -72,7 +72,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 
 </div>
-<script src="../assets/js/national-species.js?v=1"></script><script src="../assets/js/calibration-profile.js"></script><script src="../assets/js/position-effectiveness.js?v=2"></script><script src="../assets/js/quick-sim.js?v=5"></script><script src="../assets/js/pse-knockout.js?v=2"></script><script src="./special-items-data.js?v=2"></script>
+<script src="../assets/js/national-species.js?v=1"></script><script src="../assets/js/calibration-profile.js"></script><script src="../assets/js/position-effectiveness.js?v=3"></script><script src="../assets/js/quick-sim.js?v=5"></script><script src="../assets/js/pse-knockout.js?v=2"></script><script src="./special-items-data.js?v=2"></script>
 <script src="../watch/soccerjs/watch-bridge.js?v=16"></script><script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
@@ -295,6 +295,7 @@ const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const PICKER_WINDOW=window.PFC_CHALLENGE_PICKER_WINDOW;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
+const efficiencyFor=(s,pos,item)=>s?Math.round(window.PFC_POSITION_EFFECTIVENESS.competitiveProfile(matchEffectiveStats(s,item),pos).efficiency*100)+'%':'—';
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
 let goalReplaySession=null;
 let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null,shopWindowPosition=null,shopWindowCleanup=null;
@@ -686,7 +687,7 @@ function pokemonDetailMarkup(index){
   '<div><span class="pfc-eyebrow">#'+String(species.id).padStart(4,'0')+' · GEN '+(species.gen||gen(species.id))+'</span>'+
   '<h2>'+esc(display.name)+'</h2><p>'+esc(species.types.join(' / ').toUpperCase())+'</p>'+
   '<div class="pokemon-detail-tags"><span>'+esc(position)+' POSITION</span>'+
-  '<span class="pokemon-detail-tier tier-'+tierFor(species,position,item).toLowerCase()+'">'+esc(tierFor(species,position,item))+' TIER</span>'+
+  '<span class="pokemon-detail-tier tier-'+tierFor(species,position,item).toLowerCase()+'">'+esc(tierFor(species,position,item))+' TIER · '+efficiencyFor(species,position,item)+' EFF</span>'+
   (species.legendary?'<span>LEGENDARY CLASS</span>':'')+'</div></div></div>'+
   '<div class="pokemon-detail-equipment"><strong>HELD ITEM</strong>'+
   (item?'<span>'+itemSprite(item)+esc(item)+' <small>₽'+cost+'</small></span>':'<span>NONE EQUIPPED</span>')+'</div>'+
@@ -873,7 +874,7 @@ body+=slots.map((pos,i)=>{
  '<button type="button" data-slot="'+i+'" '+(!((isDraft&&!s)||s)?'disabled':'')+
  ' aria-label="'+esc(isShop&&selectedShopItem?'Equip selected item to '+(s?.name||'empty slot'):s?'View '+s.name+' details':pos+' empty slot')+'"></button>'+
  (s?'<button type="button" class="slot-info" data-pokemon-info="'+i+'" aria-label="View '+esc(displayPokemon(s,item).name)+' details" title="Pokémon details">ⓘ</button>':'')+
- (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
+ (s?'<span class="slot-fit-badges"><span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span><span class="slot-efficiency" title="Competitive match efficiency">'+efficiencyFor(s,pos,item)+'</span></span>':'<small>AVAILABLE</small>')+
  visibleStats+
  (s&&(isDraft||isShop)&&st.moves>0?'<span class="challenge-drag-grip slot-grip" data-drag-grip="pokemon" data-drag-value="'+i+'" title="Drag to move/swap (uses one move)">⠿</span>':'')+
  (s&&st.items[i]?'<span class="held-item-badge" '+(isShop?'data-held-item-source="'+i+'" data-drag-grip="held-item" data-drag-value="'+i+'" ':'')+'title="'+esc(st.items[i])+'">'+itemSprite(st.items[i])+'<span>'+esc(st.items[i])+'</span></span>':'')+'</div>';
@@ -883,12 +884,17 @@ body+='</div></div>'+
 '<div class="fit-guide-body"><p>Position fit uses your Pokémon\'s effective stats, including any equipped item or Mega Evolution.</p>'+
 '<p class="fit-formula">Fit score = min(100, 20 + 0.55 × weighted effective stat total)</p>'+
 '<div class="fit-role-list">'+
-'<div class="fit-role-row"><strong>Goalkeeper · GK</strong><span>HP 20% · DEF 30% · SpD 30% · SPE 20%</span></div>'+
-'<div class="fit-role-row"><strong>Defenders · CB, LB, RB, LWB, RWB</strong><span>DEF 35% · HP 20% · ATK 20% · SPE 25%</span></div>'+
-'<div class="fit-role-row"><strong>Midfielders · CM, CDM, CAM, LM, RM</strong><span>SpA 30% · SpD 25% · ATK 20% · SPE 25%</span></div>'+
-'<div class="fit-role-row"><strong>Forwards · ST, LW, RW</strong><span>ATK 35% · SpA 20% · SPE 35% · HP 10%</span></div></div>'+
+'<div class="fit-role-row"><strong>GK · Goalkeeper</strong><span>DEF 30% · SpD 30% · HP 20% · SPE 20%</span></div>'+
+'<div class="fit-role-row"><strong>CB · Center Back</strong><span>DEF 45% · HP 25% · SpD 20% · ATK 10%</span></div>'+
+'<div class="fit-role-row"><strong>LB/RB · Fullback</strong><span>SPE 40% · DEF 35% · HP 15% · SpD 10%</span></div>'+
+'<div class="fit-role-row"><strong>LWB/RWB/LM/RM · Wide Support</strong><span>SPE 40% · DEF 25% · SpA 20% · ATK 15%</span></div>'+
+'<div class="fit-role-row"><strong>CDM · Defensive Midfielder</strong><span>DEF 35% · SpD 30% · HP 20% · SpA 15%</span></div>'+
+'<div class="fit-role-row"><strong>CM · Central Midfielder</strong><span>HP 20% · SPE 20% · ATK 15% · DEF 15% · SpA 15% · SpD 15%</span></div>'+
+'<div class="fit-role-row"><strong>CAM · Attacking Midfielder</strong><span>SpA 40% · SPE 25% · ATK 20% · SpD 15%</span></div>'+
+'<div class="fit-role-row"><strong>LW/RW · Winger</strong><span>SPE 40% · ATK 25% · SpA 25% · HP 10%</span></div>'+
+'<div class="fit-role-row"><strong>ST · Striker</strong><span>ATK 45% · SPE 25% · SpA 20% · HP 10%</span></div></div>'+
 '<p class="fit-tier-note">Tier boundaries: S ≥85 · A ≥75 · B ≥65 · C ≥55 · D below 55. Fit scores remain hidden; the tier updates with items.</p>'+
-'<p>Position suitability now applies a modest efficiency adjustment to official PSE matches. The tier letter itself adds no bonus.</p><p>On-pitch numbers show item-adjusted stats. Highlighted values differ from base stats; hover a number to see the change.</p></div></details>'+
+'<p>Competitive efficiency compares this position with the Pokémon\'s own best role (100% down to 70%). The tier letter itself adds no bonus.</p><p>On-pitch numbers show item-adjusted stats. Highlighted values differ from base stats; hover a number to see the change.</p></div></details>'+
 '<div class="challenge-roster-footer"><span>'+(isDraft?'Click an empty position to open the scout picker.':isShop?'Tap an eligible Pokémon to equip the selected shop item · ₽'+(1000-used)+' available':'This lineup is locked for the gauntlet.')+'</span><span>Autosaved locally</span></div>'+
  (dragStatus?'<p class="challenge-drop-status" id="challengeDropStatus" role="status">'+esc(dragStatus)+'</p>':'')+'</section><div class="challenge-side-stack">';
 if(st.phase==='draft'){
@@ -1059,6 +1065,8 @@ const paintFormationPreview=formation=>{
    const value=tierFor(pokemon,layout[i],item);
    tier.textContent=value+' TIER';
    tier.className='slot-tier tier-'+value.toLowerCase();
+   const efficiency=card.querySelector?.('.slot-efficiency');
+   if(efficiency)efficiency.textContent=efficiencyFor(pokemon,layout[i],item);
   }
   const click=card.querySelector?.('button[data-slot]');
   if(click){
@@ -1655,9 +1663,9 @@ function savePersonalRecord(){
 // Separate, seeded alpha shootout: each recorded attempt is generated here, not fabricated from match totals.
 function simulatePenaltyShootout(ours,theirs,seed){
  const random=window.FXI_QUICK.randomizer(seed+':penalties');
- const order=squad=>squad.lineup.slice(1).sort((a,b)=>
-  ((b.main?.finishing||0)+(b.detail?.composure||0))-
-  ((a.main?.finishing||0)+(a.detail?.composure||0)));
+ const model=window.PFC_POSITION_EFFECTIVENESS;
+ const finishing=p=>model.finishingIndex(p.pokemonStats)*Math.max(.70,p.positionEfficiency??1);
+ const order=squad=>squad.lineup.slice(1).sort((a,b)=>finishing(b)-finishing(a));
  const kickers={home:order(ours),away:order(theirs)};
  const keepers={home:ours.lineup[0],away:theirs.lineup[0]};
  let home=0,away=0;
@@ -1667,8 +1675,8 @@ function simulatePenaltyShootout(ours,theirs,seed){
   for(const side of ['home','away']){
    const player=kickers[side][(round-1)%kickers[side].length];
    const defending=keepers[side==='home'?'away':'home'];
-   const finishing=player?.main?.finishing||65,composure=player?.detail?.composure||65,reflexes=defending?.detail?.reflexes||65;
-   const chance=Math.min(.92,Math.max(.52,.72+(finishing-65)*.002+(composure-65)*.001-(reflexes-65)*.0015));
+   const shooter=player?finishing(player):65,reflexes=defending?model.preciseFit(defending.pokemonStats,'GK')*Math.max(.70,defending.positionEfficiency??1):65;
+   const chance=Math.min(.92,Math.max(.52,.72+(shooter-65)*.003-(reflexes-65)*.0015));
    const scored=random()<chance;
    attempts.push({round,side,kicker:player?.name||'Unknown',scored});
    if(side==='home')home+=Number(scored);else away+=Number(scored);
@@ -1694,10 +1702,8 @@ function playBoss(){
  const build=(s,i,exactPos,prefix,item)=>{
   const b=matchEffectiveStats(s,item),pos=role(exactPos);
   const position=window.PFC_POSITION_EFFECTIVENESS?.competitiveProfile(b,exactPos);
-  const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
-  const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
   return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,speciesId:s.spriteId||s.id,pos,
-   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,exactPosition:exactPos,pokemonStats:b,finishingIndex:position?.finishingIndex??null,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,exactPosition:exactPos,pokemonStats:b};
  };
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,FORMS[st.formation][i],'c',st.items[i]))};
  const bossFormation=boss.formation||'4-3-3';

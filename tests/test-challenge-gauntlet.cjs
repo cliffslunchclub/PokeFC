@@ -142,6 +142,6 @@ assert(blue&&redPikachu);
 assert.match(app.innerHTML,/TOURNAMENT STATS/,'Champion recap includes tournament stats');
 assert.equal((app.innerHTML.match(/class="tournament-pokemon(?: tournament-top-player)?"/g)||[]).length,11,'All 11 starter sprites get tournament stats');
 assert.match(app.innerHTML,/BEST PLAYER OF THE TOURNAMENT/);
-assert(blue.main.vision>40,'Blue Mega Pidgeot');
-assert(redPikachu.main.finishing>60,'Red Light Ball Pikachu boost');
+assert(blue.pokemonStats.spAttack>40,'Blue Mega Pidgeot');
+assert(redPikachu.pokemonStats.attack===110,'Red Light Ball Pikachu boost');
 console.log('PASS six-boss National Challenge gauntlet, fixed opponents, locked XI, champion and boss items');

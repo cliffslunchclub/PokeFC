@@ -6,6 +6,13 @@ on:
       - "watch/soccerjs/**"
       - "tests/ci-pse-120-browser.cjs"
       - "scripts/build-siteground.sh"
+      - "assets/js/position-effectiveness.js"
+      - "assets/js/builder.js"
+      - "assets/css/builder.css"
+      - "play/**"
+      - "challenge/**"
+      - "ratings/**"
+      - "index.html"
       - ".github/workflows/pse-120-browser-package.yml"
   workflow_dispatch:
 permissions:

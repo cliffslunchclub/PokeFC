@@ -33,6 +33,9 @@ assert.equal(model.competitiveProfile(snorlax,'CB').efficiency,1);
 assert(model.competitiveProfile(sample,'CB').efficiency<1);
 assert(model.competitiveProfile(sample,'CB').efficiency>=.70);
 assert.equal(model.finishingIndex(snorlax),.45*110+.25*65+.30*(540/6));
+const cm=model.PRECISE_WEIGHTS.CM;
+assert.deepEqual(cm,{hp:.20,attack:.15,defense:.15,spAttack:.15,spDefense:.15,speed:.20});
+assert.equal(model.preciseFit({hp:120,attack:80,defense:80,spAttack:80,spDefense:80,speed:120},'CM'),Math.min(100,20+.55*(.20*120+.20*120+.15*80*4)));
 
 const roles=['GK','LB','CB','CB','RB','CDM','CM','CAM','LW','ST','RW'];
 const broad=r=>r==='GK'?'GK':['LB','CB','RB'].includes(r)?'DEF':['LW','ST','RW'].includes(r)?'FWD':'MID';
