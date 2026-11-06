@@ -68,7 +68,8 @@ assert(poses>50&&corners>50&&penalties>0&&goals>0);
 const old=qs.simulate(preview,{seed:'LEGACY-COMPAT'});
 const oldFixture=bridge.snapshot(preview,old);
 assert.equal(oldFixture.setPieceRules,undefined);
-assert(oldFixture.events.every(e=>e.type==='goal'),'Old fixtures export goals only');
+assert(oldFixture.events.every(e=>e.type==='goal'||e.type==='save'),
+ 'Legacy exports only existing official goals and goalkeeper saves');
 assert.deepEqual(bridge.scoreAt(oldFixture,90),old.score);
 assert.equal(report.fromResult(old,preview).setPieceRules,undefined);
 const valid=qs.simulate(preview,{seed:'INTEGRATION-0',setPieces:'v1'});
