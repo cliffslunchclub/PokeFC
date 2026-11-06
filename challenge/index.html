@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=32">
+<link rel="stylesheet" href="./challenge.css?v=33">
 <link rel="stylesheet" href="../newtro.css?v=1">
 </head>
 <body>
@@ -636,7 +636,7 @@ function matchReplayControls(match){
  // New results retain their immutable official PSE fixture. Old match reports
  // remain readable, but we never invent a replay from a newly simulated game.
  const entry=(st.history||[]).find(m=>m.round===match?.round&&m.seed===match?.seed&&m.boss===match?.boss);
- const data=entry?.replay||match?.replay;
+ const data=entry?.replay;
  if(!data||data.version!==1||data.result?.origin!=='quick-sim'||
   !Array.isArray(data.result.events)||!data.preview?.home?.lineup||!data.preview?.away?.lineup)return '';
  const goals=data.result.events.filter(e=>e?.type==='goal').slice().sort((a,b)=>a.minute-b.minute);
@@ -1203,10 +1203,10 @@ if(st.phase==='result'||st.phase==='finished'){
   if(status)status.textContent='Loading recorded '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
   openDialog(replayModal);
   let requested=false;
-  const start=()=>{
-   if(requested||!goalReplaySession)return;
+  const start=session=>{
+   if(requested||!session)return;
    requested=true;
-   if(!goalReplaySession.replayHighlight(id)&&status)status.textContent='Replay clip is unavailable.';
+   if(!session.replayHighlight(id)&&status)status.textContent='Replay clip is unavailable.';
   };
   try{
    goalReplaySession=bridge.mountInline({
@@ -1220,11 +1220,11 @@ if(st.phase==='result'||st.phase==='finished'){
       if(!session.simToEnd()&&status)status.textContent='Penalty clip could not load.';
      }else{
       const duration=replay.result.durationMinutes===120?120:90;
-      if(session.seek(duration))start();
+      if(session.seek(duration))start(session);
       else if(status)status.textContent='Goal replay could not load.';
      }
     },
-    onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished)start()},
+    onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished&&goalReplaySession)start(goalReplaySession)},
     onStatus:({state,message})=>{
      if(state==='error'&&status)status.textContent=message||'Could not load replay.';
     }
