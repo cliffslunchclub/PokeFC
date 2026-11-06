@@ -1,0 +1,33 @@
+name: Watch soft wall rebounds
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/phase10-wall-physics.cjs'
+      - 'watch/soccerjs/phase10-play-director.cjs'
+      - 'watch/soccerjs/test-wall-physics.cjs'
+      - 'watch/soccerjs/test-enclosed-wall-play.cjs'
+      - '.github/workflows/watch-soft-walls.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'watch/soccerjs/phase10-wall-physics.cjs'
+      - 'watch/soccerjs/phase10-play-director.cjs'
+      - 'watch/soccerjs/test-wall-physics.cjs'
+      - 'watch/soccerjs/test-enclosed-wall-play.cjs'
+      - '.github/workflows/watch-soft-walls.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check watch/soccerjs/phase10-wall-physics.cjs
+      - run: node --check watch/soccerjs/phase10-play-director.cjs
+      - run: node watch/soccerjs/test-wall-physics.cjs
+      - run: node watch/soccerjs/test-enclosed-wall-play.cjs
+      - run: node watch/soccerjs/test-possession-continuity.cjs
+      - run: node watch/soccerjs/test-isometric-motion.cjs
+      - run: node watch/soccerjs/test-offside-aware-passing.cjs
+      - run: node watch/soccerjs/test-three-defender-press.cjs
