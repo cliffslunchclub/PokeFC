@@ -79,8 +79,10 @@ for(const endX of [0,field.width]){
  assert.equal(pieces.length,2);
  const north=pieces.find(s=>s[0][1]===0);
  const south=pieces.find(s=>s[1][1]===field.height);
- assert.equal(north[1][1],field.height/2-Physics.GOAL_HALF_WIDTH);
- assert.equal(south[0][1],field.height/2+Physics.GOAL_HALF_WIDTH);
+ assert.equal(north[1][1],field.height/2-Physics.GOAL_BOARD_OPEN_HALF_WIDTH);
+ assert.equal(south[0][1],field.height/2+Physics.GOAL_BOARD_OPEN_HALF_WIDTH);
+ assert(Physics.GOAL_BOARD_OPEN_HALF_WIDTH>Physics.GOAL_HALF_WIDTH,
+  'Goal rails must visually clear the entire post and net geometry');
 }
 assert.equal(Physics.sampleWall({wall:null},4),null);
 assert.equal(Physics.boundary({x:-.5,y:30},field),false);
