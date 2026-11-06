@@ -30,8 +30,8 @@ function start(store=new Map()){
   navigator:{},console
  };
  const ctx=vm.createContext(env);
- vm.runInContext(fs.readFileSync(path.join(root,'national-species.js'),'utf8'),ctx,{timeout:10000});
- vm.runInContext(fs.readFileSync(path.join(root,'builder.js'),'utf8'),ctx,{timeout:10000});
+ vm.runInContext(fs.readFileSync(path.join(root,'assets/js/national-assets/js/species.js'),'utf8'),ctx,{timeout:10000});
+ vm.runInContext(fs.readFileSync(path.join(root,'assets/js/builder.js'),'utf8'),ctx,{timeout:10000});
  return {get,store,env,api:env.window.PFC_BUILDER};
 }
 const {get,store,env,api}=start();
@@ -126,7 +126,7 @@ assert(html.includes('href="./ratings/"'));
 assert(html.includes('XI GRADE'));
 assert.equal((html.match(/class="pfc-nav"/g)||[]).length,1);
 assert(!/legacy-v07c|legacy-v05|Arcade/.test(html));
-const css=fs.readFileSync(path.join(root,'builder.css'),'utf8');
+const css=fs.readFileSync(path.join(root,'assets/css/builder.css'),'utf8');
 assert(css.includes('#prospects[data-expanded="true"]'),'Expanded scouts have bounded scroll');
 assert(css.includes('max-height:min(650px,72dvh)'),'Expanded desktop height is fixed');
 assert(css.includes('.builder-confirm-dialog::backdrop'),'Dialog uses branded backdrop');

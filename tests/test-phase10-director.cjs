@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict');
-const quick=require('../quick-sim.js');
+const quick=require('../assets/js/quick-sim.js');
 const director=require('../match-director/timeline.js');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(side,boost=0){

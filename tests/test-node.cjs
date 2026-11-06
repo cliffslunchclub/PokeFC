@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm');
 const elements={app:{innerHTML:''},exportBtn:{addEventListener:()=>{}},importFile:{addEventListener:()=>{}}};
 const document={querySelectorAll:()=>[],getElementById:(id)=>elements[id]||null,addEventListener:(type,fn)=>{document[type]=fn}};
 const kv={};const ctx={window:{},document,localStorage:{getItem:k=>kv[k]||null,setItem:(k,v)=>{kv[k]=v},removeItem:k=>delete kv[k]},console,setTimeout:()=>{},confirm:()=>true,alert:console.log,URL:{createObjectURL:()=>'',revokeObjectURL:()=>{}},Blob:class {},Math};vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(__dirname+'/../species.js','utf8'),ctx);vm.runInContext(fs.readFileSync(__dirname+'/../quick-sim.js','utf8'),ctx);vm.runInContext(fs.readFileSync(__dirname+'/../career.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync(__dirname+'/../assets/js/species.js','utf8'),ctx);vm.runInContext(fs.readFileSync(__dirname+'/../assets/js/quick-sim.js','utf8'),ctx);vm.runInContext(fs.readFileSync(__dirname+'/../assets/js/career.js','utf8'),ctx);
 const x=ctx.window.FXI_TEST,assert=(ok,why)=>{if(!ok)throw Error(why)};
 assert(ctx.window.FXI_SPECIES.length===493,'species');
 const fixtures=x.makeFixtureList();assert(fixtures.length===22&&fixtures.every(row=>row.length===16),'scheduling rounds');
