@@ -185,7 +185,8 @@ assert.equal(pendingNote.hidden,true,'Spinner finish removes scouting progress n
 assert.match(draft.app.innerHTML,/class="challenge-pitch-shell"/);
 assert.match(draft.app.innerHTML,/class="challenge-pitch-controls" role="toolbar"/);
 assert.match(draft.app.innerHTML,/id="openFormationWindow"/);
-assert.match(draft.app.innerHTML,/id="openMoveWindow"[^>]*disabled/,'No position swap before the first draft pick');
+assert.match(draft.app.innerHTML,/id="openMoveWindow"[^>]*>⇄ SWAP POSITION <small>1 LEFT/,
+ 'Swap Position is enabled once Pokémon have been drafted');
 assert(draft.app.innerHTML.indexOf('id="openFormationWindow"')<
  draft.app.innerHTML.indexOf('class="challenge-pitch"'),'Formation button precedes shifted field');
 assert(draft.app.innerHTML.indexOf('id="openMoveWindow"')<
