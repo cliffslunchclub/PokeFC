@@ -34,7 +34,7 @@
    (perPlayer.length?perPlayer.map(p=>'<div class="viewer-stat"><span>'+escape(p.side?'AWAY':'HOME')+
     '</span><small>'+escape(p.name)+'</small><span>'+p.count+' SOT</span></div>').join(''):
     '<p class="tiny muted">No individual shots on target were recorded.</p>')+
-   '<p class="tiny muted">Quick Sim does not yet track corners, free kicks or in-match penalty-kick incidents.</p>';
+   '<p class="tiny muted">Enclosed pitch: the ball stays in play; there are no corners, free kicks or in-match penalties.</p>';
  }
  function update(m,score){
   if(current!==m)return;

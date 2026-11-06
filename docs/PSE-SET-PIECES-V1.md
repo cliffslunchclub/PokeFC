@@ -1,6 +1,6 @@
-# PokéFC Sim Engine (PSE) — Official set-piece rules v1 (experimental)
+# ARCHIVED — PSE experimental set-piece rules v1 (RETIRED)
 
-**Status:** Opt-in prototype only. Not enabled in Quick Play, Challenges or Franchise until match report, Watch bridge, Soccer-JS and save-schema migrations are verified.
+**Status:** Retired. Superseded by [enclosed pitch rules](POKEFC-ENCLOSED-PITCH.md). This is historical documentation, not executable guidance. Original status: Opt-in prototype only. Not enabled in Quick Play, Challenges or Franchise until match report, Watch bridge, Soccer-JS and save-schema migrations are verified.
 
 ## Design principle
 PSE alone produces authoritative events. The Watch / Match Director may interpolate movement but must never claim a corner, foul, free kick or penalty occurred unless PSE recorded it.
