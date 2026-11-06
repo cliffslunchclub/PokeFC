@@ -208,7 +208,10 @@ function motionFrame(fixture,t,field,options=false){
   ball={x:lerp(passOrigin.x,passTarget.x,progress),
    y:lerp(passOrigin.y,passTarget.y,progress),
    z:.23+.65*Math.sin(Math.PI*progress)};
-  ownerIndex=-1;contact='in-flight';action='illustrative-pass';
+  ownerIndex=-1;
+  const contested=Math.floor(current.owner/11)!==Math.floor(next.owner/11);
+  contact=contested?'contested-flight':'in-flight';
+  action=contested&&u>.60?'illustrative-challenge':'illustrative-pass';
  }else{
   ball=foot(receiver,next.owner);
   ownerIndex=next.owner;contact='received';
