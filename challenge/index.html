@@ -1589,7 +1589,7 @@ function playBoss(){
   const b=matchEffectiveStats(s,item);
   const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
   const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
-  return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+  return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,speciesId:s.spriteId||s.id,pos,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
  };
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,role(FORMS[st.formation][i]),'c',st.items[i]))};
  const bossFormation=boss.formation||'4-3-3';
@@ -1619,7 +1619,8 @@ function playBoss(){
    extraTime:ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events}:null}:{}),
   shots:out.stats.map(x=>x.shots),passes:out.stats.map(x=>x.passes),
   outcome,tiebreak,shootout,seed,origin:'quick-sim',
-  report:MATCH_REPORT?.fromResult(out,preview)||null};
+  report:MATCH_REPORT?.fromResult(out,preview)||null,
+  ...(out.origin==='quick-sim'?{replay:{version:1,preview:{home:ours,away:theirs},result:out}}:{})};
 }
 wireManualSaveControls();save();render();
 })();
