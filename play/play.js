@@ -257,8 +257,10 @@ function saveChallengeResult(result){
 }
 function officialStatHtml(result){
  const rows=[['Shots','shots'],['Shots on target','shotsOnTarget'],['Saves','saves'],
-  ['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],['Tackles won','tackles']];
- const table=rows.map(([label,key])=>'<div class="stat-row"><span>'+
+  ['Possession','possession'],['Passes','passes'],['Completed passes','completedPasses'],
+   ['Tackles won','tackles'],['Corners','corners'],['Fouls','foulsCommitted'],
+   ['Free kicks','freeKicks'],['Match penalties','penaltyKicks']];
+ const table=rows.filter(([,key])=>result.stats?.some(t=>t[key]!=null)).map(([label,key])=>'<div class="stat-row"><span>'+
   esc(result.stats?.[0]?.[key]??'—')+(key==='possession'?'%':'')+
   '</span><small>'+esc(label)+'</small><span>'+
   esc(result.stats?.[1]?.[key]??'—')+(key==='possession'?'%':'')+
@@ -273,7 +275,9 @@ function officialStatHtml(result){
  return '<div class="stat-table">'+table+'</div><h4>POKÉMON SHOTS ON TARGET</h4>'+
   (detail?'<div class="stat-table">'+detail+'</div>':
    '<p class="result-meta">No individual shots on target recorded.</p>')+
-  '<p class="result-meta">Corners, free kicks and match penalty kicks are not yet recorded by Quick Sim.</p>';
+  (result.setPieceRules==='v1'?
+   '<p class="result-meta">PSE v1 · Official corners, fouls, free kicks and match penalties.</p>':
+   '<p class="result-meta">Set-piece statistics unavailable in legacy matches.</p>');
 }
 function showResult(result){
  const challengeRecord=saveChallengeResult(result);
