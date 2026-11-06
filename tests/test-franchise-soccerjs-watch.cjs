@@ -99,6 +99,7 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(el('viewerMode').disabled,false,'Viewer releases engine controls after transitioning to results');
  assert.equal(saved.week,1,'Recording advances exactly one week');
  assert.equal(saved.results.length,1,'Exactly one matchweek recorded');
+ assert.match(el('app').innerHTML,/id="franchiseWeekResults"/,'Sim to End transitions to matchweek results card');
  assert.equal(saved.results[0].length,16,'16 same-week fixtures saved');
  assert.deepEqual(Array.from(saved.results[0][preview.fixtureIndex].score),Array.from(expected.score),'Recorded match is exact locked Quick Sim result');
  assert.equal(finished,1);
