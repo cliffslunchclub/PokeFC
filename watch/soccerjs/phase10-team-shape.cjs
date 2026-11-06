@@ -179,7 +179,9 @@ function press(f,field,seconds,visual,shape,actors,ball){
    y:clamp(lerp(ball.y,field.height*.5,.32),1,field.height-1)
   }:{
    x:clamp(ball.x+depth*4,1,field.width-1),
-   y:clamp(ball.y+(ball.y<field.height*.5?4:-4),1,field.height-1)
+   // Blend the covered lane across midfield; a binary side switch would
+   // abruptly flip this defender's target as the ball crosses pitch center.
+   y:clamp(ball.y+4*(1-2*ease((ball.y-field.height*.5+3)/6)),1,field.height-1)
   };
   const distance=Math.max(.01,Math.hypot(actor.x-target.x,actor.y-target.y));
   const maxMove=k===0?10:k===1?8.5:7.0;
