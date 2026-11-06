@@ -46,6 +46,9 @@ assert.equal(get('genFilter').value,'1','Gen I filter is selected for first visi
 assert.equal(api.getState().formation,'4-3-3');
 assert.equal(api.getState().selected,0);
 assert.match(get('pitchSlots').innerHTML,/data-slot="10"/);
+assert.equal((get('pitchSlots').innerHTML.match(/class="fit-badges"/g)||[]).length,11,'All filled XI cards show tier and efficiency together');
+assert.match(get('pitchSlots').innerHTML,/class="efficiency" title="Competitive match efficiency">\d{2,3}%/);
+assert.match(get('prospects').innerHTML,/\d{2,3}% EFF/);
 assert.equal((get('prospects').innerHTML.match(/data-species="/g)||[]).length,10,'Only ten scouts initially');
 assert.equal(get('prospects').dataset.expanded,'false','List is initially not scroll-clamped');
 assert.equal(get('more').hidden,false);
