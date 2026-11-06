@@ -11,6 +11,7 @@ git -C "$TMP/upstream" checkout --detach 38970e0dade0865078c9e84bc1ecfd72aaa02fd
 cp "$HERE/viewer-entry.cjs" "$TMP/upstream/phase10-viewer-entry.cjs"
 cp "$HERE/phase10-motion.cjs" "$TMP/upstream/phase10-motion.cjs"
 cp "$HERE/phase10-play-director.cjs" "$TMP/upstream/phase10-play-director.cjs"
+cp "$HERE/phase10-team-shape.cjs" "$TMP/upstream/phase10-team-shape.cjs"
 cp "$HERE/highlight-replay.cjs" "$TMP/upstream/highlight-replay.cjs"
 cp "$HERE"/pokemon-*.cjs "$TMP/upstream/"
 mkdir -p "$HERE/dist"

@@ -4,6 +4,7 @@
  * Visual choreography only: PSE alone owns scores, saves and match events.
  * All patterns appear in ordinary non-scoring play as well as goal buildups.
  */
+const {styleFor}=require('./phase10-team-shape.cjs');
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
 const lerp=(a,b,u)=>a+(b-a)*u;
@@ -81,8 +82,21 @@ function makePlan(f,field){
   append('pass',time,target,id,kind,arc);
  }
  function choose(){
-  const roll=dice('pattern',100);
-  return roll<26?'dribble':roll<50?'one-two':roll<71?'cross':roll<88?'through':'switch';
+  // These are relative weights; all plays remain possible in every tactic.
+  // A counterattack can change the next visual pattern without changing PSE.
+  const team=sideOf(owner)===0?f.home:f.away;
+  const p=styleFor(team.tactic),regained=actions.at(-1)?.mode==='challenge';
+  const list=[
+   ['dribble',26*p.dribble*(regained?1.24:1)],
+   ['one-two',24*p.oneTwo],
+   ['cross',21*p.cross],
+   ['through',17*p.through*(regained?1.36:1)],
+   ['switch',12*p.switch]
+  ];
+  const total=list.reduce((sum,row)=>sum+row[1],0);
+  let target=dice('pattern',100000)/100000*total;
+  for(const [name,weight] of list){if(target<weight)return name;target-=weight}
+  return 'dribble';
  }
  function sequence(kind){
   const started=seconds,initial=owner,side=sideOf(owner);
@@ -136,7 +150,12 @@ function makePlan(f,field){
  }
  while(seconds<total-.01&&count<1600){sequence(choose());count++}
  for(const t of tracks)t.sort((a,b)=>a.t-b.t);
- return {actions,sequences,tracks,duration:total,field:{width:field.width,height:field.height}};
+ const turnovers=actions.filter(a=>a.mode==='challenge').map(a=>({
+  time:a.end,oldSide:sideOf(a.owner),newSide:sideOf(a.receiver),
+  ball:a.to,stageStart:a.start
+ }));
+ return {actions,sequences,tracks,turnovers,duration:total,
+  field:{width:field.width,height:field.height}};
 }
 function planFor(f,field){
  const previous=planCache.get(f);

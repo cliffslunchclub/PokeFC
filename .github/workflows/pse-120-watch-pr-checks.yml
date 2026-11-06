@@ -33,6 +33,7 @@ jobs:
           node watch/soccerjs/test-isometric-motion.cjs
           node watch/soccerjs/test-possession-continuity.cjs
           node watch/soccerjs/test-play-sequence-director.cjs
+          node watch/soccerjs/test-hybrid-counterpress.cjs
           node watch/soccerjs/test-attacking-third-support.cjs
           node watch/soccerjs/test-goal-kickoff-reset.cjs
           node tests/test-pse-knockout.cjs

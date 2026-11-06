@@ -299,7 +299,9 @@ function render(t,options={}){
   'official-shootout-off-target':'OFFICIAL SHOOTOUT MISS'
  };
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
-  (script.officialEvent?' · official PSE event':' · illustrative movement');
+  (script.officialEvent?' · official PSE event':' · illustrative movement')+
+  (script.pressPhase==='counterpress'?' · HYBRID PRESS':
+   script.pressPhase==='recover'?' · ORGANIZED RECOVERY':'');
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
@@ -308,7 +310,10 @@ function render(t,options={}){
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
-  animation:script.action,sequenceType:script.sequenceType||null,
+  animation:script.action,pressPhase:script.pressPhase||null,
+  pressingSide:script.pressingSide??null,
+  pressingPlayers:script.pressingPlayers||[],visualTactic:script.visualTactic||null,
+  sequenceType:script.sequenceType||null,
   sequenceIndex:script.sequenceIndex??null,
   ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
   carrier:ballCarrier,ballContact:script.contact||'continuous-play',
