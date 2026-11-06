@@ -127,8 +127,13 @@ function press(f,field,seconds,visual,shape,actors,ball){
   anchor=shape.turnover.ball;
  }else{
   side=1-shape.active;
-  // Ordinary defending closes space without a sudden pressure reset.
-  intensity=.48*ease(phase/.30)*(1-ease((phase-.62)/.36));
+  // Urgency rises continuously as the attacker approaches the defending goal.
+  // The off-ball team is always the defending side; this is Watch-only motion.
+  const attackProgress=shape.active===0?ball.x/field.width:1-ball.x/field.width;
+  const finalThird=ease((attackProgress-.60)/.16);
+  const danger=ease((attackProgress-.77)/.16);
+  const ordinary=.48*ease(phase/.30)*(1-ease((phase-.62)/.36));
+  intensity=Math.max(ordinary,finalThird*(.64+.36*danger));
   // Recovery pressure reaches zero at age 10. Ease ordinary marking back
   // in over the next 1.3 s; otherwise a defender can jump several meters
   // instantly at the recovery-to-settled boundary.
@@ -161,13 +166,19 @@ function press(f,field,seconds,visual,shape,actors,ball){
  });
  for(const [k,id] of ids.slice(0,3).entries()){
   const actor=actors[id];
-  const target=k<2?ball:{
-   x:clamp(ball.x+(side===0?-3.5:3.5),1,field.width-1),
-   y:clamp(ball.y+(k===2?3:-3),1,field.height-1)
+  // First closes the carrier, second blocks the shot lane, third covers
+  // a nearby passing lane. All three converge more tightly near goal.
+  const depth=side===0?-1:1;
+  const target=k===0?ball:k===1?{
+   x:clamp(ball.x+depth*2.4,1,field.width-1),
+   y:clamp(lerp(ball.y,field.height*.5,.32),1,field.height-1)
+  }:{
+   x:clamp(ball.x+depth*4,1,field.width-1),
+   y:clamp(ball.y+(ball.y<field.height*.5?4:-4),1,field.height-1)
   };
   const distance=Math.max(.01,Math.hypot(actor.x-target.x,actor.y-target.y));
-  const maxMove=k<2?8.5:5.2;
-  const move=clamp(distance-(k<2?1.8:3),0,maxMove)*Math.min(1,intensity);
+  const maxMove=k===0?10:k===1?8.5:7.0;
+  const move=clamp(distance-(k===0?1.6:2.5),0,maxMove)*Math.min(1,intensity);
   actor.x=clamp(actor.x+(target.x-actor.x)/distance*move,1,field.width-1);
   actor.y=clamp(actor.y+(target.y-actor.y)/distance*move,1,field.height-1);
  }
