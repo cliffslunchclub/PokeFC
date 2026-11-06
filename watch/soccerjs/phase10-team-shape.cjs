@@ -100,7 +100,10 @@ function position(f,field,id,seconds,shape,baseline){
    // Sine crosses zero with no sudden reassignment or position snaps.
    const surge=Math.sin(seconds*.043+salt);
    const active=i===2?Math.max(0,surge):i===3?Math.max(0,-surge):0;
-   progress+=.32*wave*strength*shape.profiles[side].overlap*ease((active-.18)/.75);
+   // Distinct surges and rare box arrivals (~10% of established
+   // attacking-third frames), while the other CB stays in covering depth.
+   progress+=wave*strength*shape.profiles[side].overlap*
+    (.20*ease((active-.60)/.40)+.14*ease((active-.95)/.05));
    if(active<.01)progress=Math.min(progress,.465);
   }
  }
