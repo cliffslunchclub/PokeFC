@@ -1,8 +1,8 @@
 'use strict';
 const assert=require('node:assert/strict');
-const fit=require('../position-effectiveness.js');
-const sim=require('../quick-sim.js');
-const knockout=require('../pse-knockout.js');
+const fit=require('../assets/js/position-effectiveness.js');
+const sim=require('../assets/js/quick-sim.js');
+const knockout=require('../assets/js/pse-knockout.js');
 
 const stats={hp:65,attack:125,defense:20,spAttack:95,spDefense:30,speed:110};
 const forward=fit.profile(stats,'ST'),defender=fit.profile(stats,'CB');

@@ -2,7 +2,7 @@
 // PSE generates continuous-play matches with goals, saves and no whistle events.
 // Historical reports may retain archived fields without altering new results.
 const assert=require('node:assert/strict');
-const qs=require('../quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
+const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
 const {motionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 require('../challenge/match-report.js');
 const report=globalThis.PFC_MATCH_REPORT;
