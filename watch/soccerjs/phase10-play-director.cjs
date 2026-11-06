@@ -43,12 +43,12 @@ function isOffside(f,field,side,ballX,receiverX){
  return attackX>field.width/2+1e-6&&
   attackX>ball+1e-6&&attackX>offsideLine(f,field,side,ballX)+1e-6;
 }
-function receiver(f,field,owner,aim,pattern,salt,ballX){
+function receiver(f,field,owner,aim,pattern,salt,ballX,releaseAt=base){
  const side=sideOf(owner),team=side===0?f.home:f.away;
  const candidates=[];
  for(let i=1;i<11;i++){
   const id=side*11+i;if(id===owner)continue;
-  const b=base(id,field),role=String(team.lineup[i]?.pos||'').toUpperCase();
+  const b=releaseAt(id,field),role=String(team.lineup[i]?.pos||'').toUpperCase();
   if(isOffside(f,field,side,ballX,b.x))continue;
   const defender=i<5||/^(CB|DEF|LB|RB|LWB|RWB)$/.test(role);
   const mid=i>=5&&i<8||/^(CM|MID|CAM|CDM)$/.test(role);
@@ -80,6 +80,15 @@ function makePlan(f,field){
   if(last&&Math.abs(last.t-t)<.000001){last.p=spot;return}
   arr.push({t,p:spot});
  }
+ function releasePosition(id){
+  const last=tracks[id].at(-1),baseline=base(id,field);
+  if(!last)return baseline;
+  // Recent actual touches can leave a runner ahead of the defensive line.
+  // Blend stale touch positions back to formation; never use pass arrival.
+  const age=Math.max(0,seconds-last.t),weight=1-smooth((age-2)/8);
+  return point(field,lerp(baseline.x,last.p.x,weight),
+   lerp(baseline.y,last.p.y,weight));
+ }
  function destination(forward,dy,duration){
   const side=sideOf(owner),percent=progress(side,ball.x,field);
   const run=forward*duration/6;
@@ -108,10 +117,10 @@ function makePlan(f,field){
   // All passes, including give-and-go returns, must validate their receiver
   // at release. Fallback is a controlled dribble, never a whistle or reset.
   if(mode==='pass'&&recipient!=null){
-   const side=sideOf(owner),target=base(recipient,field);
+   const side=sideOf(owner),target=releasePosition(recipient);
    if(isOffside(f,field,side,ball.x,target.x)){
     const replacement=receiver(f,field,owner,end,pattern,
-     count+':fallback:'+actions.length,ball.x);
+     count+':fallback:'+actions.length,ball.x,releasePosition);
     if(replacement!=null)recipient=replacement;
     else{
      mode='carry';recipient=owner;end=point(field,
@@ -134,7 +143,7 @@ function makePlan(f,field){
  }
  const carry=(time,forward,dy,kind)=>append('carry',time,destination(forward,dy,time),owner,kind);
  function pass(time,target,kind,arc=0,prefer=kind){
-  const id=receiver(f,field,owner,target,prefer,count+':'+actions.length,ball.x);
+  const id=receiver(f,field,owner,target,prefer,count+':'+actions.length,ball.x,releasePosition);
   if(id==null){
    // A dribble is preferable to a speculative illegal pass.
    carry(time,Math.min(3,time*1.3),0,kind);
