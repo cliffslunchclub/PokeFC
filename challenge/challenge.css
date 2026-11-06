@@ -784,7 +784,7 @@
 .challenge-stage-toolbar strong{font-size:12px;font-weight:1000;letter-spacing:.055em;color:#ecf8dd}
 .challenge-stage-toolbar small{font-size:10px;color:#b5d7d0}
 .challenge-stage-toolbar button{min-height:41px!important;flex-shrink:0;font-size:11px!important}
-.challenge-run-layout .challenge-roster-panel>.challenge-pitch{width:100%;max-width:780px;height:740px;min-height:600px;margin:0 auto;border-width:3px}
+.challenge-run-layout .challenge-roster-panel>.challenge-pitch-shell>.challenge-pitch{width:100%;max-width:780px;height:740px;min-height:600px;margin:0 auto;border-width:3px}
 .challenge-run-layout .challenge-roster-panel>.challenge-section-heading{margin-bottom:12px}
 .challenge-run-layout .challenge-roster-panel>.challenge-drag-tip{max-width:780px;margin:4px auto 12px}
 .challenge-run-layout .challenge-roster-panel>.challenge-fit-guide{max-width:780px;margin:12px auto 0}
@@ -795,11 +795,6 @@
 .challenge-pitch .slot.shop-not-eligible{opacity:.55}
 .challenge-pitch .slot.shop-target button[data-slot]{cursor:pointer!important}
 .challenge-stage-toolbar button#toggleShopDrawer{border-color:#e6db9e!important}
-.challenge-team-options{margin-top:4px!important;padding:0!important;overflow:hidden}
-.challenge-team-options>summary{cursor:pointer;display:block;padding:13px 17px;color:#eddfb6;font-size:11px;font-weight:950;letter-spacing:.07em}
-.challenge-team-options>summary:hover{background:#1e3746}
-.challenge-team-options-content{padding:4px 17px 16px;border-top:1px solid #385465}
-.challenge-team-options-content .controls-inline{margin:10px 0}
 .challenge-road-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 /* The scouting reels remain above the pitch, not inside the Pokémon picker. */
 .challenge-draft-reels{margin:14px 0 3px!important;padding:10px 14px!important;background:linear-gradient(115deg,#122e3a,#112d32)!important}
@@ -857,7 +852,7 @@
 @media(max-width:760px){
  .challenge-run-layout>.challenge-roster-panel{padding:13px 9px 16px!important}
  .challenge-run-layout.stage-shop.shop-open>.challenge-roster-panel{padding-right:9px!important}
- .challenge-run-layout .challenge-roster-panel>.challenge-pitch{max-width:590px;height:650px;min-height:0}
+ .challenge-run-layout .challenge-roster-panel>.challenge-pitch-shell>.challenge-pitch{max-width:590px;height:650px;min-height:0}
  .challenge-frame .challenge-dialog.challenge-draft-panel{top:auto!important;bottom:10px!important;right:8px!important;left:8px!important;width:calc(100vw - 16px)!important;max-width:none!important;max-height:68dvh!important;margin:0!important}
  .challenge-draft-panel .challenge-pick-grid{max-height:37dvh}
  .challenge-shop-drawer{top:auto;bottom:7px;left:7px;right:7px;width:calc(100vw - 14px);max-height:53dvh;border-radius:13px 13px 7px 7px}
@@ -867,7 +862,7 @@
  .challenge-stage-toolbar button{width:100%}
 }
 @media(max-width:480px){
- .challenge-run-layout .challenge-roster-panel>.challenge-pitch{height:550px}
+ .challenge-run-layout .challenge-roster-panel>.challenge-pitch-shell>.challenge-pitch{height:550px}
  .challenge-draft-reels{padding:8px!important}
  .challenge-draft-reels .challenge-slot-machine{padding:7px!important}
  .challenge-draft-reels .slot-window{height:52px}
@@ -1208,3 +1203,73 @@
 .challenge-record-metrics>strong small{font-size:8px!important;line-height:1.15;letter-spacing:.06em;white-space:nowrap;text-align:center;margin:0!important}
 .challenge-record-metrics>.challenge-record-score{font-size:20px;color:#cdecd6}
 @media(max-width:560px){.challenge-record-metrics{gap:8px}.challenge-record-metrics>strong{min-width:51px;font-size:20px}.challenge-record-metrics>.challenge-record-score{font-size:18px}.challenge-record-metrics>strong small{font-size:7px!important}}
+
+/* The pitch toolbar pushes the entire field, including all fixed-percent
+   player positions, down without altering their underlying coordinates. */
+.challenge-run-layout .challenge-roster-panel>.challenge-pitch-shell{width:100%;max-width:780px;margin:0 auto;min-width:0}
+.challenge-pitch-shell>.challenge-pitch{margin:0!important}
+.challenge-pitch-controls{
+ display:flex;align-items:center;justify-content:space-between;gap:9px;
+ min-height:45px;padding:5px 8px;background:#183b32;border:2px solid #79aa8e;
+ border-bottom:0;border-radius:10px 10px 0 0
+}
+.challenge-pitch-shell:has(.challenge-pitch-controls)>.challenge-pitch{border-top-left-radius:0!important;border-top-right-radius:0!important}
+.challenge-frame .challenge-pitch-controls>button{
+ display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ min-width:0;min-height:31px!important;padding:6px 11px!important;
+ color:#f2f6ec!important;background:#224d43!important;
+ border:1px solid #9dbea5!important;border-radius:6px!important;
+ font-size:10px!important;font-weight:1000!important;letter-spacing:.04em;white-space:nowrap;line-height:1.1
+}
+.challenge-frame .challenge-pitch-controls>button:hover:not(:disabled),
+.challenge-frame .challenge-pitch-controls>button[aria-expanded="true"]{background:#315b4c!important;border-color:#f4db93!important}
+.challenge-frame .challenge-pitch-controls>button:disabled{opacity:.51;cursor:not-allowed!important}
+.challenge-frame .challenge-pitch-controls>button small{color:#e3c984;font-size:9px;font-weight:900;letter-spacing:0}
+
+/* Same non-modal desktop drag behavior as the Draft and Item Shop windows. */
+.challenge-frame .challenge-dialog.challenge-lineup-window{
+ position:fixed!important;z-index:1260!important;
+ width:min(345px,calc(100vw - 20px))!important;max-width:345px!important;
+ top:178px!important;bottom:auto!important;margin:0!important;
+ max-height:min(75dvh,580px)!important;overflow-y:auto!important;
+ padding:0!important;border:1px solid #88bca2!important;
+ border-radius:10px!important;background:#182b36!important;box-shadow:0 20px 62px #000b!important
+}
+.challenge-frame .challenge-dialog.challenge-formation-window{left:8px!important;right:auto!important}
+.challenge-frame .challenge-dialog.challenge-move-window{right:8px!important;left:auto!important}
+.challenge-lineup-window .challenge-lineup-drag-bar{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ padding:10px 12px;background:#21483f;border-bottom:1px solid #659a83;
+ cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none
+}
+.challenge-lineup-window .challenge-lineup-drag-bar:active{cursor:grabbing}
+.challenge-lineup-window .challenge-lineup-drag-bar:focus-visible{outline:2px solid #ffdfa6!important;outline-offset:-3px}
+.challenge-lineup-drag-bar>span{color:#eaf5e9;font-size:10px;font-weight:1000;letter-spacing:.055em;pointer-events:none}
+.challenge-frame .challenge-lineup-drag-bar>button{
+ flex:0 0 auto;padding:6px 9px!important;min-height:29px!important;
+ font-size:10px!important;border-color:#7c9a8d!important;
+ background:#16392f!important;color:#f2f8f1!important;touch-action:auto;cursor:pointer
+}
+.challenge-lineup-window-body{display:flex;flex-direction:column;gap:11px;padding:15px}
+.challenge-lineup-window-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.challenge-lineup-window-heading h3{margin:0;font-size:16px;font-weight:1000;letter-spacing:-.02em;color:#fff}
+.challenge-lineup-window-heading small{
+ flex:0 0 auto;padding:4px 7px;border:1px solid #cba86c;border-radius:4px;
+ color:#ffe2a0;font-size:10px;font-weight:950
+}
+.challenge-lineup-window-body>p{font-size:11px!important;line-height:1.5!important;color:#b6d0d1!important;margin:0!important}
+.challenge-lineup-window-body label{display:flex;flex-direction:column;gap:6px;color:#d1e8d7;font-size:10px;font-weight:950;letter-spacing:.065em}
+.challenge-lineup-window-body select{width:100%;min-height:39px;color:#ecf8f4;background:#102632;border:1px solid #61877c;border-radius:6px;padding:7px 9px;font-size:12px}
+.challenge-frame .challenge-lineup-window-body>button{width:100%;min-height:39px!important;font-size:11px!important;font-weight:950!important}
+@media(max-width:760px){
+ .challenge-frame .challenge-dialog.challenge-lineup-window{
+  top:auto!important;bottom:8px!important;left:8px!important;right:8px!important;
+  width:calc(100vw - 16px)!important;max-width:none!important;max-height:63dvh!important
+ }
+ .challenge-lineup-window .challenge-lineup-drag-bar{touch-action:auto;cursor:default}
+}
+@media(max-width:480px){
+ .challenge-pitch-controls{gap:5px;min-height:42px;padding:4px}
+ .challenge-frame .challenge-pitch-controls>button{font-size:9px!important;gap:4px;padding:5px 6px!important}
+ .challenge-frame .challenge-pitch-controls>button small{font-size:8px}
+}
