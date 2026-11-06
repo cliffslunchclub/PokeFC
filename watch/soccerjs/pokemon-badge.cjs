@@ -7,7 +7,8 @@ function badge(g,x,y,text,fill,keeper){
  g.fill();g.stroke();
  g.font='900 13px system-ui';g.textAlign='center';g.textBaseline='middle';
  g.fillStyle=fill.toUpperCase()==='#FFFFFF'?'#E53935':'#FFFFFF';
- g.fillText(String(text).padStart(2,'0'),x,y+1);
+ // Keep one- and two-digit shirts geometrically centered; no leading 0.
+ g.fillText(String(text).replace(/^0+(?=\d)/,''),x,y+1);
  g.restore();
 }
 module.exports={badge};
