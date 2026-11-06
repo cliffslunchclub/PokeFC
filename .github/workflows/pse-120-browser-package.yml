@@ -1,0 +1,45 @@
+name: PSE native browser + SiteGround package QA
+on:
+  pull_request:
+    branches: [main, feature/pse-shared-knockout-rules]
+    paths:
+      - "watch/soccerjs/**"
+      - "tests/ci-pse-120-browser.cjs"
+      - "scripts/build-siteground.sh"
+      - ".github/workflows/pse-120-browser-package.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native pinned MIT Soccer-JS viewer
+        run: bash watch/soccerjs/build-local.sh
+      - name: Install headless Chromium
+        run: |
+          npm install --no-save --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Real desktop and mobile 120-minute Watch smoke test
+        run: node tests/ci-pse-120-browser.cjs
+      - name: Validate optional SiteGround release allowlist
+        run: |
+          PFC_INCLUDE_SOCCERJS=1 bash scripts/build-siteground.sh
+          test -s dist/pse-knockout.js
+          test -s dist/franchise/pse-knockout.js
+          test -s dist/watch/soccerjs/dist/viewer.bundle.js
+          test -s dist/watch/soccerjs/watch-bridge.js
+          test ! -e dist/watch/soccerjs/dist/fixture.json
+          test ! -e dist/tests
+          node --check dist/play/play.js
+          echo "PASS 120-minute viewer shipped safely as generated runtime assets"
+      - name: Archive visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pse-120-watch-browser-screenshots
+          path: pse-browser-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
