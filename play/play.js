@@ -9,7 +9,7 @@ const CHALLENGE_MODE=Boolean(window.location?.search&&new URLSearchParams(window
 // Soccer-JS is the sole browser Watch; headless Quick Sim tests can omit location.
 const SOCCERJS_PREVIEW=!!window.location;
 let SOCCERJS_READY=false;
-let soccerSession=null;
+let soccerSession=null,goalReplaySession=null;
 const SPECIAL=window.PFC_CHALLENGE_SPECIAL||{evolvable:[],megas:{}};
 const EVOLVABLE=new Set(SPECIAL.evolvable);
 function getChallenge(){
@@ -129,7 +129,7 @@ function selectOpponent(){
  const o=opponent();if(!o)return;
  $('awayName').textContent=o.leader.toUpperCase();
  $('opponentCard').innerHTML='<strong>'+esc(o.leader)+'</strong><p>'+esc(o.city)+' · '+esc(o.region)+' · '+(o.tier==='gym'?'GYM LEADER':o.tier==='elite'?'ELITE FOUR':'CHAMPION')+'</p><span class="type-chip">'+esc(o.type.toUpperCase())+' SPECIALIST</span> <span class="type-chip">'+(o.roster?'FIXED ELITE XI':'GENERATED XI')+'</span>';
- if(!busy){preview=null;currentResult=null;liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
+ if(!busy){closeGoalReplay();preview=null;currentResult=null;renderGoalReplayActions(null);liveEvents=[];$('score').textContent='– : –';$('matchClock').textContent='PRE-MATCH';$('matchState').textContent='Ready for kickoff';$('matchResult').innerHTML='<div class="empty-state"><span>⚽</span><strong>EXHIBITION FIXTURE</strong><p>Select Quick Sim or Watch Match to kick off.</p></div>';drawPitch();renderLiveTimeline()}
 }
 function drawPitch(){
  const el=$('matchPitch'),ctx=el.getContext('2d');if(!ctx)return;
@@ -177,6 +177,83 @@ function renderLiveTimeline(events=liveEvents,origin='quick-sim',complete=false)
   otherEmpty:complete?'No other recorded events for this match.':'No saves or other events recorded yet.'
  })||'<p class="match-event-empty">The match timeline is unavailable.</p>';
 }
+
+function closeGoalReplay(){
+ goalReplaySession?.destroy?.();goalReplaySession=null;
+ const modal=$('goalReplayModal');
+ if(modal?.open&&typeof modal.close==='function')modal.close();
+}
+function renderGoalReplayActions(result){
+ const host=$('goalReplayActions');
+ if(!host)return;
+ const goals=Array.isArray(result?.events)?result.events.filter(e=>e.type==='goal').slice().sort((a,b)=>a.minute-b.minute):[];
+ const teams=[preview?.home,preview?.away];
+ // Do not offer constructed highlights for old or mismatched PSE output.
+ const valid=result?.origin==='quick-sim'&&preview?.home?.lineup&&preview?.away?.lineup&&
+  Array.isArray(result.score)&&goals.length===Number(result.score[0])+Number(result.score[1]);
+ const buttons=valid?goals.map((g,i)=>{
+  const team=teams.find(t=>String(t.id)===String(g.team));
+  const player=team?.lineup?.find(p=>String(p.id)===String(g.player));
+  if(!player||!Number.isFinite(Number(g.minute)))return '';
+  return '<button type="button" class="play-goal-replay-button" data-goal-replay="goal-'+i+
+   '" aria-label="Replay goal by '+esc(player.name)+'">▶ '+(Math.floor(g.minute)+1)+'′ · '+esc(player.name)+'</button>';
+ }).join(''):'';
+ const kicks=valid&&result.shootout?.version==='pse-shootout-v1'?
+  result.shootout.attempts.map((_,i)=>'<button type="button" class="play-goal-replay-button" data-goal-replay="pk-'+i+
+  '" aria-label="Replay shootout attempt '+(i+1)+'">▶ PENALTY '+(i+1)+'</button>').join(''):'';
+ host.hidden=!(buttons||kicks);
+ host.innerHTML=host.hidden?'':'<strong>⚽ GOAL REPLAYS <small>2.5D INSTANT REPLAY</small></strong>'+
+  '<div class="play-goal-replay-list">'+buttons+kicks+'</div>'+
+  '<small>Illustrative Soccer-JS playback of official PSE events; no new simulation or result recording.</small>';
+ host.onclick=e=>{
+  const id=e?.target?.closest?.('[data-goal-replay]')?.dataset?.goalReplay;
+  if(id)openGoalReplay(id);
+ };
+}
+function openGoalReplay(id){
+ if(!/^(goal|pk)-\d+$/.test(String(id))||!preview||!currentResult)return;
+ const modal=$('goalReplayModal'),stage=$('goalReplayStage'),status=$('goalReplayStatus');
+ if(!modal||!stage)return;
+ // The original Watch may still own the renderer even after it recorded.
+ // Releasing that viewer is safe; the locked official result is retained.
+ if(soccerSession)stopWatch();
+ closeGoalReplay();
+ stage.textContent='';
+ if(status)status.textContent='Loading official '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
+ if(!modal.open){if(typeof modal.showModal==='function')modal.showModal();else modal.open=true}
+ const bridge=window.FXI_PHASE10_WATCH;
+ if(!bridge?.mountInline){if(status)status.textContent='2.5D replay player is not available.';return}
+ let fired=false,readySession=null;
+ const play=session=>{
+  if(fired||!session)return;
+  fired=true;
+  if(!session.replayHighlight(id)&&status)status.textContent='Replay clip is unavailable.';
+ };
+ try{
+  goalReplaySession=bridge.mountInline({
+   preview:{home:preview.home,away:preview.away},result:currentResult,container:stage,
+   onRecord:()=>{if(status)status.textContent='Replay is view-only; results cannot be recorded again.'},
+   onCancel:closeGoalReplay,
+   onReady:session=>{
+    if(!modal.open||goalReplaySession&&goalReplaySession!==session)return;
+    readySession=session;
+    if(status)status.textContent='Official goal · illustrative 2.5D reconstruction';
+    if(id.startsWith('pk-')){
+     if(!session.simToEnd()&&status)status.textContent='Penalty replay could not load.';
+    }else{
+     const duration=currentResult.durationMinutes===120?120:90;
+     if(session.seek(duration))play(session);
+     else if(status)status.textContent='Goal replay could not load.';
+    }
+   },
+   onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished)play(readySession||goalReplaySession)},
+   onStatus:({state,message})=>{if(state==='error'&&status)status.textContent=message||'Goal replay could not load.'}
+  });
+ }catch(error){
+  goalReplaySession=null;
+  if(status)status.textContent='Replay unavailable: '+String(error?.message||error);
+ }
+}
 function saveChallengeResult(result){
  if(!CHALLENGE_MODE||!preview||preview.challengeRound==null)return null;
  const challenge=getChallenge();
@@ -211,7 +288,10 @@ function saveChallengeResult(result){
   outcome,tiebreak,shootout,seed:preview.seed,origin:official.origin,
   ...(ko?{knockoutRules:'pse-knockout-v1',regulationScore:ko.regulationScore,
    extraTime:ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events}:null}:{}),
-  report:window.PFC_MATCH_REPORT?.fromResult(official,preview)||null};
+  report:window.PFC_MATCH_REPORT?.fromResult(official,preview)||null,
+  // Store the immutable PSE fixture for result-screen replays after Watch exits.
+  ...(official.origin==='quick-sim'?{replay:{version:1,
+   preview:{home:preview.home,away:preview.away},result:official}}:{})};
  challenge.history=Array.isArray(challenge.history)?challenge.history:[];
  challenge.result=record;challenge.history.push({...record});
  challenge.phase=outcome!=='Victory'||challenge.round===5?'finished':'result';
@@ -268,6 +348,7 @@ function showResult(result){
  // One feed serves live commentary and official full-time history.
  // Events still retain their WATCHED/QUICK continuation origin in the match data.
  renderLiveTimeline(displayed.events||[],displayed.origin,true);
+ renderGoalReplayActions(displayed);
  return challengeRecord;
 }
 function stateBusy(isBusy){
@@ -289,7 +370,7 @@ function stopWatch(){
 }
 function quickSim(){
  try{
-  stopWatch();preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
+  closeGoalReplay();stopWatch();currentResult=null;renderGoalReplayActions(null);preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
   const out=window.FXI_QUICK.simulate(preview,{seed:preview.seed,positionEffectiveness:'v1'});
   showResult(out);$('engineStatus').textContent='Instant statistical Quick Sim result. Match positions shown schematically; no physics were played.';
  }catch(e){$('engineStatus').textContent='Quick Sim failed: '+e.message}
@@ -299,7 +380,7 @@ function watchSoccerMatch(){
   if(!window.FXI_PHASE10_WATCH?.mountInline)throw Error('Inline Soccer-JS bridge unavailable');
   // Watch is disabled during a live fixture. On completion, dispose the
   // prior recorded session before checking the bridge for a new fixture.
-  stopWatch();
+  closeGoalReplay();stopWatch();currentResult=null;renderGoalReplayActions(null);
   if(window.FXI_PHASE10_WATCH.isActive())throw Error('Another match is already being watched');
   preview=makePreview();liveEvents=[];drawPitch();renderLiveTimeline();
   // Lock the entire authoritative knockout before kickoff. No second draw at Record.
@@ -436,6 +517,13 @@ function start(){
   $('returnChallenge').hidden=false;
  }
   if(S.length!==1025||OPP.length!==38){$('engineStatus').textContent='Game data incomplete. Reload this page.';return}
+ const replayDialog=$('goalReplayModal');
+ $('closeGoalReplay')?.addEventListener?.('click',closeGoalReplay);
+ if(replayDialog){
+  replayDialog.oncancel=e=>{e.preventDefault?.();closeGoalReplay()};
+  replayDialog.onclose=()=>{goalReplaySession?.destroy?.();goalReplaySession=null};
+ }
+ renderGoalReplayActions(null);
  $('region').addEventListener('change',fillOpponents);
  $('opponent').addEventListener('change',selectOpponent);
  $('fillXI').addEventListener('click',autoFill);
