@@ -56,7 +56,7 @@ function touchPlan(fixture,field){
  const cached=touchCache.get(fixture);
  if(cached&&cached.width===field.width&&cached.height===field.height)return cached.sequence;
  const total=Math.ceil((fixture.durationMinutes===120?120:90)*60/8)+2;
- const sequence=[{owner:6}],seed=String(fixture.seed||'pfc');
+ const sequence=[{owner:6}],seed=String(fixture.visualSeed||fixture.seed||'pfc');
  for(let k=0;k<total;k++){
   const previous=sequence[k].owner,side=Math.floor(previous/11);
   const switchSides=k%9===8; // illustrative challenge, not official event
@@ -305,8 +305,13 @@ function motionFrame(fixture,t,field,options=false){
  const passStart=cycle*cycleSeconds+cycleSeconds*.68;
  const passArrival=cycle*cycleSeconds+cycleSeconds*.93;
  const side=Math.floor(current.owner/11),forward=side===0?1:-1;
- const runDistance=4+(hash(String(fixture.seed)+':run:'+cycle)%600)/100;
- const runSide=(hash(String(fixture.seed)+':diagonal:'+cycle)%2?1:-1);
+ // When no forward runner is available, hold the ball rather than sprinting
+ // beyond everyone and then whipping a long pass backwards.
+ const candidateForward=(pose(next.owner,field,passArrival).x-
+  pose(current.owner,field,passStart).x)*forward;
+ const runDistance=Math.min(4+(hash(String(fixture.visualSeed||fixture.seed)+':run:'+cycle)%600)/100,
+  Math.max(.75,candidateForward*.72));
+ const runSide=(hash(String(fixture.visualSeed||fixture.seed)+':diagonal:'+cycle)%2?1:-1);
  const drift=v=>({x:forward*runDistance*v,y:runSide*1.5*v});
  const runBlend=u<.68?ease(u/.68):1-ease((u-.68)/.27);
  const offset=drift(Math.max(0,runBlend));
@@ -317,7 +322,7 @@ function motionFrame(fixture,t,field,options=false){
   y:limit(passSender.y+fullDrift.y,1,field.height-1)},current.owner);
  const passTarget=foot(pose(next.owner,field,passArrival),next.owner);
  const forwardPass=(passTarget.x-passOrigin.x)*forward>12;
- const lob=forwardPass&&hash(String(fixture.seed)+':lob:'+cycle)%4===0;
+ const lob=forwardPass&&hash(String(fixture.visualSeed||fixture.seed)+':lob:'+cycle)%4===0;
  let action,ownerIndex,contact;
  if(u<.68){
   ball=foot(actors[current.owner],current.owner);

@@ -138,6 +138,9 @@
   return {
    schema:'pokefc-quick-sim-export/v1',origin:'quick-sim',competition:duration===120?'knockout':'league',durationMinutes:duration,
    source:'Private PokeFC Quick Sim live fixture (result data only)',
+   // Presentation RNG is deterministic but not part of the official ledger.
+   visualSeed:String(preview.seed||'pfc')+':'+safeTeams.map(t=>t.id).join(':')+':'+
+    result.events.filter(e=>e.type==='goal').map(e=>String(e.minute)).join(':'),
    home:safeTeams[0],away:safeTeams[1],score:result.score.slice(),
    ...(v1?{setPieceRules:'v1'}:{}),stats:result.stats.map(s=>({...s})),events,box,
    ...(duration===120?{knockoutRules:result.knockoutRules,regulationScore:result.regulationScore.slice()}:{}),
