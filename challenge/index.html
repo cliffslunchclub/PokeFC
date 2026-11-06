@@ -1202,7 +1202,7 @@ if(st.phase==='result'||st.phase==='finished'){
   stage.textContent='';
   if(status)status.textContent='Loading recorded '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
   openDialog(replayModal);
-  let requested=false;
+  let requested=false,readySession=null;
   const start=session=>{
    if(requested||!session)return;
    requested=true;
@@ -1215,6 +1215,8 @@ if(st.phase==='result'||st.phase==='finished'){
     onRecord:()=>{if(status)status.textContent='This replay cannot record a new result.'},
     onCancel:closeReplay,
     onReady:session=>{
+     if(!replayModal?.open||goalReplaySession&&goalReplaySession!==session)return;
+     readySession=session;
      if(status)status.textContent='2.5D reconstruction · official match events';
      if(id.startsWith('pk-')){
       if(!session.simToEnd()&&status)status.textContent='Penalty clip could not load.';
@@ -1224,7 +1226,7 @@ if(st.phase==='result'||st.phase==='finished'){
       else if(status)status.textContent='Goal replay could not load.';
      }
     },
-    onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished&&goalReplaySession)start(goalReplaySession)},
+    onProgress:progress=>{if(id.startsWith('pk-')&&progress.finished)start(readySession||goalReplaySession)},
     onStatus:({state,message})=>{
      if(state==='error'&&status)status.textContent=message||'Could not load replay.';
     }
