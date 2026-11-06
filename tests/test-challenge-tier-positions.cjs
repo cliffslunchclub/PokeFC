@@ -101,5 +101,7 @@ assert.match(skin,/\.challenge-frame button:hover:not\(:disabled\):not\(\.primar
  'Shared newtro style contains the generic button hover that must not cover a pitch card');
 assert.match(css,/\.challenge-frame \.challenge-pitch \.slot button\[data-slot\]:is\(:hover,:focus,:active\)\{\s*background:transparent!important;\s*border:0!important;\s*box-shadow:none!important;/,
  'Full-tile click target stays visually transparent during hover/focus instead of hiding the slot');
-assert.match(html,/challenge\.css\?v=32/,'The fixed hover CSS has a refreshed production cache version');
+const cssCacheVersion=Number(html.match(/challenge\.css\?v=(\d+)/)?.[1]);
+assert(Number.isInteger(cssCacheVersion)&&cssCacheVersion>=32,
+ 'The transparent-hover CSS retains a refreshed production cache version');
 console.log('PASS fast S-D tier sorting: cached previews, one DOM batch, max 12 animated cards, no same-role reflow and reduced motion');

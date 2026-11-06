@@ -63,7 +63,8 @@ function launch(champion,withShotData=false){
  assert.match(lost.app.innerHTML,/5 \/ 6/,'Five matches played shown');
  assert.match(lost.app.innerHTML,/FORMATION/);
  assert.match(lost.app.innerHTML,/id="shareRun"/);
- assert.match(lost.app.innerHTML,/id="quickRestart"/);
+ assert.match(lost.app.innerHTML,/id="startNewRun"/,'Results offer a clear return to challenge setup');
+ assert.doesNotMatch(lost.app.innerHTML,/QUICK RESTART|id="quickRestart"/,'Misleading Quick Restart no longer appears');
  assert.match(lost.app.innerHTML,/BEST PLAYER OF THE TOURNAMENT/,'Tournament MVP shown in loss recap');
  assert.equal((lost.app.innerHTML.match(/class="tournament-pokemon(?: tournament-top-player)?"/g)||[]).length,11,'Eleven Pokémon portraits in recap');
  assert.match(lost.app.innerHTML,/TOURNAMENT STATS/);
@@ -97,13 +98,13 @@ function launch(champion,withShotData=false){
  assert.match(copied,/Porygon2/);
  assert.match(copied,/HELD ITEMS: Porygon2: Eviolite/);
  assert.match(copied,/https:\/\/pfc.cliffslunchclub.com\/challenge\//);
- lost.elements.quickRestart.onclick();
+ lost.elements.startNewRun.onclick();
  const fresh=lost.getState();
- assert.equal(fresh.phase,'draft');
+ assert.equal(fresh.phase,'setup','Start New Run returns to Challenge selection, not a new draft');
  assert.equal(fresh.pool,4);
- assert.equal(fresh.legends,true);
+ assert.equal(fresh.legends,false,'Default setup is restored for the next run');
  assert.equal(fresh.formation,'4-3-3');
- assert.equal(fresh.tactic,'press');
+ assert.equal(fresh.tactic,'balanced');
  assert.equal(fresh.history.length,0);
  assert.equal(fresh.items.filter(Boolean).length,0);
  assert.equal(fresh.roster.filter(Boolean).length,0);
@@ -111,7 +112,8 @@ function launch(champion,withShotData=false){
  assert.equal(fresh.rerollGen,1);
  assert.equal(fresh.moves,1);
  assert.equal(fresh.formationChanges,1);
- assert.match(lost.app.innerHTML,/challenge-draft-panel/,'Restart begins another draft');
+ assert.match(lost.app.innerHTML,/CHOOSE YOUR CHALLENGE/,'New run returns to the home mode chooser');
+ assert.doesNotMatch(lost.app.innerHTML,/challenge-draft-panel/,'Does not jump straight into a draft');
  const withShots=launch(true,true);
  assert.match(withShots.app.innerHTML,/Individual shots on goal recorded for 3 of 6 matches/,'Player SOG coverage reflects saved games');
  assert.match(withShots.app.innerHTML,/class="pokemon-shot-stat"><b>15<\/b>SOG/,'Jolteon has 15 actual shots on goal');
@@ -137,5 +139,5 @@ function launch(champion,withShotData=false){
  assert.equal(won.elements.runCompleteModal.open,true,'Champion completion opens results modal');
  assert.match(won.app.innerHTML,/6W · 0L/);
  assert.match(won.app.innerHTML,/6 \/ 6/);
- console.log('PASS Challenge completed-run recap, share/copy summary, future X placeholder, Quick Restart, champion/defeat');
+ console.log('PASS Challenge completed-run recap, sharing, Start New Run to mode chooser, champion/defeat');
 })().catch(e=>{console.error(e);process.exitCode=1});
