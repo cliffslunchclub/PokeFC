@@ -98,4 +98,20 @@ assert.equal(cancels,1);
 assert.equal(listeners.has('message'),false,'No leaked message listener');
 assert.equal(timers.size,0,'No leaked timeout');
 assert.equal(lastStatus.state,'recorded');
-console.log('PASS inline 2.5D Watch: Broadcast boot, source isolation, immutable result, Watch→Sim, one-time record, cancel and cleanup');
+// Explicitly opted-in Sim to End finalizes automatically, but regular Watch
+// full-time (tested above) still requires manual Record.
+const third=bridge.mountInline({...callbacks,autoRecordOnSimToEnd:true});
+send('ready');send('booted',{projection:'orthographic'});
+send('progress',{minute:54,score:[1,0]});
+assert.equal(records,1,'No pre-full-time mutation before Sim to End');
+assert.equal(third.simToEnd(),true);
+assert.equal(records,1,'Handoff request alone is not enough to save');
+send('progress',{minute:90,score:[2,1]});
+assert.equal(records,2,'Verified Sim to End automatically invokes Record');
+assert.equal(third.record(),false,'Automatic result cannot be recorded again');
+assert.equal(third.cancel(),false,'Saved handoff result cannot be cancelled');
+assert.equal(third.getState().recorded,true);
+assert.equal(JSON.stringify(result),raw,'Auto-finalization never mutates source PSE result');
+third.destroy();
+assert.equal(bridge.isActive(),false);
+console.log('PASS inline 2.5D Watch: manual full-time, auto Sim-to-End, official score validation, once-only Record and cancel safety');
