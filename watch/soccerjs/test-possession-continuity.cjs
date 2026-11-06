@@ -6,6 +6,7 @@ const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'fixture.json'),'ut
 const original=JSON.stringify(fixture),field={width:106,height:68};
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 let maxBoundary=0,maxContact=0,maxPassReverse=0,transfers=0,challenges=0;
+let forwardPasses=0,backwardPasses=0,loftedPasses=0;
 const secToMin=seconds=>seconds/60;
 for(let cycle=0;cycle<Math.floor(90*60/8);cycle++){
  const start=cycle*8;
@@ -17,11 +18,11 @@ for(let cycle=0;cycle<Math.floor(90*60/8);cycle++){
   assert(maxBoundary<.05,'Ball/player jumps at next possession cycle: '+maxBoundary);
  }
  // The ball is owned before the pass and in flight without a false carrier.
- const held=motionFrame(fixture,secToMin(start+8*.40),field);
- const launched=motionFrame(fixture,secToMin(start+8*.48),field);
- const middle=motionFrame(fixture,secToMin(start+8*.60),field);
- const finalPass=motionFrame(fixture,secToMin(start+8*.74),field);
- const received=motionFrame(fixture,secToMin(start+8*.76),field);
+ const held=motionFrame(fixture,secToMin(start+8*.55),field);
+ const launched=motionFrame(fixture,secToMin(start+8*.72),field);
+ const middle=motionFrame(fixture,secToMin(start+8*.82),field);
+ const finalPass=motionFrame(fixture,secToMin(start+8*.92),field);
+ const received=motionFrame(fixture,secToMin(start+8*.95),field);
  if([held,launched,middle,finalPass,received].some(x=>x.action==='official-goal'||x.action==='illustrative-goal-buildup'||x.action==='illustrative-shot'||x.action==='illustrative-kickoff'))continue;
  assert(Number.isInteger(held.ownerIndex)&&held.ownerIndex>=0,'No prior carrier');
  assert.equal(launched.ownerIndex,-1,'Carrier label must disappear during flight');
@@ -41,11 +42,31 @@ for(let cycle=0;cycle<Math.floor(90*60/8);cycle++){
   maxPassReverse=Math.max(maxPassReverse,reverse);
   assert(reverse<.0001,'Ball reversed direction mid-pass without a touch');
  }
+ const progression=(launched.passTarget.x-launched.passOrigin.x)*
+  (held.ownerIndex<11?1:-1);
+ if(progression>2)forwardPasses++;
+ if(progression< -2)backwardPasses++;
+ if(launched.action==='illustrative-through-ball')loftedPasses++;
  if(received.ownerIndex!==held.ownerIndex)transfers++;
  if(received.action==='illustrative-challenge')challenges++;
 }
 assert(transfers>100,'Passes do not reach teammates');
 assert(challenges>20,'Illustrative possession changes absent');
+assert(forwardPasses>backwardPasses,'Attacking passes should beat backward passes');
+assert(backwardPasses/(transfers||1)<.38,'Too many backwards passes despite dribbling pressure');
+assert(loftedPasses>20,'Occasional forward lofted through balls missing');
+// The visual buildup must progress into goal rather than reversing toward
+// a preset player coordinate. These passes are illustrative, PSE goals aren't.
+for(const goal of fixture.events.filter(e=>e.type==='goal')){
+ const toward=goal.team===fixture.home.id?1:-1;
+ let last=null;
+ for(let t=goal.minute-.7;t<=goal.minute;t+=.01){
+  const next=motionFrame(fixture,t,field);
+  if(last)assert((next.ball.x-last.ball.x)*toward>-.08,
+   'Goal buildup whips backward before the official strike');
+  last=next;
+ }
+}
 assert.equal(JSON.stringify(fixture),original,'Read-only Watch altered official fixture');
 const replay=JSON.parse(original);assert.deepEqual(
  motionFrame(fixture,1.5,field),motionFrame(replay,1.5,field),

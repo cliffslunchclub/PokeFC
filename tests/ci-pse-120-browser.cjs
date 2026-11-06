@@ -74,6 +74,17 @@ async function serve(){
    await page.locator('#speed').selectOption('16');
    await page.locator('#play').click();
    await page.locator('#highlightNotice').waitFor({state:'visible',timeout:15000});
+   const goalPause=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(goalPause.goalPaused,true,'Goal should automatically pause '+device);
+   assert.equal(goalPause.watchPlaying,false,'Match clock continues during goal pause');
+   assert(Math.abs(goalPause.minute-firstGoal.minute)<.00001,
+    'Match must stop at exact official PSE goal minute at 16×');
+   const goalCard=await page.locator('.goal-prompt-card').boundingBox();
+   const pitchBounds=await page.locator('#pitch').boundingBox();
+   assert(goalCard&&pitchBounds&&goalCard.x>=pitchBounds.x-4&&
+    goalCard.x+goalCard.width<=pitchBounds.x+pitchBounds.width+4,
+    'Goal modal extends outside match rendering on '+device);
+   await page.screenshot({path:path.join(screenshotDir,'pse-goal-prompt-'+device+'.png')});
    await page.locator('#highlightNoticePlay').click();
    const replay=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(replay.replay?.kind,'goal','Official goal replay did not activate');
@@ -84,6 +95,12 @@ async function serve(){
    const restored=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(restored.replay,null,'Replay return must restore live viewer');
    assert(restored.minute>=firstGoal.minute,'Watch position must resume after goal');
+   assert(await page.locator('#highlightNotice').isVisible(),
+    'Returning from replay should offer Continue');
+   await page.locator('#highlightNoticeDismiss').click();
+   const continued=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(continued.goalPaused,false,'Continue must dismiss goal prompt');
+   assert.equal(continued.watchPlaying,true,'Continue must resume selected speed');
    await page.locator('#pause').click();
    // A scored ball stays in the goal before a deliberate broadcast CUT to
    // center-circle kickoff, never gliding backwards across the field.

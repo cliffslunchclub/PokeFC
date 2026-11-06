@@ -104,3 +104,53 @@ html.pfc-inline main>.layout>.viewer { border:0;border-radius:0; }
  .highlight-replay-bottom{gap:4px;padding:6px;margin-bottom:4px}
 }
 @media(prefers-reduced-motion:reduce){.highlight-hud *{scroll-behavior:auto;transition:none!important;animation:none!important}}
+
+/* v2 centered goal pause and pitch-contained Highlights UI. */
+.highlight-notice:not([hidden]){
+ inset:0;left:0;right:0;top:0;bottom:0;transform:none;
+ display:grid;place-items:center;max-width:none;width:100%;padding:14px;
+ border:0;border-radius:0;box-shadow:none;background:rgba(7,9,13,.65);
+ z-index:14;overflow:auto;
+}
+.highlight-notice .goal-prompt-card{
+ width:min(420px,100%);min-width:0;padding:22px 20px;
+ display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;
+ border:2px solid #e53935;border-radius:14px;background:#17191ff7;
+ box-shadow:0 18px 48px #000b;
+}
+.highlight-notice .goal-prompt-eyebrow{font-size:11px;color:#ffadaa;letter-spacing:.12em;font-weight:900}
+.highlight-notice #highlightNoticeTitle{font-size:clamp(21px,3vw,33px);max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.highlight-notice p{font-size:12px;line-height:1.5;margin:0;color:#dadde5}
+.highlight-notice .goal-prompt-actions{width:100%;display:flex;flex-direction:row;gap:9px}
+.highlight-notice .goal-prompt-actions button{flex:1;min-width:0;font-weight:850;min-height:44px;padding:9px}
+.highlight-notice #highlightNoticeDismiss{background:#e53935;border-color:#e53935;min-width:0}
+.highlight-notice #highlightNoticePlay{background:#31343b;border-color:#777;min-width:0}
+.highlight-drawer:not([hidden]){
+ left:50%;right:auto;top:50%;bottom:auto;transform:translate(-50%,-50%);
+ width:min(450px,calc(100% - 18px));max-height:88%;min-width:0;
+}
+.watch-floating-controls[hidden]{display:none!important}
+.watch-floating-controls:not([hidden]){
+ position:absolute;z-index:12;bottom:12px;left:50%;transform:translateX(-50%);
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ max-width:calc(100% - 20px);padding:7px 11px;
+ border-radius:12px;border:1px solid #b4b6bc;
+ background:rgba(16,18,23,.84);box-shadow:0 8px 22px #0008;
+ opacity:.65;transition:opacity .2s;
+}
+.watch-floating-controls:hover,.watch-floating-controls:focus-within{opacity:1}
+.watch-floating-controls button,.watch-floating-controls select{
+ border:1px solid #777d8a;border-radius:8px;background:#292c33;
+ padding:8px 10px;color:#fff;font-size:12px;min-height:42px;
+ font-weight:800;cursor:pointer;
+}
+.watch-floating-controls label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#eceef5}
+@media(max-width:620px){
+ .highlight-notice:not([hidden]){inset:0;width:100%;max-width:none;transform:none;padding:10px}
+ .highlight-notice .goal-prompt-card{padding:16px 11px;gap:8px}
+ .highlight-notice #highlightNoticeTitle{font-size:21px}
+ .highlight-drawer:not([hidden]){left:50%;right:auto;top:50%;bottom:auto;transform:translate(-50%,-50%);width:calc(100% - 12px);max-height:90%}
+ .watch-floating-controls:not([hidden]){bottom:6px;gap:5px;padding:5px 8px}
+ .watch-floating-controls button,.watch-floating-controls select{padding:6px;font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){.watch-floating-controls{transition:none}}

@@ -138,6 +138,9 @@
   return {
    schema:'pokefc-quick-sim-export/v1',origin:'quick-sim',competition:duration===120?'knockout':'league',durationMinutes:duration,
    source:'Private PokeFC Quick Sim live fixture (result data only)',
+   // Presentation RNG is deterministic but not part of the official ledger.
+   visualSeed:String(preview.seed||'pfc')+':'+safeTeams.map(t=>t.id).join(':')+':'+
+    result.events.filter(e=>e.type==='goal').map(e=>String(e.minute)).join(':'),
    home:safeTeams[0],away:safeTeams[1],score:result.score.slice(),
    ...(v1?{setPieceRules:'v1'}:{}),stats:result.stats.map(s=>({...s})),events,box,
    ...(duration===120?{knockoutRules:result.knockoutRules,regulationScore:result.regulationScore.slice()}:{}),
@@ -250,6 +253,10 @@
    button.textContent=expanded?'✕ EXIT FULLSCREEN':'⛶ FULLSCREEN';
    button.setAttribute('aria-pressed',expanded?'true':'false');
   }
+  // Outer viewport controls fullscreen; the iframe gets its own synced bar.
+  const frame=el?.querySelector?.('iframe.soccerjs-inline-frame');
+  frame?.contentWindow?.postMessage?.({type:TYPE+'-control',
+   action:'fullscreen',active:!!expanded},root.location.origin);
  }
  function clearFullscreen(el=expandedPitch){
   if(!el)return;
@@ -292,7 +299,7 @@
  function mountInline({
   preview,result,container,onRecord,onCancel,onProgress,onReady,onStatus,
   autoRecordOnSimToEnd=false,
-  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=8'
+  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=10'
  }){
   requireValid(!active,'Another Watch session is already active');
   requireValid(container&&typeof container.appendChild==='function','A match viewport is required');
@@ -365,7 +372,10 @@
     finished=next>=duration&&(!fixture.shootout||kickIndex===expectedKicks);
     if(typeof onProgress==='function')onProgress({
      minute,score:official,finished,handedOff,recorded,
-     durationMinutes:duration,kickIndex,shootout:fixture.shootout||null
+     durationMinutes:duration,kickIndex,shootout:fixture.shootout||null,
+     pausedForGoal:e.data.pausedForGoal===true,
+     watchPlaying:typeof e.data.watchPlaying==='boolean'?e.data.watchPlaying:null,
+     watchSpeed:[1,2,4,8,16].includes(Number(e.data.watchSpeed))?Number(e.data.watchSpeed):null
     });
     if(finished){
      announce('full-time');

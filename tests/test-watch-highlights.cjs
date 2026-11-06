@@ -82,4 +82,9 @@ for(const id of ['highlightToggle','highlightNotice','highlightDrawer','highligh
  assert(html.includes('id="'+id+'"'),'Shared Watch UI missing '+id);
 const css=require('node:fs').readFileSync(require('node:path').join(__dirname,'../watch/soccerjs/viewer.css'),'utf8');
 assert.match(css,/min-height:44px/,'Touch-size replay buttons required');
+assert.match(html,/id="fullscreenPlayback"/,'Fullscreen pause and speed bar missing');
+assert.match(html,/id="highlightNotice"[^>]*role="dialog"/,'Goal prompt must be an accessible modal');
+assert.match(html,/▶ CONTINUE/,'Goal modal must offer Continue');
+assert.match(css,/\.goal-prompt-card/,'Goal card needs centered responsive styling');
+assert.match(css,/\.highlight-drawer:not\(\[hidden\]\)/,'Highlight drawer missing');
 console.log('PASS official Match Highlights: no future spoilers, stable goal/PK clips, penalty motion, unchanged ledger and responsive UI');

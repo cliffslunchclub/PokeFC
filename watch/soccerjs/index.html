@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b0d10"><title>PokéFC | Real Quick Sim → Soccer-JS</title>
-<link rel="stylesheet" href="./viewer.css"><script defer src="./viewer.bundle.js?v=8"></script></head>
+<link rel="stylesheet" href="./viewer.css?v=10"><script defer src="./viewer.bundle.js?v=10"></script></head>
 <body>
 <header><a href="/" aria-label="PokéFC home"><span class="mini-ball" aria-hidden="true"></span>POKÉ<span>FC</span></a><strong>PHASE 10 · REAL MATCH REPLAY</strong><small>PRIVATE STAGING BUILD</small></header>
 <main><section class="intro">
@@ -15,10 +15,16 @@
 <div class="pitchwrap"><canvas id="pitch" width="1120" height="650" aria-label="Soccer-JS pitch animated with official PSE match events"></canvas><span id="toast" hidden></span>
 <div class="highlight-hud">
 <button id="highlightToggle" class="highlight-toggle" type="button" aria-expanded="false" aria-controls="highlightDrawer">⚽ HIGHLIGHTS <span id="highlightCount">0</span></button>
-<div id="highlightNotice" class="highlight-notice" role="group" aria-label="Goal replay available" hidden>
- <div><strong id="highlightNoticeTitle">GOAL!</strong><small>OFFICIAL GOAL · ILLUSTRATIVE REPLAY</small></div>
- <button id="highlightNoticePlay" type="button">▶ REPLAY</button>
- <button id="highlightNoticeDismiss" type="button" aria-label="Dismiss replay offer">✕</button>
+<div id="highlightNotice" class="highlight-notice" role="dialog" aria-modal="true" aria-labelledby="highlightNoticeTitle" hidden>
+ <div class="goal-prompt-card">
+  <small class="goal-prompt-eyebrow">● OFFICIAL PSE GOAL</small>
+  <strong id="highlightNoticeTitle">GOAL!</strong>
+  <p>Ball in the net. Match paused. Watch the illustrative buildup again or continue at the selected speed.</p>
+  <div class="goal-prompt-actions">
+   <button id="highlightNoticePlay" type="button">↺ VIEW REPLAY</button>
+   <button id="highlightNoticeDismiss" type="button" aria-label="Continue match after goal">▶ CONTINUE</button>
+  </div>
+ </div>
 </div>
 <section id="highlightDrawer" class="highlight-drawer" aria-label="Official match highlights" hidden>
  <header class="highlight-head"><strong>⚽ MATCH HIGHLIGHTS</strong><button id="highlightClose" type="button" aria-label="Close highlights">✕</button></header>
@@ -38,6 +44,13 @@
   <button id="highlightReplayReturn" type="button">↩ BACK TO MATCH</button>
  </div>
 </section>
+</div>
+<div id="fullscreenPlayback" class="watch-floating-controls" role="group" aria-label="Fullscreen Watch playback" hidden>
+ <button type="button" id="fullscreenPause">Ⅱ PAUSE</button>
+ <button type="button" id="fullscreenResume" hidden>▶ RESUME</button>
+ <label for="fullscreenSpeed">SPEED <select id="fullscreenSpeed" aria-label="Fullscreen playback speed">
+ <option value="1">1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option>
+ </select></label>
 </div>
 <div class="shootout-overlay" id="shootoutOverlay" hidden role="group" aria-label="Official PSE penalty shootout">
 <strong id="shootoutScore" aria-live="polite">PENALTIES 0 – 0</strong>

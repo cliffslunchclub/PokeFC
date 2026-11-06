@@ -61,9 +61,11 @@ function clearHighlightNotice(){
 }
 function showHighlightNotice(entry){
  if(replaySession||!entry||entry.kind!=='goal')return;
+ playing=false;last=null;
  replayNotice=entry.id;
  $('highlightNoticeTitle').textContent="GOAL! · "+Math.floor(entry.minute+1)+"′ · "+entry.name;
  $('highlightNotice').hidden=false;
+ lastSent=-2;render(minute);
 }
 function clearMotionTracking(){
  smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;trackedPhase=null;
@@ -79,7 +81,8 @@ function replayMoment(id){
  const entry=resolveHighlight(match,String(id),minute,kickIndex);
  const clip=clipFor(match,entry);
  if(!clip)return false;
- replaySession={entry,clip,elapsed:0,progress:0,saved:{minute,kickIndex,playing,stopAt}};
+ replaySession={entry,clip,elapsed:0,progress:0,
+  saved:{minute,kickIndex,playing,stopAt,goalPromptId:replayNotice}};
  playing=false;last=null;replayLast=null;replaySpeed=.5;
  clearHighlightNotice();setHighlightDrawer(false);clearMotionTracking();
  $('highlightReplay').hidden=false;
@@ -97,6 +100,10 @@ function returnToMatch(){
  playing=saved.playing&&minute<stopAt;
  $('highlightReplay').hidden=true;
  render(minute);
+ if(saved.goalPromptId){
+  const goal=catalog(match,minute,kickIndex).find(e=>e.id===saved.goalPromptId);
+  if(goal)showHighlightNotice(goal);
+ }
  return true;
 }
 function highlightEntryElement(entry,buttonLabel){
@@ -198,6 +205,11 @@ function smoothMotion(script,t){
 }
 function render(t,options={}){
  const isReplay=options.replay===true;
+ if($('fullscreenPlayback')){
+  $('fullscreenPause').hidden=!playing;
+  $('fullscreenResume').hidden=!!playing;
+  $('fullscreenSpeed').value=String(speed);
+ }
  const field=Utils.getFieldBounds(),s=scoreAt(t);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
@@ -271,7 +283,8 @@ function render(t,options={}){
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
-   shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length});
+   shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
+   pausedForGoal:!!replayNotice,watchPlaying:!!playing,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -288,7 +301,8 @@ function render(t,options={}){
   pokemonIds:spriteRoster.entries.map(e=>e.dexId),humanPlayerSprites:false,
   durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
-  kickIndex,totalKicks,replay:isReplay?{id:replaySession.entry.id,
+  kickIndex,totalKicks,goalPaused:!!replayNotice,watchPlaying:playing,
+  replay:isReplay?{id:replaySession.entry.id,
    kind:replaySession.clip.kind,progress:options.progress||0}:null};
  if(!isReplay)renderHighlightCatalog();
 }
@@ -330,17 +344,20 @@ function step(now){
   if(minute>=stopAt&&(minute<match.durationMinutes||
    !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
   last=playing?now:null;
-  render(minute);
   const newGoal=match.events.find(e=>e.type==='goal'&&e.minute>before+1e-7&&e.minute<=minute+1e-7);
   if(newGoal){
-   const entry=catalog(match,minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
-   if(entry&&!promptedGoals.has(entry.id)){promptedGoals.add(entry.id);showHighlightNotice(entry);}
-  }
+   const entry=catalog(match,newGoal.minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
+   if(entry&&!promptedGoals.has(entry.id)){
+    promptedGoals.add(entry.id);minute=newGoal.minute;playing=false;last=null;
+    render(minute);showHighlightNotice(entry);
+   }else render(minute);
+  }else render(minute);
  }
  requestAnimationFrame(step);
 }
 function seek(t){
  if(replaySession)returnToMatch();
+ if(t<minute)promptedGoals.clear();
  playing=false;last=null;clearMotionTracking();kickElapsed=0;
  clearHighlightNotice();
  minute=Math.max(0,Math.min(match.durationMinutes,t));
@@ -414,7 +431,9 @@ async function boot(){
   $('highlightToggle').onclick=()=>setHighlightDrawer(!highlightDrawerOpen);
   $('highlightClose').onclick=()=>setHighlightDrawer(false);
   $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
-  $('highlightNoticeDismiss').onclick=clearHighlightNotice;
+  $('highlightNoticeDismiss').onclick=()=>{
+   clearHighlightNotice();lastSent=-2;last=null;playing=minute<stopAt;render(minute);
+  };
   $('highlightReplayReturn').onclick=returnToMatch;
   $('highlightReplaySpeed').onclick=()=>{
    replaySpeed=replaySpeed===.5?1:.5;
@@ -440,14 +459,16 @@ async function boot(){
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
     }
-    stopAt=match.durationMinutes;last=null;playing=true;
+    if(replayNotice)clearHighlightNotice();
+    stopAt=match.durationMinutes;lastSent=-2;last=null;playing=true;
    };
   $('playFive').onclick=()=>{
     if(minute>=match.durationMinutes){playing=true;last=null;return}
+    if(replayNotice)clearHighlightNotice();
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
-  $('pause').onclick=()=>seek(minute);
+  $('pause').onclick=()=>{seek(minute);lastSent=-2;render(minute);};
   $('restart').onclick=()=>{kickIndex=0;seek(0)};
   $('skip').onclick=finish;
   $('scrub').oninput=e=>seek(Number(e.target.value));
@@ -457,7 +478,17 @@ async function boot(){
   };
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
-  $('speed').onchange=e=>{speed=Number(e.target.value)||1;};
+  $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
+  $('fullscreenPause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
+  $('fullscreenResume').onclick=()=>{
+   if(replayNotice)clearHighlightNotice();
+   lastSent=-2;
+   if(minute<match.durationMinutes){playing=true;last=null;}
+   render(minute);
+  };
+  $('fullscreenSpeed').onchange=e=>{
+   speed=Number(e.target.value)||1;$('speed').value=String(speed);lastSent=-2;render(minute);
+  };
   $('projection').onchange=e=>{
    if(!validViews.has(e.target.value))return;
    Settings.projectionMode=e.target.value;
@@ -482,13 +513,16 @@ async function boot(){
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
     $('speed').value=String([1,2,4,8,16].includes(speed)?speed:1);
-    playing=true;last=null;
+    if(replayNotice)clearHighlightNotice();
+    lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
-    playing=false;last=null;render(minute);
+    playing=false;last=null;lastSent=-2;render(minute);
+   }else if(msg.action==='fullscreen'){
+    $('fullscreenPlayback').hidden=!msg.active;render(minute);
    }else if(msg.action==='speed'){
     const v=Number(msg.speed);
-    if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;render(minute);}
+    if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;lastSent=-2;render(minute);}
    }else if(msg.action==='seek'){
     const m=Number(msg.minute);
     if(Number.isFinite(m)&&m>=0&&m<=match.durationMinutes)seek(m);

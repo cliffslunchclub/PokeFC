@@ -34,22 +34,10 @@ function shotSummary(stats){
   ' · On target '+stats[0].shotsOnTarget+'–'+stats[1].shotsOnTarget+
   ' · Keeper saves '+stats[0].saves+'–'+stats[1].saves;
 }
-// Slow clock advancement only near official goal timestamps; keep the
-// currently deployed, slower 1x base rate (0.32 match min / real second).
-// At 1x, a real second advances exactly one match second, including goals.
-// Faster rates retain some cinematic emphasis near recorded goal moments.
+// Preserve the viewer-selected speed all the way through the goal. The
+// goal modal, not a hidden time dilation, handles celebration and replay.
 function playbackRate(t,events,speed){
- const chosen=limit(Number(speed)||1,1,16);
- const normal=chosen/60;
- if(chosen===1)return normal;
- let factor=1;
- for(const e of events||[]){
-  if(e.type!=='goal'||!Number.isFinite(e.minute))continue;
-  const distance=e.minute-t;
-  if(distance>=-.22&&distance<=.60)factor=Math.min(factor,.55);
-  else if(distance>=-.40&&distance<=.90)factor=Math.min(factor,.82);
- }
- return normal*factor;
+ return limit(Number(speed)||1,1,16)/60;
 }
 
 // Deterministic continuous pass-and-receive plan. It is presentation-only:
@@ -68,12 +56,12 @@ function touchPlan(fixture,field){
  const cached=touchCache.get(fixture);
  if(cached&&cached.width===field.width&&cached.height===field.height)return cached.sequence;
  const total=Math.ceil((fixture.durationMinutes===120?120:90)*60/8)+2;
- const sequence=[{owner:6}],seed=String(fixture.seed||'pfc');
+ const sequence=[{owner:6}],seed=String(fixture.visualSeed||fixture.seed||'pfc');
  for(let k=0;k<total;k++){
   const previous=sequence[k].owner,side=Math.floor(previous/11);
   const switchSides=k%9===8; // illustrative challenge, not official event
   const candidateSide=switchSides?1-side:side;
-  const passTime=k*8+8*.60;
+  const passTime=k*8+8*.82;
   const from=pose(previous,field,passTime);
   const candidates=[];
   for(let j=1;j<11;j++){
@@ -81,10 +69,14 @@ function touchPlan(fixture,field){
    if(owner===previous)continue;
    const to=pose(owner,field,passTime+1.2);
    const distance=Math.hypot(from.x-to.x,from.y-to.y);
-   if(distance>32)continue;
+   if(distance>35)continue;
    const forward=side===0?to.x-from.x:from.x-to.x;
    const jitter=hash(seed+':'+k+':'+j)%1000/1000;
-   candidates.push({owner,score:distance+6*jitter-(forward>2&&forward<17?3.3:0)});
+   // Forward and diagonal choices are common. A pressured backwards pass
+   // remains possible but is not the default nearest-neighbor behavior.
+   const backwardPenalty=forward < -2?11:0;
+   candidates.push({owner,score:distance*.57-Math.max(0,Math.min(22,forward))*.64+
+    backwardPenalty+6*jitter});
   }
   candidates.sort((a,b)=>a.score-b.score||a.owner-b.owner);
   // If no reasonable receiver is nearby, dribble rather than teleport.
@@ -199,47 +191,76 @@ function motionFrame(fixture,t,field,options=false){
   const scorer=roster.lineup.findIndex(p=>String(p.id)===String(event.player));
   if(scorer<0)throw Error('Goal scorer absent');
   const assist=event.assist==null?-1:roster.lineup.findIndex(p=>String(p.id)===String(event.assist));
-  const first=side*11+5,second=side*11+(assist>=0?assist:7),last=side*11+scorer;
-  const kickoff={x:origin(side,.43,field),y:field.height*.38};
-  const setup={x:origin(side,.63,field),y:field.height*.43};
-  const finish={x:origin(side,.84,field),y:field.height*.51};
-  const net={x:origin(side,.985,field),y:field.height*.5};
-  const initial=event.minute-.7;
-  const u=limit((t-initial)/.7,0,1);
-  actors[first].x=kickoff.x;actors[first].y=kickoff.y;
-  actors[second].x=setup.x;actors[second].y=setup.y;
-  actors[last].x=finish.x;actors[last].y=finish.y;
-  const keeper=actors[(1-side)*11];
-  keeper.x=origin(side,.975,field);keeper.y=field.height*.5;
-  const marker=actors[(1-side)*11+2];
-  marker.x=lerp(origin(side,.74,field),finish.x,u);marker.y=lerp(field.height*.35,finish.y,u);
-  if(u<.30){
-   ball={x:lerp(kickoff.x,setup.x,ease(u/.30)),y:lerp(kickoff.y,setup.y,ease(u/.30)),z:.18};
-  }else if(u<.70){
-   ball={x:lerp(setup.x,finish.x,ease((u-.30)/.40)),y:lerp(setup.y,finish.y,ease((u-.30)/.40)),z:.2};
-  }else{
-   const shot=ease((u-.70)/.30);
-   ball={x:lerp(finish.x,net.x,shot),y:lerp(finish.y,net.y,shot),z:.2+1.3*Math.sin(shot*Math.PI)};
-   actors[last].frame=3;keeper.frame=8;
-   keeper.y=lerp(field.height*.50,field.height*.57,shot);
-  }
-  if(t>=event.minute){ball=net;keeper.frame=8;}
-  // Blend INTO the goal buildup, but never animate the scored ball
-  // backwards out of the net. The restart below is an explicit camera cut.
-  const blend=ease((t-(event.minute-.7))/.08);
-  if(blend<1){
-   const usual=motionFrame(fixture,t,field,true);
-   for(let i=0;i<actors.length;i++){
-    actors[i].x=lerp(usual.actors[i].x,actors[i].x,blend);
-    actors[i].y=lerp(usual.actors[i].y,actors[i].y,blend);
+  const scorerId=side*11+scorer,initial=Math.max(0,event.minute-.7);
+  const span=Math.max(.001,event.minute-initial),u=limit((t-initial)/span,0,1);
+  // Anchor the first touch to the *existing* ball and player positions.
+  // Earlier goal animation placed three players at preset coordinates and
+  // dragged the ball to those spots, causing the visible backward whip.
+  const opening=motionFrame(fixture,initial,field,true);
+  const p0=opening.ball;
+  let support=assist>=0?side*11+assist:-1;
+  if(support===scorerId||support<0){
+   let nearest=Infinity;
+   for(let i=1;i<11;i++){
+    const id=side*11+i;
+    if(id===scorerId)continue;
+    const d=Math.hypot(opening.actors[id].x-p0.x,opening.actors[id].y-p0.y);
+    if(d<nearest){nearest=d;support=id;}
    }
-   ball={x:lerp(usual.ball.x,ball.x,blend),
-    y:lerp(usual.ball.y,ball.y,blend),z:lerp(usual.ball.z,ball.z,blend)};
   }
-  return {actors,ball,action:t>=event.minute?'official-goal':u>=.70?'illustrative-shot':'illustrative-goal-buildup',
-   label:t>=event.minute?'GOAL! '+roster.lineup[scorer].name:
-     'Attack: '+roster.lineup[scorer].name,
-   officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
+  const attack=side===0?1:-1;
+  const finish={x:origin(side,.83,field),y:field.height*.50};
+  const net={x:origin(side,.985,field),y:field.height*.50,z:.23};
+  const p1={x:lerp(p0.x,finish.x,.30),y:lerp(p0.y,finish.y,.30)};
+  const wing=(hash(String(event.player)+':'+String(event.minute))%2?1:-1);
+  const p2={x:lerp(p0.x,finish.x,.74),
+   y:limit(lerp(p0.y,finish.y,.72)+wing*3,field.height*.13,field.height*.87)};
+  const lob=(hash(String(event.player)+':through:'+String(event.minute))%4===0);
+  let phase='run',ownerIndex=support;
+  if(u<.34){
+   const v=ease(u/.34);
+   ball={x:lerp(p0.x,p1.x,v),y:lerp(p0.y,p1.y,v),z:.23};
+  }else if(u<.70){
+   const v=ease((u-.34)/.36);
+   ball={x:lerp(p1.x,p2.x,v),y:lerp(p1.y,p2.y,v),
+    z:.23+(lob?3:.48)*Math.sin(Math.PI*v)};
+   phase=lob?'lofted-through':'through';ownerIndex=-1;
+  }else if(u<.88){
+   const v=ease((u-.70)/.18);
+   ball={x:lerp(p2.x,finish.x,v),y:lerp(p2.y,finish.y,v),z:.23};
+   phase='run';ownerIndex=scorerId;
+  }else{
+   const v=ease((u-.88)/.12);
+   ball={x:lerp(finish.x,net.x,v),y:lerp(finish.y,net.y,v),
+    z:.23+1.3*Math.sin(v*Math.PI)};
+   phase='shot';ownerIndex=-1;
+  }
+  // Two attackers arrive at the ball along continuous paths. They never
+  // teleport into their shooting poses at a goal-scene boundary.
+  const starter=actors[support],startActor=opening.actors[support];
+  const settle=ease(u/.32);
+  starter.x=lerp(startActor.x,p1.x-attack*.6,settle);
+  starter.y=lerp(startActor.y,p1.y-.3,settle);
+  const finisher=actors[scorerId],startScorer=opening.actors[scorerId];
+  const arrival=ease(u/.70);
+  const follow=u>.70&&u<.88?ball:finish;
+  finisher.x=lerp(startScorer.x,u>=.70?follow.x-attack*.55:p2.x-attack*.55,arrival);
+  finisher.y=lerp(startScorer.y,u>=.70?follow.y-.3:p2.y-.3,arrival);
+  const keeper=actors[(1-side)*11],ready=ease(u/.70);
+  keeper.x=lerp(keeper.x,origin(side,.975,field),ready);
+  keeper.y=lerp(keeper.y,field.height*.5,ready);
+  // Keep the entire 22-player frame continuous at the goal-scene entry.
+  const enter=ease(u/.03);
+  for(let i=0;i<actors.length;i++){
+   actors[i].x=lerp(opening.actors[i].x,actors[i].x,enter);
+   actors[i].y=lerp(opening.actors[i].y,actors[i].y,enter);
+  }
+  if(u>=.88){finisher.frame=3;keeper.frame=8;}
+  if(t>=event.minute){ball=net;ownerIndex=-1;keeper.frame=8;finisher.frame=3;}
+  return {actors,ball,ownerIndex,contact:phase,
+   action:t>=event.minute?'official-goal':u>=.88?'illustrative-shot':'illustrative-goal-buildup',
+   label:t>=event.minute?'GOAL! '+roster.lineup[scorer].name:'',
+   buildup:phase,officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
  }
  // After an official PSE goal, pause on the ball in the net, then use
  // a clearly labelled, discrete kickoff camera CUT to midfield. Never tween
@@ -279,43 +300,69 @@ function motionFrame(fixture,t,field,options=false){
  // starts the next passage as its carrier. No hidden return to midfield.
  const cycleSeconds=8,at=seconds/cycleSeconds,cycle=Math.floor(at),u=at-cycle;
  const plan=touchPlan(fixture,field);
- const current=plan[Math.min(cycle,plan.length-2)];
- const next=plan[Math.min(cycle+1,plan.length-1)];
+ const current=plan[Math.min(cycle,plan.length-2)],next=plan[Math.min(cycle+1,plan.length-1)];
  const sender=pose(current.owner,field,seconds),receiver=pose(next.owner,field,seconds);
- const passStart=cycle*cycleSeconds+cycleSeconds*.44;
- const passArrival=cycle*cycleSeconds+cycleSeconds*.75;
- const passOrigin=foot(pose(current.owner,field,passStart),current.owner);
+ const passStart=cycle*cycleSeconds+cycleSeconds*.68;
+ const passArrival=cycle*cycleSeconds+cycleSeconds*.93;
+ const side=Math.floor(current.owner/11),forward=side===0?1:-1;
+ // When no forward runner is available, hold the ball rather than sprinting
+ // beyond everyone and then whipping a long pass backwards.
+ const candidateForward=(pose(next.owner,field,passArrival).x-
+  pose(current.owner,field,passStart).x)*forward;
+ const runDistance=Math.min(4+(hash(String(fixture.visualSeed||fixture.seed)+':run:'+cycle)%600)/100,
+  Math.max(.75,candidateForward*.72));
+ const runSide=(hash(String(fixture.visualSeed||fixture.seed)+':diagonal:'+cycle)%2?1:-1);
+ const drift=v=>({x:forward*runDistance*v,y:runSide*1.5*v});
+ const runBlend=u<.68?ease(u/.68):1-ease((u-.68)/.27);
+ const offset=drift(Math.max(0,runBlend));
+ actors[current.owner].x=limit(sender.x+offset.x,1,field.width-1);
+ actors[current.owner].y=limit(sender.y+offset.y,1,field.height-1);
+ const passSender=pose(current.owner,field,passStart),fullDrift=drift(1);
+ const passOrigin=foot({x:limit(passSender.x+fullDrift.x,1,field.width-1),
+  y:limit(passSender.y+fullDrift.y,1,field.height-1)},current.owner);
  const passTarget=foot(pose(next.owner,field,passArrival),next.owner);
+ const forwardPass=(passTarget.x-passOrigin.x)*forward>12;
+ const lob=forwardPass&&hash(String(fixture.visualSeed||fixture.seed)+':lob:'+cycle)%4===0;
  let action,ownerIndex,contact;
- if(u<.44){
-  ball=foot(sender,current.owner);
+ if(u<.68){
+  ball=foot(actors[current.owner],current.owner);
   ownerIndex=current.owner;contact='controlled';action='illustrative-carry';
- }else if(u<.75){
-  // Stop at the receiving player's foot. Decelerating there is a visible
-  // first touch, not an unexplained pre-possession change of direction.
-  const progress=ease((u-.44)/.31);
+ }else if(u<.93){
+  const progress=ease((u-.68)/.25);
   ball={x:lerp(passOrigin.x,passTarget.x,progress),
    y:lerp(passOrigin.y,passTarget.y,progress),
-   z:.23+.65*Math.sin(Math.PI*progress)};
+   z:.23+(lob?2.6:.65)*Math.sin(Math.PI*progress)};
   ownerIndex=-1;
   const contested=Math.floor(current.owner/11)!==Math.floor(next.owner/11);
-  contact=contested?'contested-flight':'in-flight';
-  action=contested&&u>.60?'illustrative-challenge':'illustrative-pass';
+  contact=contested?'contested-flight':lob?'lofted-through':'in-flight';
+  action=contested&&u>.81?'illustrative-challenge':lob?'illustrative-through-ball':'illustrative-pass';
  }else{
   ball=foot(receiver,next.owner);
   ownerIndex=next.owner;contact='received';
   action=Math.floor(current.owner/11)!==Math.floor(next.owner/11)
    ?'illustrative-challenge':'illustrative-dribble';
  }
- // Off-ball movement is continuous absolute-time motion, rather than
- // randomly selecting a new position for the receiving Pokémon.
+ // The receiver meets the approaching ball; defenders press the dribbler
+ // during possession but ease back before the next cycle boundary.
  const targetPlayer=actors[next.owner];
- const preparation=ease((u-.20)/.35)*(1-ease((u-.76)/.16));
+ const preparation=ease((u-.30)/.40)*(1-ease((u-.83)/.15));
  const anticipated=pose(next.owner,field,passArrival);
- targetPlayer.x=lerp(targetPlayer.x,anticipated.x,preparation*.20);
- targetPlayer.y=lerp(targetPlayer.y,anticipated.y,preparation*.20);
- if(u>=.40&&u<.50)actors[current.owner].frame=3;
- if(u>.68&&u<.80)targetPlayer.frame=3;
+ targetPlayer.x=lerp(targetPlayer.x,anticipated.x,preparation*.18);
+ targetPlayer.y=lerp(targetPlayer.y,anticipated.y,preparation*.18);
+ const press=ease(u/.28)*(1-ease((u-.72)/.27));
+ if(press>0&&u<.99){
+  const defenders=actors.map((p,i)=>({i,d:Math.hypot(p.x-actors[current.owner].x,p.y-actors[current.owner].y)}))
+   .filter(x=>Math.floor(x.i/11)!==side&&x.i%11!==0&&x.d<28)
+   .sort((a,b)=>a.d-b.d).slice(0,2);
+  for(const defender of defenders){
+   const p=actors[defender.i],target=actors[current.owner],distance=Math.max(.01,defender.d);
+   const approach=Math.min(5.2,Math.max(0,distance-2.1))*press;
+   p.x=limit(p.x+(target.x-p.x)/distance*approach,1,field.width-1);
+   p.y=limit(p.y+(target.y-p.y)/distance*approach,1,field.height-1);
+  }
+ }
+ if(u>=.65&&u<.75)actors[current.owner].frame=3;
+ if(u>.90&&u<.97)targetPlayer.frame=3;
  return {actors,ball,action,ownerIndex,contact,label:'',officialEvent:null,
   illustrative:true,cycle,passStart,passArrival,passOrigin,passTarget};
 

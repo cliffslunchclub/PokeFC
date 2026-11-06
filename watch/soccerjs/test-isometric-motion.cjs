@@ -6,8 +6,8 @@ const initial=JSON.stringify(fixture);
 const field={width:106,height:68};
 const types=new Set(),teamIds=[fixture.home.id,fixture.away.id];
 let runs=0;
-for(let tenth=0;tenth<=100;tenth++){
- const minute=tenth/20; // first five match minutes, deterministic 0.05m samples
+for(let tick=0;tick<=1200;tick++){
+ const minute=tick/240; // 0.25-second samples include short controlled first touches
  const frame=motionFrame(fixture,minute,field);
  assert.deepEqual(frame,motionFrame(fixture,minute,field));
  assert.equal(frame.actors.length,22);
@@ -50,7 +50,8 @@ assert.equal(steady,1/60,'1x must be exactly one match second per real second');
 assert.equal(playbackRate(goal.minute-.3,fixture.events,1),1/60,'Goal buildup must not speed up/slow real-time 1x');
 assert.equal(playbackRate(goal.minute+.1,fixture.events,1),1/60,'Goal aftermath must remain true 1:1');
 assert.equal(playbackRate(0,fixture.events,4),4/60,'4x advances four match seconds per real second');
-assert(playbackRate(goal.minute-.3,fixture.events,4)<4/60,'Faster rates can emphasize official goals');
+assert.equal(playbackRate(goal.minute-.3,fixture.events,4),4/60,
+ 'Selected Watch speed must remain constant before an official goal');
 assert.equal(playbackRate(0,[{type:'save',minute:0}],1),1/60,'A save cannot trigger goal slow-motion');
 assert.equal(playbackRate(15,[],2),2/60,'2x with no goals stays exact');
 assert.equal(playbackRate(0,[],1)*60*90,90,'90 minutes at 1x requires 90 real minutes');
