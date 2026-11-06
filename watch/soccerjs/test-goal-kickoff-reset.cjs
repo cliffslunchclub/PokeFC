@@ -7,11 +7,26 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 let tested=0;
 for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const pos=goal.minute;
- const net={x:goal.team===fixture.home.id?field.width*.985:field.width*.015,
-  y:field.height*.5};
+ const side=goal.team===fixture.home.id?0:1;
+ const goalkeeperIndex=(1-side)*11;
+ const net={x:side===0?field.width+.9:-.9};
+ const nearLine=side===0?field.width:0;
+ const direction=side===0?1:-1;
+ const flight=[.90,.94,.97,.99,1].map(frac=>
+  motionFrame(fixture,pos-.7+.7*frac,field));
+ for(let i=1;i<flight.length;i++)
+  assert((flight[i].ball.x-flight[i-1].ball.x)*direction>0,
+   'Shot must advance continuously toward goal; no reverse/whip');
+ const goalFrame=motionFrame(fixture,pos,field);
+ const keeper=goalFrame.actors[goalkeeperIndex];
+ assert((goalFrame.ball.x-nearLine)*direction>.5,'Ball must cross end line into goal');
+ assert((goalFrame.ball.x-keeper.x)*direction>2,'Scored ball must pass keeper');
+ assert(Math.abs(goalFrame.ball.y-keeper.y)>2,'Keeper must visibly miss shot');
+ assert(Math.abs(goalFrame.ball.y-field.height*.5)<3.5,
+  'Scored ball must finish inside goal-mouth posts');
  const held=motionFrame(fixture,pos+.14,field);
  assert.equal(held.action,'official-goal');
- assert(distance(held.ball,net)<.001,'Scored ball must remain in net');
+ assert(Math.abs(held.ball.x-net.x)<.001,'Scored ball must remain behind end line');
  const cut=pos+.22;
  const before=motionFrame(fixture,cut-1e-7,field);
  const after=motionFrame(fixture,cut+1e-7,field);
@@ -34,4 +49,4 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
 }
 assert(tested>=2,'Expected multiple goal restart checks');
 assert.equal(JSON.stringify(fixture),original,'Visual restart mutated the PSE fixture');
-console.log('PASS Watch goal kickoff cuts: '+tested+' goals, net holds, midfield cut and seamless kickoff pass');
+console.log('PASS Watch goal crossing and kickoff cuts: '+tested+' goals past keeper/end line into side netting, net holds, midfield cut');
