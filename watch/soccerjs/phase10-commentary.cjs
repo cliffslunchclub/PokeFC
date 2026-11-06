@@ -157,7 +157,7 @@ function build(f,field){
   const line=officialLine(f,e,i);
   if(line)entries.push(line);
  });
- entries.sort((a,b)=>a.seconds-b.seconds||b.priority-a.priority||
+ entries.sort((a,b)=>a.seconds-b.seconds||a.priority-b.priority||
   a.id.localeCompare(b.id));
  // A PSE incident wins if it shares the same second with a visual caption.
  return {entries,duration:plan.duration,seed,fixture:f};
