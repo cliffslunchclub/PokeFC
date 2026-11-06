@@ -8,6 +8,8 @@ const source=fs.readFileSync(require('node:path').join(__dirname,'../watch/socce
 const collection=()=>{const set=new Set();return {add:k=>set.add(k),remove:k=>set.delete(k),contains:k=>set.has(k)}};
 const button={textContent:'⛶ FULLSCREEN',attrs:{},setAttribute(k,v){this.attrs[k]=v}};
 const body={classList:collection()},listeners={};
+const fullscreenMessages=[];
+const iframe={contentWindow:{postMessage(message,origin){fullscreenMessages.push({message,origin})}}};
 const document={
  body,fullscreenElement:null,
  addEventListener(k,fn){listeners[k]=fn},
@@ -22,7 +24,7 @@ assert.equal(typeof watch.leaveFullscreen,'function');
 function pitch(native){
  const el={
   classList:collection(),
-  querySelector:s=>s==='[data-pfc-fullscreen]'?button:null
+  querySelector:s=>s==='[data-pfc-fullscreen]'?button:s==='iframe.soccerjs-inline-frame'?iframe:null
  };
  if(native)el.requestFullscreen=async()=>{document.fullscreenElement=el;listeners.fullscreenchange?.()};
  else el.requestFullscreen=async()=>{throw Error('Unsupported iPhone element fullscreen')};
@@ -35,10 +37,14 @@ function pitch(native){
  assert(body.classList.contains('pfc-watch-no-scroll'),'Mobile background still scrolls');
  assert.equal(button.attrs['aria-pressed'],'true');
  assert.match(button.textContent,/EXIT FULLSCREEN/);
+ assert.equal(fullscreenMessages.at(-1).message.action,'fullscreen');
+ assert.equal(fullscreenMessages.at(-1).message.active,true);
  assert.equal(await watch.toggleFullscreen(mobile),false,'Mobile exit failed');
  assert(!mobile.classList.contains('pfc-watch-theater'));
  assert(!body.classList.contains('pfc-watch-no-scroll'));
  assert.equal(button.attrs['aria-pressed'],'false');
+ assert.equal(fullscreenMessages.at(-1).message.active,false,
+  'Fullscreen exit must hide iframe playback bar');
  await watch.toggleFullscreen(mobile);
  listeners.keydown({key:'Escape'});
  assert(!mobile.classList.contains('pfc-watch-theater'),'Escape must exit mobile theater');
