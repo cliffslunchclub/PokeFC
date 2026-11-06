@@ -212,7 +212,10 @@ function saveChallengeResult(result){
   outcome,tiebreak,shootout,seed:preview.seed,origin:official.origin,
   ...(ko?{knockoutRules:'pse-knockout-v1',regulationScore:ko.regulationScore,
    extraTime:ko.extraTime?{score:ko.extraTime.score,events:ko.extraTime.events}:null}:{}),
-  report:window.PFC_MATCH_REPORT?.fromResult(official,preview)||null};
+  report:window.PFC_MATCH_REPORT?.fromResult(official,preview)||null,
+  // Store the immutable PSE fixture for result-screen replays after Watch exits.
+  ...(official.origin==='quick-sim'?{replay:{version:1,
+   preview:{home:preview.home,away:preview.away},result:official}}:{})};
  challenge.history=Array.isArray(challenge.history)?challenge.history:[];
  challenge.result=record;challenge.history.push({...record});
  challenge.phase=outcome!=='Victory'||challenge.round===5?'finished':'result';
