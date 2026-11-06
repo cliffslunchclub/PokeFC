@@ -14,9 +14,9 @@ checked=0; deleted=0; skipped=0
 while IFS=$'\t' read -r branch merged_sha; do
   [[ -n "$branch" && -n "$merged_sha" ]] || continue
   case "$branch" in
-    main|feature/soccerjs-watch-rebuild|feature/challenge-loss-penalties-drag|experiment/*)
-      echo "KEEP $branch (protected)"; ((skipped+=1)); continue ;;
-    feature/*) ;;
+    main|archive/*|experiment/*|feature/challenge-loss-penalties-drag|feature/challenges-result-goal-replays|feature/pokefc-enclosed-pitch-no-whistles)
+      echo "KEEP $branch (protected or active research)"; ((skipped+=1)); continue ;;
+    feature/*|fix/*|chore/*) ;;
     *) echo "KEEP $branch (outside cleanup scope)"; ((skipped+=1)); continue ;;
   esac
   ((checked+=1))
@@ -37,4 +37,4 @@ done < <(
     sort -u
 )
 echo "Checked $checked candidates; deleted $deleted; skipped $skipped."
-echo "Research experiment branches and the public repo remain untouched."
+echo "Main, archive/experiment branches, active PRs and the public repo remain untouched."
