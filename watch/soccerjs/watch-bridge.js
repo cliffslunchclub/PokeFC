@@ -12,6 +12,40 @@
   requireValid(result?.origin==='quick-sim','Only an authoritative Quick Sim result is supported');
   requireValid(Array.isArray(result.score)&&result.score.length===2&&Array.isArray(result.stats)&&result.stats.length===2,'Official result is incomplete');
   requireValid(String(result.home)===String(preview.home.id)&&String(result.away)===String(preview.away.id),'Result fixture mismatch');
+  const duration=result.durationMinutes===120?120:90;
+  requireValid(result.durationMinutes==null||duration===result.durationMinutes,'Invalid match duration');
+  requireValid(duration===90||result.knockoutRules==='pse-knockout-v1','Extra time requires PSE knockout provenance');
+  if(duration===120){
+   requireValid(Array.isArray(result.regulationScore)&&result.regulationScore.length===2,
+    'Missing regulation score');
+   const regulationGoals=result.events.filter(e=>e.type==='goal'&&e.minute<90);
+   requireValid(regulationGoals.filter(e=>String(e.team)===String(preview.home.id)).length===result.regulationScore[0]&&
+    regulationGoals.filter(e=>String(e.team)===String(preview.away.id)).length===result.regulationScore[1],
+    'Regulation score differs from event history');
+  }
+  const shootout=result.shootout||null;
+  if(shootout){
+   requireValid(duration===120&&shootout.version==='pse-shootout-v1','Unsupported shootout');
+   requireValid(Array.isArray(shootout.attempts)&&shootout.attempts.length>=6,'Missing official kicks');
+   requireValid(shootout.countsInMatchStats===false,'Shootout cannot count as regulation goals');
+   const sums={home:0,away:0};
+   for(const [index,k] of shootout.attempts.entries()){
+    requireValid(k.id==='pse-pk-'+String(index+1).padStart(4,'0')&&
+     k.side===(index%2?'away':'home')&&k.round===Math.floor(index/2)+1,
+     'Invalid official penalty sequence');
+    const own=k.side==='home'?preview.home:preview.away,other=k.side==='home'?preview.away:preview.home;
+    requireValid(own.lineup.some(p=>String(p.id)===String(k.kickerId))&&
+     other.lineup.some(p=>String(p.id)===String(k.keeperId)), 'Invalid official penalty player');
+    requireValid(k.phase==='shootout'&&['goal','saved','off-target'].includes(k.outcome)&&
+     k.scored===(k.outcome==='goal'),'Invalid official penalty outcome');
+    sums[k.side]+=Number(k.scored);
+   }
+   requireValid(sums.home===shootout.home&&sums.away===shootout.away&&
+    ['home','away'].includes(shootout.winner)&&
+    shootout.home!==shootout.away&&
+    (shootout.home>shootout.away?'home':'away')===shootout.winner,
+    'Shootout final total or winner does not reconcile');
+  }
   const teams=[preview.home,preview.away];
   const ids=new Set();
   const clean=t=>({
@@ -27,7 +61,7 @@
   // invent corners, penalties, fouls or any unreported shot timestamp.
   const safeTeams=teams.map(clean),events=(result.events||[])
    .filter(e=>e.type==='goal'||e.type==='save').map(e=>{
-    requireValid(Number.isFinite(e.minute)&&e.minute>=0&&e.minute<90,'Invalid official event time');
+    requireValid(Number.isFinite(e.minute)&&e.minute>=0&&e.minute<duration,'Invalid official event time');
     const side=teams.findIndex(t=>String(t.id)===String(e.team));
     requireValid(side!==-1,'Official event team does not match fixture');
     requireValid(safeTeams[side].lineup.some(p=>p.id===String(e.player)),'Official event player not on team');
@@ -62,10 +96,12 @@
    }
   }
   return {
-   schema:'pokefc-quick-sim-export/v1',origin:'quick-sim',competition:'league',durationMinutes:90,
+   schema:'pokefc-quick-sim-export/v1',origin:'quick-sim',competition:duration===120?'knockout':'league',durationMinutes:duration,
    source:'Private PokeFC Quick Sim live fixture (result data only)',
    home:safeTeams[0],away:safeTeams[1],score:result.score.slice(),
-   stats:result.stats.map(s=>({...s})),events,box
+   stats:result.stats.map(s=>({...s})),events,box,
+   ...(duration===120?{knockoutRules:result.knockoutRules,regulationScore:result.regulationScore.slice()}:{}),
+   ...(shootout?{shootout:JSON.parse(JSON.stringify(shootout))}:{})
   };
  }
  function scoreAt(fixture,minute){
@@ -79,8 +115,8 @@
   if(active)throw Error('Another Phase 10 Watch session is already open');
   requireValid(typeof onRecord==='function','Result callback required');
   const fixture=snapshot(preview,result);
-  const expectedFinal=result.score.slice(),origin=root.location.origin;
-  let minute=0,closed=false,finished=false,handedOff=false,recorded=false,ready=false;
+  const expectedFinal=result.score.slice(),origin=root.location.origin,duration=fixture.durationMinutes;
+  let minute=0,closed=false,finished=false,handedOff=false,recorded=false,ready=false,kickIndex=0;
   const body=document.body;
   const mask=document.createElement('div');
   mask.id='phase10-soccer-watch';
@@ -111,17 +147,17 @@
   cancel.style.background='#33465b';cancel.style.color='#f5f6fc';
   const record=btn('✓ Record official result',()=>{
    if(recorded||!finished)return;
-   requireValid(minute>=90,'Cannot record before full time');
-   requireValid(scoreAt(fixture,90).every((x,i)=>x===expectedFinal[i]),'Official score drift');
+   requireValid(minute>=duration&&(!fixture.shootout||kickIndex===fixture.shootout.attempts.length),'Cannot record before shootout finishes');
+   requireValid(scoreAt(fixture,duration).every((x,i)=>x===expectedFinal[i]),'Official score drift');
    recorded=true;record.disabled=true;
-   try{onRecord({result,minute:90,origin:'quick-sim',handoff:handedOff?'watch-to-quick-sim':'watched-replay'})}
+   try{onRecord({result,minute:duration,origin:'quick-sim',handoff:handedOff?'watch-to-quick-sim':'watched-replay'})}
    finally{cleanup()}
   });
   record.disabled=true;
   const end=btn('⚡ Sim to End',()=>{
    if(!ready||finished)return;
-   const from=minute;handedOff=true;finished=true;minute=90;
-   frame.contentWindow.postMessage({type:TYPE+'-seek',minute:90},origin);
+   const from=minute;handedOff=true;finished=true;minute=duration;kickIndex=fixture.shootout?.attempts.length||0;
+   frame.contentWindow.postMessage({type:TYPE+'-control',action:'finish'},origin);
    record.disabled=false;
    status.textContent='Switched at '+from.toFixed(1)+"′ → official "+expectedFinal.join('–')+' · ready to record';
   });
@@ -136,15 +172,19 @@
     status.textContent='Official match loaded · '+fixture.home.name+' vs '+fixture.away.name;
    }else if(e.data.type===TYPE+'-progress'){
     const n=Number(e.data.minute);
-    if(!Number.isFinite(n)||n<0||n>90)return;
+    if(!Number.isFinite(n)||n<0||n>duration)return;
     const s=scoreAt(fixture,n);
     if(!Array.isArray(e.data.score)||!s.every((v,i)=>v===e.data.score[i])){status.textContent='Score synchronization error — cannot record';record.disabled=true;end.disabled=true;return;}
-    if(handedOff&&n<90)return;
+    if(handedOff&&n<duration)return;
     minute=n;
-    if(minute>=90){
+    const expectedKicks=fixture.shootout?.attempts.length||0;
+    const reportedKicks=Number(e.data.kickIndex||0);
+    if(!Number.isInteger(reportedKicks)||reportedKicks<0||reportedKicks>expectedKicks)return;
+    kickIndex=reportedKicks;
+    if(minute>=duration&&(!fixture.shootout||kickIndex===expectedKicks)){
      finished=true;record.disabled=false;end.disabled=true;
      status.textContent='Full time '+expectedFinal.join('–')+' · ready to record';
-    }else if(!handedOff)status.textContent=n.toFixed(1)+"′ · "+s.join('–')+' · Quick Sim-authoritative';
+    }else if(!handedOff)status.textContent=(duration===120&&n>=90?'EXTRA TIME · ':'')+n.toFixed(1)+"′ · "+s.join('–')+' · Quick Sim-authoritative';
    }else if(e.data.type===TYPE+'-error'){
     status.textContent='Viewer error: '+String(e.data.message||'unknown');
     end.disabled=true;record.disabled=true;
@@ -216,11 +256,11 @@
   requireValid(container&&typeof container.appendChild==='function','A match viewport is required');
   requireValid(typeof onRecord==='function','Record callback required');
   const fixture=snapshot(preview,result);
-  const expectedFinal=result.score.slice();
+  const expectedFinal=result.score.slice(),duration=fixture.durationMinutes;
   const url=new URL(viewerUrl,root.location.href);
   const origin=root.location.origin;
   requireValid(url.origin===origin,'Inline viewer must be same-origin');
-  let closed=false,ready=false,booted=false,finished=false,handedOff=false,recorded=false,error=null,minute=0,watchdog=null;
+  let closed=false,ready=false,booted=false,finished=false,handedOff=false,recorded=false,error=null,minute=0,watchdog=null,kickIndex=0;
   const frame=document.createElement('iframe');
   frame.className='soccerjs-inline-frame';
   frame.title='Broadcast Soccer-JS Pokémon match (Quick Sim-authoritative)';
@@ -267,14 +307,24 @@
     if(typeof onReady==='function')onReady(session);
    }else if(e.data.type===TYPE+'-progress'){
     const next=Number(e.data.minute);
-    if(error||!ready||!Number.isFinite(next)||next<0||next>90)return;
+    if(error||!ready||!Number.isFinite(next)||next<0||next>duration)return;
     const official=scoreAt(fixture,next);
     if(!Array.isArray(e.data.score)||!official.every((n,i)=>n===e.data.score[i])){
      fail('Viewer score differs from authoritative Quick Sim ledger');return;
     }
-    if(handedOff&&next<90)return;
-    minute=next;finished=next>=90;
-    if(typeof onProgress==='function')onProgress({minute,score:official,finished,handedOff,recorded});
+    if(handedOff&&next<duration)return;
+    const expectedKicks=fixture.shootout?.attempts.length||0;
+    const reportedKicks=Number(e.data.kickIndex||0);
+    if(!Number.isInteger(reportedKicks)||reportedKicks<0||reportedKicks>expectedKicks){
+     fail('Invalid shootout position');return;
+    }
+    if(handedOff&&expectedKicks&&reportedKicks<expectedKicks)return;
+    minute=next;kickIndex=reportedKicks;
+    finished=next>=duration&&(!fixture.shootout||kickIndex===expectedKicks);
+    if(typeof onProgress==='function')onProgress({
+     minute,score:official,finished,handedOff,recorded,
+     durationMinutes:duration,kickIndex,shootout:fixture.shootout||null
+    });
     if(finished)announce('full-time');
    }else if(e.data.type===TYPE+'-error'){
     fail('Soccer-JS renderer: '+String(e.data.message||'Unknown rendering error'));
@@ -282,7 +332,7 @@
   }
   const session={
    fixture,frame,
-   getState:()=>({ready:booted,minute,score:scoreAt(fixture,minute),finished,handedOff,recorded,error,closed}),
+   getState:()=>({ready:booted,minute,durationMinutes:duration,kickIndex,score:scoreAt(fixture,minute),finished,handedOff,recorded,error,closed}),
    play:(speed=1)=>!finished&&send('play',{speed:Number(speed)||1}),
    pause:()=>send('pause'),
    setSpeed:(speed)=>Number.isFinite(Number(speed))&&Number(speed)>0&&Number(speed)<=16&&send('speed',{speed:Number(speed)}),
@@ -290,17 +340,18 @@
    setCamera:(camera)=>['wide','follow'].includes(camera)&&send('camera',{camera}),
    setNumbers:(visible)=>send('numbers',{visible:!!visible}),
    // Rewind/scrub is visual only. After Watch → Sim, replay cannot resume.
-   seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=90&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
+   seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=duration&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
    simToEnd:()=>{
     if(!booted||finished||closed||error)return false;
     handedOff=true;announce('simulating-to-end',{fromMinute:minute});
-    return send('seek',{minute:90});
+    return duration===90?send('seek',{minute:duration}):send('finish');
    },
+   nextKick:()=>!handedOff&&minute>=duration&&!!fixture.shootout&&kickIndex<fixture.shootout.attempts.length&&send('next-kick'),
    record:()=>{
-    if(closed||recorded||!finished||error||minute<90)return false;
-    requireValid(scoreAt(fixture,90).every((n,i)=>n===expectedFinal[i]),'Official final score drift');
+    if(closed||recorded||!finished||error||minute<duration||(fixture.shootout&&kickIndex!==fixture.shootout.attempts.length))return false;
+    requireValid(scoreAt(fixture,duration).every((n,i)=>n===expectedFinal[i]),'Official final score drift');
     recorded=true;
-    onRecord({result,minute:90,origin:'quick-sim',handoff:handedOff?'watch-to-quick-sim':'watched-replay'});
+    onRecord({result,minute:duration,origin:'quick-sim',handoff:handedOff?'watch-to-quick-sim':'watched-replay'});
     announce('recorded');
     return true;
    },

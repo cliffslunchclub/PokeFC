@@ -15,7 +15,7 @@ cp .htaccess dist/.htaccess
 
 # National free builder and shared Quick Sim library.
 cp index.html builder.css builder.js site.css newtro.css favicon.svg national-species.js \
-   quick-sim.js calibration-profile.js dist/
+   quick-sim.js pse-knockout.js calibration-profile.js dist/
 
 # Ratings explainer is linked from the Free Builder, not a fourth game mode.
 cp ratings/index.html dist/ratings/
@@ -31,7 +31,7 @@ cp tm-engine-bridge.js tm-worker.js hybrid-sim.js dist/play/
 
 # Current 32-gym Franchise stays pinned to its Gen I–IV 493-species database.
 cp franchise/index.html dist/franchise/
-for file in career.css career.js species.js calibration-profile.js quick-sim.js \
+for file in career.css career.js species.js calibration-profile.js quick-sim.js pse-knockout.js \
             hybrid-sim.js tm-engine-bridge.js tactical-viewer.js soccerjs-franchise-viewer.js tm-worker.js; do
   cp "$file" "dist/franchise/$file"
 done
