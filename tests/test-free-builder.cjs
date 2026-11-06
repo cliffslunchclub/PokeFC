@@ -31,6 +31,7 @@ function start(store=new Map()){
  };
  const ctx=vm.createContext(env);
  vm.runInContext(fs.readFileSync(path.join(root,'assets/js/national-species.js'),'utf8'),ctx,{timeout:10000});
+ vm.runInContext(fs.readFileSync(path.join(root,'assets/js/position-effectiveness.js'),'utf8'),ctx,{timeout:10000});
  vm.runInContext(fs.readFileSync(path.join(root,'assets/js/builder.js'),'utf8'),ctx,{timeout:10000});
  return {get,store,env,api:env.window.PFC_BUILDER};
 }
@@ -58,11 +59,11 @@ assert.equal(get('prospects').dataset.expanded,'false');
 get('genFilter').value='1';
 get('genFilter').events.change();
 assert.equal(Object.keys(api.formations).length,5);
-assert(/^[A-F]$/.test(api.gradeFor(env.window.FXI_SPECIES[5],'ST')));
-assert(/^[A-F]$/.test(get('teamScore').textContent),'Public XI grade is letter-only');
+assert(/^[SABCD]$/.test(api.gradeFor(env.window.FXI_SPECIES[5],'ST')));
+assert(/^[SABCD]$/.test(get('teamScore').textContent),'Public XI grade is letter-only');
 assert.doesNotMatch(get('pitchSlots').innerHTML,/\d+(?:\.\d+)?\s*OVR/);
 assert.doesNotMatch(get('prospects').innerHTML,/raw-stats|BST\s*\d+|\d+\.\d+<\/b>/);
-assert.match(get('prospects').innerHTML,/<b class="grade-[a-f]">[A-F]<\/b>/);
+assert.match(get('prospects').innerHTML,/<b class="grade-[sabcd]">[SABCD]<\/b>/);
 
 // Loading the preset is explicit for returning visitors; cancellation preserves XI.
 get('loadGen1').events.click();
