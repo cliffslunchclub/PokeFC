@@ -94,13 +94,13 @@ function position(f,field,id,seconds,shape,baseline){
   if(fullback){
    // Frequent overlaps on both flanks, staggered in time.
    const rolling=(Math.sin(seconds*.057+salt+i*1.22)+1)*.5;
-   progress+=.13*wave*strength*shape.profiles[side].overlap*ease((rolling-.19)/.62);
+   progress+=.23*wave*strength*shape.profiles[side].overlap*ease((rolling-.19)/.62);
   }else{
    // Centre backs alternate forward surges while their partner covers.
    // Sine crosses zero with no sudden reassignment or position snaps.
    const surge=Math.sin(seconds*.043+salt);
    const active=i===2?Math.max(0,surge):i===3?Math.max(0,-surge):0;
-   progress+=.18*wave*strength*shape.profiles[side].overlap*ease((active-.18)/.75);
+   progress+=.32*wave*strength*shape.profiles[side].overlap*ease((active-.18)/.75);
    if(active<.01)progress=Math.min(progress,.465);
   }
  }
