@@ -12,6 +12,7 @@ on:
       - 'challenge/**'
       - 'tests/test-position-effectiveness.cjs'
       - 'tests/test-pokemon-position-v2.cjs'
+      - 'tests/test-realistic-position-swaps.cjs'
       - 'tests/test-play.cjs'
       - '.github/workflows/position-effectiveness.yml'
   workflow_dispatch:
@@ -35,6 +36,7 @@ jobs:
           node --check play/play.js
           node tests/test-position-effectiveness.cjs
           node tests/test-pokemon-position-v2.cjs
+          node tests/test-realistic-position-swaps.cjs
       - name: Quick Play and knockout baseline
         run: |
           node tests/test-play.cjs
