@@ -988,6 +988,49 @@ const mountShopWindow=()=>{
   currentPosition:()=>shopWindowPosition,onMove:position=>{shopWindowPosition=position}
  })||null;
 };
+// Formation and move/swap windows share the same keyboard/pointer movement
+// behavior as the draft and item windows. Positions survive a draft rerender.
+if(isDraft||isShop){
+ const mountLineupWindow=(dialog,grip,kind)=>{
+  const isFormation=kind==='formation';
+  const oldCleanup=isFormation?formationWindowCleanup:moveWindowCleanup;
+  oldCleanup?.();
+  const cleanup=dialog?.open&&grip?PICKER_WINDOW?.mount?.(dialog,grip,{
+   currentPosition:()=>isFormation?formationWindowPosition:moveWindowPosition,
+   onMove:position=>{if(isFormation)formationWindowPosition=position;else moveWindowPosition=position}
+  })||null:null;
+  if(isFormation)formationWindowCleanup=cleanup;else moveWindowCleanup=cleanup;
+ };
+ const setupLineupWindow=(kind)=>{
+  const isFormation=kind==='formation';
+  const dialog=document.getElementById(isFormation?'challengeFormationModal':'challengeMoveModal');
+  const grip=document.getElementById(isFormation?'challengeFormationDragHandle':'challengeMoveDragHandle');
+  const button=document.getElementById(isFormation?'openFormationWindow':'openMoveWindow');
+  const closeButton=document.getElementById(isFormation?'closeFormationWindow':'closeMoveWindow');
+  const canOpen=()=>isFormation?st.formationChanges>0:st.moves>0&&st.roster.some(Boolean);
+  const close=()=>{
+   if(isFormation){formationWindowOpen=false;formationWindowCleanup?.();formationWindowCleanup=null}
+   else{moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
+   closeDialog(dialog);
+   button?.setAttribute?.('aria-expanded','false');
+  };
+  const open=()=>{
+   if(!canOpen())return;
+   if(isFormation)formationWindowOpen=true;else moveWindowOpen=true;
+   openFloatingDialog(dialog);
+   mountLineupWindow(dialog,grip,kind);
+   button?.setAttribute?.('aria-expanded','true');
+  };
+  if(button)button.onclick=open;
+  if(closeButton)closeButton.onclick=close;
+  if(dialog){
+   dialog.oncancel=()=>{close()};
+   dialog.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault?.();close();button?.focus?.()}};
+   if((isFormation?formationWindowOpen:moveWindowOpen)&&canOpen())open();
+  }
+ };
+ setupLineupWindow('formation');setupLineupWindow('move');
+}
 const detailDialog=document.getElementById('challengePokemonDetailModal');
 const closePokemonDetail=()=>closeDialog(detailDialog);
 const openPokemonDetail=index=>{
@@ -1265,14 +1308,23 @@ if(st.phase==='shop'){
  });
 }
 if(st.phase==='draft'){document.getElementById('typeR').onclick=()=>{if(slotAnimationBusy)return;reroll('type');save();render()};document.getElementById('genR').onclick=()=>{if(slotAnimationBusy)return;reroll('gen');save();render()}}
-if((st.phase==='draft'||st.phase==='shop')&&st.formationChanges>0){
- document.getElementById('applyFormation').onclick=()=>{const choice=document.getElementById('formationChange').value;if(!FORMS[choice]||choice===st.formation)return;st.formation=choice;st.formationChanges--;if(st.phase==='draft')st.selected=nextDraftSlot();save();render()};
-}
-if((st.phase==='draft'||st.phase==='shop')&&st.moves>0&&filled>0){
- document.getElementById('movePick').onclick=()=>{
-  const result=moveDraftedPokemon(document.getElementById('moveFrom').value,document.getElementById('moveTo').value);
-  if(!result.ok)showChallengeMessage('INVALID POKÉMON MOVE',result.error);
- };
+if(isDraft||isShop){
+ if(st.formationChanges>0){
+  document.getElementById('applyFormation').onclick=()=>{
+   const choice=document.getElementById('formationChange')?.value;
+   if(!FORMS[choice]||choice===st.formation)return;
+   formationWindowOpen=false;st.formation=choice;st.formationChanges--;
+   if(st.phase==='draft')st.selected=nextDraftSlot();
+   save();render();
+  };
+ }
+ if(st.moves>0&&filled>0){
+  document.getElementById('movePick').onclick=()=>{
+   const result=moveDraftedPokemon(document.getElementById('moveFrom')?.value,document.getElementById('moveTo')?.value);
+   if(result.ok)moveWindowOpen=false;
+   else showChallengeMessage('INVALID POKÉMON MOVE',result.error);
+  };
+ }
 }
 if(st.phase==='shop'){document.getElementById('tactic').onchange=e=>{st.tactic=e.target.value;save()};document.getElementById('lock').onclick=()=>{
  if(st.roster.some(x=>!x)||used>1000)return;
