@@ -72,14 +72,10 @@ function player(id,i,role,prefix,held){
  const p=BY.get(id);if(!p)throw Error('Missing Pokédex species #'+id);
  const b=heldStats(p,held);
  const position=window.PFC_POSITION_EFFECTIVENESS?.competitiveProfile(b,role);
- const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
- const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2});
- const defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
+ // PSE v2 and Soccer-JS consume native effective Pokémon stats; no TM-style adapter.
  return {id:prefix+'-'+i+'-'+id,name:p.name,species:p.name,speciesId:id,pos:posClass(role),
-  pokemonStats:b,exactPosition:role,finishingIndex:position?.finishingIndex??null,
-  positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,
-  main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},
-  detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+  pokemonStats:b,exactPosition:role,
+  positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null};
 }
 function opponent(){return OPP.find(o=>o.key===$('opponent').value)||OPP[0]}
 function makePreview(){
