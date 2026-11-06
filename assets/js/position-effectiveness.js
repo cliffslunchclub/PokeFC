@@ -35,7 +35,7 @@
   FB:{speed:.40,defense:.35,hp:.15,spDefense:.10},
   WB:{speed:.40,defense:.25,spAttack:.20,attack:.15},
   CDM:{defense:.35,spDefense:.30,hp:.20,spAttack:.15},
-  CM:{spAttack:.20,speed:.19,attack:.17,defense:.17,spDefense:.17,hp:.10},
+  CM:{hp:.20,attack:.15,defense:.15,spAttack:.15,spDefense:.15,speed:.20},
   CAM:{spAttack:.40,speed:.25,attack:.20,spDefense:.15},
   WING:{speed:.40,attack:.25,spAttack:.25,hp:.10},
   ST:{attack:.45,speed:.25,spAttack:.20,hp:.10}
