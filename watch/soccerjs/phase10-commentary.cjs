@@ -31,7 +31,8 @@ function eventPlayer(team,id){
  return String(p?.name||'A Pokémon');
 }
 function officialLine(f,e,index){
- if(!OFFICIAL_TYPES.has(e?.type)||!Number.isFinite(e.minute))return null;
+ if(!OFFICIAL_TYPES.has(e?.type)||!Number.isFinite(e.minute)||
+    (e.source!=='quick-sim'&&e.origin!=='quick-sim'))return null;
  const team=teamForEvent(f,e);
  if(!team)return null;
  const squad=String(team.name||team.id);
@@ -185,7 +186,8 @@ function visible(feed,seconds,kickIndex=0){
   if(all[mid].seconds<=time+1e-8)lo=mid+1;else hi=mid;
  }
  const lines=all.slice(0,lo);
- if(time>=feed.duration&&feed.fixture.shootout?.attempts?.length){
+ if(time>=feed.duration&&feed.fixture.shootout?.version==='pse-shootout-v1'&&
+    feed.fixture.shootout.attempts?.length){
   const attempts=feed.fixture.shootout.attempts;
   for(let i=0;i<Math.min(kickIndex,attempts.length);i++)
    lines.push(shootoutLine(feed.fixture,attempts[i],i));
