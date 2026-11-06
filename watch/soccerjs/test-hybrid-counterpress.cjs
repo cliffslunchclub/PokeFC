@@ -51,6 +51,13 @@ for(const turn of plan.turnovers){
   assert.equal(motionFrame(fixture,(turn.time+5)/60,field).pressPhase,'recover');
   assert.equal(motionFrame(fixture,(turn.time+8)/60,field).pressPhase,'recover');
   assert.equal(motionFrame(fixture,(turn.time+10.5)/60,field).pressPhase,'settled');
+  // Do not jump from a recovery press directly into a strong settled
+  // marking displacement at precisely the 10-second boundary.
+  const endLeft=motionFrame(fixture,(turn.time+10-.00006)/60,field);
+  const endRight=motionFrame(fixture,(turn.time+10+.00006)/60,field);
+  const settledJump=Math.max(...endLeft.actors.map((p,i)=>
+   distance(p,endRight.actors[i])));
+  assert(settledJump<.06,'Press-to-settled transition teleported a defender');
  }
  tested++;
 }
