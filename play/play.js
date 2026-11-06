@@ -364,15 +364,20 @@ function watchSoccerPreview(){
     $('matchState').textContent='WATCHING · BROADCAST';
     $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
    },
-   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout,pausedForGoal=false})=>{
+   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout,pausedForGoal=false,watchPlaying=null,watchSpeed=null})=>{
     $('score').textContent=score.join(' : ');
     const totalKicks=shootout?.attempts.length||0;
     $('matchClock').textContent=finished?'FULL TIME':
      totalKicks&&minute>=duration?'PENALTIES '+kickIndex+'/'+totalKicks:
      Math.floor(minute)+"' / "+duration+"'";
-    if(pausedForGoal&&!finished){
-     $('matchState').textContent='GOAL! · PAUSED FOR REPLAY';
-     $('pause').disabled=true;$('resume').disabled=false;
+    if(Number.isFinite(watchSpeed)&&watchSpeed>0)$('watchSpeed').value=String(watchSpeed);
+    if(!finished&&!handedOff){
+     if(pausedForGoal)$('matchState').textContent='GOAL! · PAUSED FOR REPLAY';
+     else if(watchPlaying!==null)$('matchState').textContent=watchPlaying?'WATCHING · BROADCAST':'PAUSED';
+     if(watchPlaying!==null||pausedForGoal){
+      const running=!!watchPlaying&&!pausedForGoal;
+      $('pause').disabled=!running;$('resume').disabled=running;
+     }
     }
     const displayMinute=Math.floor(minute);
     if((displayMinute!==lastShownMinute||totalKicks&&minute>=duration)&&!finished){

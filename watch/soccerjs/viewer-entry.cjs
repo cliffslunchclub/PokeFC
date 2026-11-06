@@ -284,7 +284,7 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice});
+   pausedForGoal:!!replayNotice,watchPlaying:!!playing,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -468,7 +468,7 @@ async function boot(){
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
-  $('pause').onclick=()=>seek(minute);
+  $('pause').onclick=()=>{seek(minute);lastSent=-2;render(minute);};
   $('restart').onclick=()=>{kickIndex=0;seek(0)};
   $('skip').onclick=finish;
   $('scrub').oninput=e=>seek(Number(e.target.value));
@@ -479,7 +479,7 @@ async function boot(){
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
-  $('fullscreenPause').onclick=()=>{playing=false;last=null;render(minute);};
+  $('fullscreenPause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
    if(replayNotice)clearHighlightNotice();
    lastSent=-2;
@@ -487,7 +487,7 @@ async function boot(){
    render(minute);
   };
   $('fullscreenSpeed').onchange=e=>{
-   speed=Number(e.target.value)||1;$('speed').value=String(speed);render(minute);
+   speed=Number(e.target.value)||1;$('speed').value=String(speed);lastSent=-2;render(minute);
   };
   $('projection').onchange=e=>{
    if(!validViews.has(e.target.value))return;
@@ -517,12 +517,12 @@ async function boot(){
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
-    playing=false;last=null;render(minute);
+    playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){
     $('fullscreenPlayback').hidden=!msg.active;render(minute);
    }else if(msg.action==='speed'){
     const v=Number(msg.speed);
-    if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;render(minute);}
+    if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;lastSent=-2;render(minute);}
    }else if(msg.action==='seek'){
     const m=Number(msg.minute);
     if(Number.isFinite(m)&&m>=0&&m<=match.durationMinutes)seek(m);
