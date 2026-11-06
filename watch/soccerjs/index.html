@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b0d10"><title>PokéFC | Real Quick Sim → Soccer-JS</title>
-<link rel="stylesheet" href="./viewer.css?v=10"><script defer src="./viewer.bundle.js?v=10"></script></head>
+<link rel="stylesheet" href="./viewer.css?v=10"><script defer src="./viewer.bundle.js?v=11"></script></head>
 <body>
 <header><a href="/" aria-label="PokéFC home"><span class="mini-ball" aria-hidden="true"></span>POKÉ<span>FC</span></a><strong>PHASE 10 · REAL MATCH REPLAY</strong><small>PRIVATE STAGING BUILD</small></header>
 <main><section class="intro">
 <div class="eyebrow">QUICK SIM × SOCCER-JS</div>
 <h1>A real match. <em>One official result.</em></h1>
 <p>This is a real PokéFC Quick Sim v0.7b result replayed by Soccer-JS's original pitch and ball drawing systems, with Pokémon sprite billboards. Controls never run Soccer-JS's competing match simulation.</p>
-<div class="caution" id="notice"><b>Early technical preview.</b> Only scoring events have official timestamps. The Pokémon sprite art is original game artwork. Animated passes, challenges, shot paths and goalkeeper reactions are illustrative—not official Quick Sim events. This is an illustrative replay: match outcomes come exclusively from PSE. Knockout fixtures may include 30 minutes of extra time and a separate official kick-by-kick penalty sequence.</div>
+<div class="caution" id="notice"><b>Early technical preview.</b> Goals and goalkeeper saves have official PSE timestamps. The Pokémon sprite art is original game artwork. Animated passes, challenges, shot paths and goalkeeper reactions are illustrative—not official Quick Sim events. Enclosed pitch, continuous play: no throw-ins, corners, fouls, free kicks or in-match penalties. Results come exclusively from PSE. Knockout fixtures may include 30 minutes of extra time and a separate official kick-by-kick penalty sequence.</div>
 </section>
 <section class="scoreline"><div class="team"><span>PEWTER CITY</span><small>HOME</small></div><div class="result"><strong id="score">0 – 0</strong><div id="clock">0'</div><small id="status" role="status" aria-live="polite">LOADING…</small></div><div class="team visitor"><span>CERULEAN CITY</span><small>AWAY</small></div></section>
 <div class="layout"><section class="viewer"><div class="cap"><h2>SOCCER-JS ORIGINAL VISUAL ENGINE</h2><small>Original Pokémon game sprites • club-colored jersey numbers • official Quick Sim score</small></div>
@@ -31,10 +31,10 @@
  <div class="highlight-filters" role="group" aria-label="Filter highlights">
   <button type="button" class="active" data-highlight-filter="all" aria-pressed="true">ALL</button>
   <button type="button" data-highlight-filter="goal" aria-pressed="false">GOALS</button>
-  <button type="button" data-highlight-filter="set" aria-pressed="false">SET PIECES</button>
+  <button type="button" data-highlight-filter="set" aria-pressed="false">SHOOTOUTS</button>
  </div>
  <div id="highlightList" class="highlight-list" aria-live="polite"><p class="highlight-empty">Highlights appear as official incidents happen.</p></div>
- <p class="highlight-footnote">Only official PSE events appear here. Motion is a visual reconstruction, not recorded footage.</p>
+ <p class="highlight-footnote">Only recorded PSE goals and knockout shootout kicks appear here. Animation is illustrative.</p>
 </section>
 <section id="highlightReplay" class="highlight-replay" role="group" aria-label="Instant replay" hidden>
  <div class="highlight-replay-top"><strong>● REPLAY</strong><span id="highlightReplayTitle">GOAL</span></div>
@@ -64,6 +64,6 @@
 <div id="motionStatus" class="motion-status" role="status">Loading illustrated match sequence…</div>
 <div class="seek"><span>0'</span><input id="scrub" type="range" min="0" max="90" step=".05" value="0" disabled aria-label="Scrub match minute"><span id="seekEnd">90'</span><b id="played">0/90'</b></div>
 </section>
-<aside><section class="panel"><h2>MATCH HIGHLIGHTS</h2><div id="goals">Official highlights appear as the match progresses. Use Replay to review a moment.</div></section><section class="panel"><h2>QUICK SIM FINAL STATISTICS</h2><div id="stats">Loading...</div><p>These are final official match totals, not live running shot counts. PSE extra-time goals count toward the 120-minute match score, while shootout kicks have a separate tally. Goal and goalkeeper-save timestamps come from PSE; other animated shot paths remain illustrative. Soccer-JS cannot generate extra goals or set pieces.</p></section><section class="panel"><h2>WHAT THIS PROVES</h2><p>Quick Sim can supply match events to a browser replay that uses Soccer-JS's existing visual renderer. Watch the first five minutes with animated passes, dribbles and challenges. These are visual demonstrations, not verified possession data. Continuous match realism and full-match performance still need development.</p></section></aside></div>
+<aside><section class="panel"><h2>MATCH HIGHLIGHTS</h2><div id="goals">Official highlights appear as the match progresses. Use Replay to review a moment.</div></section><section class="panel"><h2>QUICK SIM FINAL STATISTICS</h2><div id="stats">Loading...</div><p>These are final official match totals, not live running shot counts. PSE extra-time goals count toward the 120-minute match score, while shootout kicks have a separate tally. Goal and goalkeeper-save timestamps come from PSE; other animated shot paths remain illustrative. Soccer-JS cannot generate extra goals or scoring events.</p></section><section class="panel"><h2>WHAT THIS PROVES</h2><p>Quick Sim can supply match events to a browser replay that uses Soccer-JS's existing visual renderer. Watch the first five minutes with animated passes, dribbles and challenges. These are visual demonstrations, not verified possession data. Continuous match realism and full-match performance still need development.</p></section></aside></div>
 <footer>PokéFC Phase 10 · Free public test · No login · No private source code published · Soccer-JS MIT license retained</footer></main>
 </body></html>
