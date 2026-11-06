@@ -92,7 +92,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 </div>
 <script src="../national-species.js?v=1"></script><script src="../calibration-profile.js"></script><script src="../quick-sim.js?v=4"></script><script src="../pse-knockout.js?v=1"></script><script src="./special-items-data.js?v=2"></script>
-<script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
+<script src="../watch/soccerjs/watch-bridge.js?v=6"></script><script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -307,6 +307,7 @@ const PICKER_WINDOW=window.PFC_CHALLENGE_PICKER_WINDOW;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
+let goalReplaySession=null;
 let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null,shopWindowPosition=null,shopWindowCleanup=null;
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
@@ -846,6 +847,7 @@ function pokemonDetailMarkup(index){
   '</section>';
 }
 function render(){const app=document.getElementById('app');
+ goalReplaySession?.destroy?.();goalReplaySession=null;
  syncManualSaveBar();
  if(st.phase==='shop'&&app?.querySelector){
   const drawer=app.querySelector('#challengeShopDrawer');
@@ -1133,6 +1135,11 @@ if(st.phase==='finished')body+='<section class="panel challenge-recap-access"><d
  '<div id="runFinishOverviewStep" class="challenge-run-step" hidden>'+
  '<div class="challenge-overview-back"><button type="button" id="backToFinalMatch">← BACK TO FINAL MATCH</button></div>'+
  completedRunCard()+'</div></dialog>';
+if(st.phase==='result'||st.phase==='finished')body+='<dialog id="challengeGoalReplayModal" class="challenge-dialog challenge-goal-replay-dialog" aria-labelledby="challengeGoalReplayTitle">'+
+ '<div class="challenge-dialog-bar"><span id="challengeGoalReplayTitle">2.5D INSTANT REPLAY</span><button type="button" id="closeGoalReplayModal">✕ CLOSE</button></div>'+
+ '<div class="challenge-goal-replay-content"><p id="challengeReplayStatus" role="status">Loading official goal highlight…</p>'+
+ '<div id="challengeReplayStage" class="challenge-goal-replay-stage"></div>'+
+ '<p>Visual reconstruction of the recorded PSE event. No gameplay or saved result changes.</p></div></dialog>';
 body+='</div></div>'+
  '<dialog id="challengePokemonDetailModal" class="challenge-dialog challenge-pokemon-detail-dialog" aria-labelledby="pokemonDetailTitle">'+
  '<div class="challenge-dialog-bar"><span id="pokemonDetailTitle">POKÉMON PROFILE · FINAL XI</span>'+
