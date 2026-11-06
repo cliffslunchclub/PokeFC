@@ -67,10 +67,20 @@ assert(looseRecoveries>12&&turnovers>=1,'Rebounds must occasionally change teams
 // goal entering the net during the scorer's official goal scene.
 for(let second=0;second<90*60;second+=1.8){
  const frame=motionFrame(fixture,second/60,field);
- if(frame.action==='official-goal')continue;
- assert(Physics.boundary(frame.ball,field),
+ if(Physics.boundary(frame.ball,field))continue;
+ // A PSE-approved shot can enter the OPEN goal mouth just before its exact
+ // official timestamp, and the scored ball remains inside the net afterward.
+ // This is not a reflection off, or an escape through, a solid board.
+ const official=fixture.events.find(e=>e.type==='goal'&&
+  Math.abs(e.minute*60-second)<15);
+ assert(official&&['official-goal','illustrative-shot'].includes(frame.action),
   'Match ball escaped through a closed board at '+second+
   's, action='+frame.action);
+ assert(Math.abs(frame.ball.y-field.height/2)<=Physics.GOAL_HALF_WIDTH,
+  'Ball crossed an end line outside the open goal mouth');
+ const dir=official.team===fixture.home.id?1:-1;
+ assert((frame.ball.x-(dir===1?field.width:0))*dir>=-Physics.RADIUS-.1,
+  'Shot crossed the wrong goal line');
 }
 const noGoals={...fixture,events:[],score:[0,0]};
 assert.deepEqual(Director.planFor(noGoals,field).actions,plan.actions,
