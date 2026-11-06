@@ -9,7 +9,7 @@ const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
+let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -57,7 +57,8 @@ function cameraFit(canvas,field,ball){
  const fit=Math.min(canvas.width*.78/w,canvas.height*.70/h);
  const camera=$('camera').value==='follow'?'follow':'wide';
  // Deliberately tighter television-style framing; camera tracks the ball.
- Settings.camera.scale=fit*(camera==='follow'?4.8:1.35);
+ // Midfield/penalty-area FIFA-like framing without the extreme 4.8x closeup.
+ Settings.camera.scale=fit*(camera==='follow'?3.15:1.35);
  const corners=[[0,0],[field.width,0],[0,field.height],[field.width,field.height]]
    .map(([x,y])=>Utils.toScreen(x,y,0));
  const xs=corners.map(v=>v.x),ys=corners.map(v=>v.y);
@@ -122,8 +123,9 @@ function render(t){
  const canvas=$('pitch'),ctx=canvas.getContext('2d');
  const camera=cameraFit(canvas,field,script.ball);
  window.__PFC_DRAWN__=0;window.__PFC_REAL_SPRITES_DRAWN__=0;
- const distances=script.actors.map(p=>Math.hypot(p.x-script.ball.x,p.y-script.ball.y));
- const nearest=Math.min(...distances);ballCarrier=nearest<12?distances.indexOf(nearest):-1;
+ // Possession changes only once the intended receiver has actually touched
+ // the ball; never guess a carrier merely because a Pokémon is 12m away.
+ ballCarrier=Number.isInteger(script.ownerIndex)?script.ownerIndex:-1;
  ctx.clearRect(0,0,canvas.width,canvas.height);
  ctx.save();
  ctx.translate(camera.tx,camera.ty);
@@ -173,6 +175,7 @@ function render(t){
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
   animation:script.action,ball:{x:script.ball.x,y:script.ball.y,z:script.ball.z},
+  carrier:ballCarrier,ballContact:script.contact||'set-piece',soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
   cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,
   actorWorldPositions:script.actors.map(p=>[p.x,p.y]),
   actualSprites:!!ImageDB.get('player_Brazil_main')&&!!ImageDB.get('player_Argentina_main'),
@@ -240,12 +243,31 @@ async function boot(){
   Settings.HEADLESS=false;Settings.showFPS=false;Settings.showTime=false;
   Settings.soundsMuted=true;
    // Cosmetic only: enlarge the drawn ball, never its physics radius.
-   Settings.BALL_DRAW_RADIUS=24;Settings.camera.scale=8.6;
+   Settings.BALL_DRAW_RADIUS=9.5;Settings.camera.scale=8.6;
   Settings.camera.type='centered';Settings.camera.offsetX=0;Settings.camera.offsetY=0;
   Settings.projectionMode='orthographic';
    $('projection').value='orthographic';$('camera').value='follow';
   $('status').textContent='GENERATING REAL SOCCER-JS SPRITES…';
   sim=new Simulator({seed:12345});await sim.start();sim.active=true;
+  // Use an actual original soccer-ball sprite at the native ball's projected
+  // position. This replaces only graphics, never collision/physics or results.
+  soccerBallSprite=new Image();
+  soccerBallSprite.decoding='async';
+  soccerBallSprite.src=new URL('./assets/pfc-soccer-ball.svg',window.__APP_ROOT__).href;
+  const oldBallRender=sim.ball.render.bind(sim.ball);
+  sim.ball.render=function(g){
+   if(!soccerBallSprite?.naturalWidth){oldBallRender(g);return}
+   const scale=Utils.getScaleMultiplier();
+   const r=Math.max(4.5,Settings.BALL_DRAW_RADIUS*scale);
+   const ground=Utils.toScreen(this.x,this.y,0);
+   const ball=Utils.toScreen(this.x,this.y,this.z);
+   g.save();
+   g.fillStyle='#0008';g.beginPath();
+   const shadow=Math.max(3.5,r*.72)/(1+this.z*.35);
+   g.ellipse(ground.x,ground.y,shadow,shadow*.45,0,0,Math.PI*2);g.fill();
+   g.drawImage(soccerBallSprite,ball.x-r,ball.y-r,r*2,r*2);
+   g.restore();
+  };
   // Keep native sprite/pitch/ball rendering; suppress upstream kickoff/score overlays.
   sim.render=()=>{};
   spriteRoster=prepare(match);await spriteRoster.load();
