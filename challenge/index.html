@@ -295,6 +295,7 @@ const SLOT=window.PFC_CHALLENGE_SLOT_REELS;
 const PICKER_WINDOW=window.PFC_CHALLENGE_PICKER_WINDOW;
 const TIERS=window.PFC_CHALLENGE_TIERS;
 const tierFor=(s,pos,item)=>s?(TIERS?.tier(rating(s,pos,item))||"D"):"—";
+const efficiencyFor=(s,pos,item)=>s?Math.round(window.PFC_POSITION_EFFECTIVENESS.competitiveProfile(matchEffectiveStats(s,item),pos).efficiency*100)+'%':'—';
 let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatFilters=new Set(),autoEquipSummary="";
 let goalReplaySession=null;
 let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null,shopWindowPosition=null,shopWindowCleanup=null;
@@ -686,7 +687,7 @@ function pokemonDetailMarkup(index){
   '<div><span class="pfc-eyebrow">#'+String(species.id).padStart(4,'0')+' · GEN '+(species.gen||gen(species.id))+'</span>'+
   '<h2>'+esc(display.name)+'</h2><p>'+esc(species.types.join(' / ').toUpperCase())+'</p>'+
   '<div class="pokemon-detail-tags"><span>'+esc(position)+' POSITION</span>'+
-  '<span class="pokemon-detail-tier tier-'+tierFor(species,position,item).toLowerCase()+'">'+esc(tierFor(species,position,item))+' TIER</span>'+
+  '<span class="pokemon-detail-tier tier-'+tierFor(species,position,item).toLowerCase()+'">'+esc(tierFor(species,position,item))+' TIER · '+efficiencyFor(species,position,item)+' EFF</span>'+
   (species.legendary?'<span>LEGENDARY CLASS</span>':'')+'</div></div></div>'+
   '<div class="pokemon-detail-equipment"><strong>HELD ITEM</strong>'+
   (item?'<span>'+itemSprite(item)+esc(item)+' <small>₽'+cost+'</small></span>':'<span>NONE EQUIPPED</span>')+'</div>'+
@@ -873,7 +874,7 @@ body+=slots.map((pos,i)=>{
  '<button type="button" data-slot="'+i+'" '+(!((isDraft&&!s)||s)?'disabled':'')+
  ' aria-label="'+esc(isShop&&selectedShopItem?'Equip selected item to '+(s?.name||'empty slot'):s?'View '+s.name+' details':pos+' empty slot')+'"></button>'+
  (s?'<button type="button" class="slot-info" data-pokemon-info="'+i+'" aria-label="View '+esc(displayPokemon(s,item).name)+' details" title="Pokémon details">ⓘ</button>':'')+
- (s?'<span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span>':'<small>AVAILABLE</small>')+
+ (s?'<span class="slot-fit-badges"><span class="slot-tier tier-'+letter.toLowerCase()+'">'+letter+' TIER</span><span class="slot-efficiency" title="Competitive match efficiency">'+efficiencyFor(s,pos,item)+'</span></span>':'<small>AVAILABLE</small>')+
  visibleStats+
  (s&&(isDraft||isShop)&&st.moves>0?'<span class="challenge-drag-grip slot-grip" data-drag-grip="pokemon" data-drag-value="'+i+'" title="Drag to move/swap (uses one move)">⠿</span>':'')+
  (s&&st.items[i]?'<span class="held-item-badge" '+(isShop?'data-held-item-source="'+i+'" data-drag-grip="held-item" data-drag-value="'+i+'" ':'')+'title="'+esc(st.items[i])+'">'+itemSprite(st.items[i])+'<span>'+esc(st.items[i])+'</span></span>':'')+'</div>';
@@ -1059,6 +1060,8 @@ const paintFormationPreview=formation=>{
    const value=tierFor(pokemon,layout[i],item);
    tier.textContent=value+' TIER';
    tier.className='slot-tier tier-'+value.toLowerCase();
+   const efficiency=card.querySelector?.('.slot-efficiency');
+   if(efficiency)efficiency.textContent=efficiencyFor(pokemon,layout[i],item);
   }
   const click=card.querySelector?.('button[data-slot]');
   if(click){
