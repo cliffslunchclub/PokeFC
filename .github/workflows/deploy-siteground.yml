@@ -109,6 +109,8 @@ jobs:
           node watch/soccerjs/test-possession-continuity.cjs
           node watch/soccerjs/test-play-sequence-director.cjs
           node watch/soccerjs/test-hybrid-counterpress.cjs
+          node watch/soccerjs/test-wall-physics.cjs
+          node watch/soccerjs/test-enclosed-wall-play.cjs
           node tests/test-watch-fullscreen.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node tests/test-soccerjs-shot-ledger.cjs
@@ -163,6 +165,7 @@ jobs:
           cp watch/soccerjs/phase10-motion.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-play-director.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-team-shape.cjs soccer-js-upstream/
+          cp watch/soccerjs/phase10-wall-physics.cjs soccer-js-upstream/
           cp watch/soccerjs/highlight-replay.cjs soccer-js-upstream/
           cp watch/soccerjs/pokemon-*.cjs soccer-js-upstream/
           mkdir -p watch/soccerjs/dist

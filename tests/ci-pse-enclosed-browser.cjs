@@ -3,6 +3,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
 const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
+const {planFor}=require('../watch/soccerjs/phase10-play-director.cjs');
 const root=path.resolve(__dirname,'..');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id,offset){
@@ -23,6 +24,15 @@ assert(result.events.every(e=>e.type==='goal'||e.type==='save'));
 const fixture=bridge.snapshot(preview,result);
 assert.equal(fixture.setPieceRules,undefined);
 assert.equal(fixture.durationMinutes,90);
+const stagePlan=planFor(fixture,{width:106,height:68});
+const outsideGoal=stage=>!fixture.events.some(e=>e.type==='goal'&&
+ stage.start<e.minute*60+18&&stage.end>e.minute*60-43);
+const bank=stagePlan.actions.find(stage=>stage.mode==='pass'&&stage.wall&&
+ stage.start>120&&stage.end<85*60&&stage.wall.impactU>.2&&
+ stage.wall.impactU<.8&&outsideGoal(stage));
+const pickup=stagePlan.actions.find(stage=>stage.mode==='rebound'&&
+ stage.wall&&stage.start>120&&stage.end<85*60&&outsideGoal(stage));
+assert(bank&&pickup,'Need native browser bank and loose-ball recovery examples');
 const fixturePath=path.join(root,'watch/soccerjs/dist/fixture.json');
 fs.writeFileSync(fixturePath,JSON.stringify(fixture));
 const screenshots=path.join(root,'pse-browser-artifacts');
@@ -70,6 +80,35 @@ async function serve(){
       'Ball escaped enclosure without a goal');
     assert.deepEqual(snap.score,bridge.scoreAt(fixture,scrub),'Viewer changed official score');
    }
+   // Exact time seek is test-only: production keeps ordinary 0.05-minute
+   // scrub steps, while physically meaningful wall impacts occur in seconds.
+   const seekExact=async seconds=>page.locator('#scrub').evaluate((el,sec)=>{
+    el.step='any';el.value=String(sec/60);
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+   },seconds);
+   const at=bank.start+bank.duration*bank.wall.impactU;
+   await seekExact(at);
+   const impact=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(impact.animation,'illustrative-bank-pass');
+   assert.equal(impact.carrier,-1,'Ball cannot be carried during bank pass');
+   assert.equal(impact.wallContact?.axis,bank.wall.axis,'Wrong board contact axis');
+   assert.equal(impact.wallContact?.edge,bank.wall.edge,'Wrong board contacted');
+   assert(Math.hypot(impact.ball.x-bank.wall.hit.x,
+    impact.ball.y-bank.wall.hit.y)<.025,
+    'Native renderer never reached physical wall contact');
+   assert.deepEqual(impact.score,bridge.scoreAt(fixture,impact.minute));
+   await page.screenshot({path:path.join(screenshots,'pfc-wall-bank-'+device+'.png')});
+   await seekExact(at+.075);
+   const bounce=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(bounce.animation,'illustrative-bank-pass');
+   assert.equal(bounce.ballContact,'bank-rebound');
+   await seekExact(pickup.start+pickup.duration*.975);
+   const gathered=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(gathered.animation,'illustrative-wall-pickup');
+   assert.equal(gathered.ballContact,'collected-loose-ball');
+   assert(gathered.carrier>=0,'Loose ball was not recovered by a Pokémon');
+   assert.equal(gathered.wallContact?.axis,pickup.wall.axis);
+   assert.deepEqual(gathered.score,bridge.scoreAt(fixture,gathered.minute));
    const firstGoal=fixture.events.find(e=>e.type==='goal'&&e.minute>3&&e.minute<86);
    await page.locator('#scrub').evaluate((el,v)=>{
     el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -95,7 +134,7 @@ async function serve(){
    }
    assert.deepEqual(errors,[],'Browser JS error '+device+': '+errors.join('; '));
    console.log('PASS enclosed PokéFC Chromium '+device+
-    ' six perimeter boards, goals and saves only, no whistle highlights, stable replay');
+    ' four-board physical banks, loose-ball pickup, six boards, no whistles, stable goal replay');
    await page.close();
   }
  }finally{if(browser)await browser.close();server.kill('SIGTERM');}
