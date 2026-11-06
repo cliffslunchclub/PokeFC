@@ -70,8 +70,8 @@ function motionFrame(fixture,t,field,options=false){
  let ball={x:field.width*.5,y:field.height*.5,z:.22};
  // Separate PSE penalty shootout. Match score stays the official 120-minute
  // score; the panel owns independent penalty conversions.
- if(t>=duration&&fixture.shootout&&Number.isInteger(opts.kickIndex)&&opts.kickIndex>0){
-  const kicks=fixture.shootout.attempts,kick=kicks[opts.kickIndex-1];
+ if(t>=duration&&fixture.shootout&&Number.isInteger(kickIndex)&&kickIndex>0){
+  const kicks=fixture.shootout.attempts,kick=kicks[kickIndex-1];
   if(!kick)throw Error('Invalid shootout kick index');
   const side=kick.side==='home'?0:1,roster=teams[side];
   const takerIndex=roster.lineup.findIndex(p=>String(p.id)===String(kick.kickerId));
@@ -89,7 +89,7 @@ function motionFrame(fixture,t,field,options=false){
   keeper.y=kick.outcome==='saved'?field.height*.48:field.height*.58;
   ball={x:net.x,y:finishY,z:kick.outcome==='off-target'?1.2:.3};
   return {actors,ball,action:'official-shootout-'+kick.outcome,
-   label:'PENALTY '+opts.kickIndex+'/'+kicks.length+' · '+
+   label:'PENALTY '+kickIndex+'/'+kicks.length+' · '+
     (roster.lineup[takerIndex].name||'Pokémon')+' · '+kick.outcome.toUpperCase(),
    officialEvent:kick,illustrative:false};
  }
