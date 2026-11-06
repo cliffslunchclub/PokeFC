@@ -147,7 +147,11 @@ function motionFrame(fixture,t,field,options=false){
   fixture.events.filter(e=>['corner','foul','free-kick','penalty-kick'].includes(e.type)&&
    t>=e.minute-.20&&t<=e.minute+.22):[];
  const priority={'penalty-kick':4,corner:3,'free-kick':2,foul:1};
- const piece=setPieces.sort((a,b)=>{
+ // A converted regulation penalty must reach the net at the official goal
+ // minute, not begin its shot only after the scoreboard has changed.
+ const scoringPenalty=setPieces.find(e=>e.type==='penalty-kick'&&e.outcome==='goal'&&
+  t>=e.minute-.09&&t<=e.minute+.22);
+ const piece=scoringPenalty||setPieces.sort((a,b)=>{
   // Prefer the most recently awarded incident instead of a future award
   // when a foul directly precedes its free kick.
   const happenedA=a.minute<=t?1:0,happenedB=b.minute<=t?1:0;
@@ -166,16 +170,30 @@ function motionFrame(fixture,t,field,options=false){
   const target={x:origin(side,corner?.83:penalty?.985:foul?.53:.78,field),
    y:corner?field.height*.48:field.height*.5};
   taker.x=source.x;taker.y=source.y;
-  if(penalty){keeper.x=origin(side,.975,field);keeper.y=field.height*.5;}
   const recorded=t>=piece.minute;
-  const progress=recorded?ease((t-piece.minute)/.17):0;
   const outcome=penalty?piece.outcome:'';
+  const converted=penalty&&outcome==='goal';
+  // Shoot toward a side-netting lane, across the defending keeper, THROUGH
+  // the goal line and 0.9 m into the net. A goal does not finish on the
+  // pitch in front of the line (the old .985-field endpoint).
+  const lane=hash(String(piece.player)+':penalty-net:'+String(piece.minute))%2?1:-1;
+  if(converted){
+   target.x=side===0?field.width+.9:-.9;
+   target.y=field.height*.5+lane*2.15; // Inside the 7.32 m goal mouth.
+  }
   if(penalty&&outcome==='off-target')target.y=field.height*.19;
   if(penalty&&outcome==='saved')target.y=field.height*.46;
+  const progress=converted?ease((t-(piece.minute-.085))/.085):
+   recorded?ease((t-piece.minute)/.17):0;
+  if(penalty){
+   keeper.x=origin(side,converted?.955:.975,field);
+   keeper.y=converted?field.height*.5-lane*2.2*progress:field.height*.5;
+  }
   ball={x:lerp(source.x,target.x,progress),
    y:lerp(source.y,target.y,progress),
    z:.23+(corner?1.5:.55)*Math.sin(Math.PI*progress)};
-  if(recorded){taker.frame=3;if(penalty&&progress>.55)keeper.frame=outcome==='saved'?8:1;}
+  if(converted&&progress>=.50)keeper.frame=8;
+  if(recorded){taker.frame=3;if(penalty&&!converted&&progress>.55)keeper.frame=outcome==='saved'?8:1;}
   const titles={corner:'CORNER',foul:'FOUL','free-kick':'FREE KICK','penalty-kick':'PENALTY'};
   return {actors,ball,action:recorded?'official-'+piece.type:'illustrative-set-piece-buildup',
    ownerIndex:recorded?-1:side*11+index,contact:recorded?'set-piece-flight':'set-piece-setup',
@@ -210,9 +228,12 @@ function motionFrame(fixture,t,field,options=false){
   }
   const attack=side===0?1:-1;
   const finish={x:origin(side,.83,field),y:field.height*.50};
-  const net={x:origin(side,.985,field),y:field.height*.50,z:.23};
-  const p1={x:lerp(p0.x,finish.x,.30),y:lerp(p0.y,finish.y,.30)};
   const wing=(hash(String(event.player)+':'+String(event.minute))%2?1:-1);
+  // Goal line is the end of the field, not 98.5% of its length.
+  // Finish with the ball visibly BEHIND the keeper and the line.
+  const net={x:(side===0?field.width+.9:-.9),
+   y:field.height*.5+wing*2.15,z:.23};
+  const p1={x:lerp(p0.x,finish.x,.30),y:lerp(p0.y,finish.y,.30)};
   const p2={x:lerp(p0.x,finish.x,.74),
    y:limit(lerp(p0.y,finish.y,.72)+wing*3,field.height*.13,field.height*.87)};
   const lob=(hash(String(event.player)+':through:'+String(event.minute))%4===0);
@@ -247,8 +268,11 @@ function motionFrame(fixture,t,field,options=false){
   finisher.x=lerp(startScorer.x,u>=.70?follow.x-attack*.55:p2.x-attack*.55,arrival);
   finisher.y=lerp(startScorer.y,u>=.70?follow.y-.3:p2.y-.3,arrival);
   const keeper=actors[(1-side)*11],ready=ease(u/.70);
-  keeper.x=lerp(keeper.x,origin(side,.975,field),ready);
-  keeper.y=lerp(keeper.y,field.height*.5,ready);
+  // Keeper guards the goal line, then dives the wrong way as the ball
+  // crosses in the opposite side-netting lane. Entirely illustrative.
+  keeper.x=lerp(keeper.x,origin(side,.955,field),ready);
+  const shotDive=ease((u-.88)/.12);
+  keeper.y=lerp(keeper.y,field.height*.5-wing*2.2*shotDive,ready);
   // Keep the entire 22-player frame continuous at the goal-scene entry.
   const enter=ease(u/.03);
   for(let i=0;i<actors.length;i++){
