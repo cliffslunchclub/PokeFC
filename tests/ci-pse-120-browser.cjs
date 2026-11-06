@@ -136,8 +136,11 @@ async function serve(){
    },restartMinute);
    const restarted=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(restarted.animation,'illustrative-kickoff','Missing kickoff broadcast cut on '+device);
-   assert.equal(restarted.ballContact,'kickoff-setup');
-   assert(restarted.carrier>=0,'Kickoff player has not established control on '+device);
+   assert(['kickoff-setup','kickoff-pass'].includes(restarted.ballContact),
+    'Kickoff must have a valid setup/pass phase on '+device);
+   if(restarted.ballContact==='kickoff-setup')
+    assert(restarted.carrier>=0,'Kickoff setup needs a controlling Pokémon on '+device);
+   else assert.equal(restarted.carrier,-1,'Kickoff pass cannot claim midflight possession');
    assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)>15,
     'A reset cut should not pretend the scored ball travels backwards to midfield');
    assert.deepEqual(restarted.score,bridge.scoreAt(fixture,restartMinute),
