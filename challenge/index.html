@@ -1663,9 +1663,9 @@ function savePersonalRecord(){
 // Separate, seeded alpha shootout: each recorded attempt is generated here, not fabricated from match totals.
 function simulatePenaltyShootout(ours,theirs,seed){
  const random=window.FXI_QUICK.randomizer(seed+':penalties');
- const order=squad=>squad.lineup.slice(1).sort((a,b)=>
-  ((b.main?.finishing||0)+(b.detail?.composure||0))-
-  ((a.main?.finishing||0)+(a.detail?.composure||0)));
+ const model=window.PFC_POSITION_EFFECTIVENESS;
+ const finishing=p=>model.finishingIndex(p.pokemonStats)*Math.max(.70,p.positionEfficiency??1);
+ const order=squad=>squad.lineup.slice(1).sort((a,b)=>finishing(b)-finishing(a));
  const kickers={home:order(ours),away:order(theirs)};
  const keepers={home:ours.lineup[0],away:theirs.lineup[0]};
  let home=0,away=0;
@@ -1675,8 +1675,8 @@ function simulatePenaltyShootout(ours,theirs,seed){
   for(const side of ['home','away']){
    const player=kickers[side][(round-1)%kickers[side].length];
    const defending=keepers[side==='home'?'away':'home'];
-   const finishing=player?.main?.finishing||65,composure=player?.detail?.composure||65,reflexes=defending?.detail?.reflexes||65;
-   const chance=Math.min(.92,Math.max(.52,.72+(finishing-65)*.002+(composure-65)*.001-(reflexes-65)*.0015));
+   const shooter=player?finishing(player):65,reflexes=defending?model.preciseFit(defending.pokemonStats,'GK')*Math.max(.70,defending.positionEfficiency??1):65;
+   const chance=Math.min(.92,Math.max(.52,.72+(shooter-65)*.003-(reflexes-65)*.0015));
    const scored=random()<chance;
    attempts.push({round,side,kicker:player?.name||'Unknown',scored});
    if(side==='home')home+=Number(scored);else away+=Number(scored);
@@ -1702,10 +1702,8 @@ function playBoss(){
  const build=(s,i,exactPos,prefix,item)=>{
   const b=matchEffectiveStats(s,item),pos=role(exactPos);
   const position=window.PFC_POSITION_EFFECTIVENESS?.competitiveProfile(b,exactPos);
-  const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
-  const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
   return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,speciesId:s.spriteId||s.id,pos,
-   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,exactPosition:exactPos,pokemonStats:b,finishingIndex:position?.finishingIndex??null,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,exactPosition:exactPos,pokemonStats:b};
  };
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,FORMS[st.formation][i],'c',st.items[i]))};
  const bossFormation=boss.formation||'4-3-3';
