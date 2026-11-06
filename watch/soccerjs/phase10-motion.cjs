@@ -54,7 +54,8 @@ function playbackRate(t,events,speed){
 function motionFrame(fixture,t,field,ignoreGoal=false){
  if(!fixture||!fixture.home||!fixture.away||!Array.isArray(fixture.events))
   throw Error('Motion requires official fixture');
- if(!Number.isFinite(t)||t<0||t>90)throw Error('Invalid replay minute');
+ const duration=fixture.durationMinutes===120?120:90;
+ if(!Number.isFinite(t)||t<0||t>duration)throw Error('Invalid replay minute');
  if(!field||!Number.isFinite(field.width)||!Number.isFinite(field.height))throw Error('Invalid soccer pitch');
  const teams=[fixture.home,fixture.away],actors=[],seconds=t*60;
  for(let side=0;side<2;side++)for(let i=0;i<11;i++){
