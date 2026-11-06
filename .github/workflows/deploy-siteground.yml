@@ -108,6 +108,7 @@ jobs:
           node watch/soccerjs/test-inline-bridge.cjs
           node tests/test-soccerjs-shot-ledger.cjs
           node tests/test-soccerjs-sprite-loading.cjs
+          node tests/test-watch-badge-numbers.cjs
           node --check watch/soccerjs/viewer-entry.cjs
           node --check watch/soccerjs/watch-bridge.js
           node tests/test-challenge-play.cjs
