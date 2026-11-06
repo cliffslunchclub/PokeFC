@@ -17,7 +17,7 @@ const doc={getElementById(id){return id==='app'?app:(controls[id]??={id,value:''
 const win={},ctx=vm.createContext({window:win,document:doc,console,
  localStorage:{getItem(){return stored},setItem(k,v){stored=v}},
  crypto:{getRandomValues(arr){arr[0]=2026;return arr}},alert:()=>{},confirm:()=>true});
-for(const file of ['national-species.js','calibration-profile.js','quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','challenge/run-card.js','play/opponents.js'])
+for(const file of ['assets/js/national-assets/js/species.js','assets/js/calibration-profile.js','assets/js/quick-sim.js','challenge/special-items-data.js','challenge/tiers.js','challenge/run-card.js','play/opponents.js'])
  vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file,timeout:15000});
 const special=win.PFC_CHALLENGE_SPECIAL;
 assert.equal(special.megas[382][0].stone,'Blue Orb');
