@@ -72,7 +72,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 </dialog>
 
 </div>
-<script src="../assets/js/national-species.js?v=1"></script><script src="../assets/js/calibration-profile.js"></script><script src="../assets/js/position-effectiveness.js?v=1"></script><script src="../assets/js/quick-sim.js?v=4"></script><script src="../assets/js/pse-knockout.js?v=1"></script><script src="./special-items-data.js?v=2"></script>
+<script src="../assets/js/national-species.js?v=1"></script><script src="../assets/js/calibration-profile.js"></script><script src="../assets/js/position-effectiveness.js?v=2"></script><script src="../assets/js/quick-sim.js?v=5"></script><script src="../assets/js/pse-knockout.js?v=2"></script><script src="./special-items-data.js?v=2"></script>
 <script src="../watch/soccerjs/watch-bridge.js?v=13"></script><script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
@@ -245,7 +245,7 @@ const save=()=>localStorage.setItem(KEY,JSON.stringify(st));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pool=()=>S.filter(s=>(s.gen||gen(s.id))<=st.pool&& (st.legends||!s.legendary)&&(!s.legendary||st.roster.filter(id=>BY.get(id)?.legendary).length<2)&&!st.roster.includes(s.id));
 const eligible=()=>st.roll?pool().filter(s=>s.types.includes(st.roll.type)&&(s.gen||gen(s.id))===st.roll.gen):[];
-function rating(s,pos,item){if(!s)return 0;const b=matchEffectiveStats(s,item);const w=pos==='GK'?{hp:.2,defense:.3,spDefense:.3,speed:.2}:['CB','LB','RB','LWB','RWB'].includes(pos)?{defense:.35,hp:.2,attack:.2,speed:.25}:['ST','LW','RW'].includes(pos)?{attack:.35,spAttack:.2,speed:.35,hp:.1}:{spAttack:.3,spDefense:.25,attack:.2,speed:.25};return Math.min(100,20+.55*Object.entries(w).reduce((v,[k,f])=>v+b[k]*f,0))}
+function rating(s,pos,item){return s?window.PFC_POSITION_EFFECTIVENESS.preciseFit(matchEffectiveStats(s,item),pos):0}
 const teamScore=()=>st.roster.reduce((a,id,i)=>a+rating(BY.get(id),FORMS[st.formation][i],st.items[i]),0)/11;
 const opponentTeamScore=boss=>{
  const positions=FORMS[boss?.formation],ids=boss?.roster;
@@ -1693,11 +1693,11 @@ function playBoss(){
  const role=pos=>pos==='GK'?'GK':['LB','RB','CB','LWB','RWB'].includes(pos)?'DEF':['ST','LW','RW'].includes(pos)?'FWD':'MID';
  const build=(s,i,exactPos,prefix,item)=>{
   const b=matchEffectiveStats(s,item),pos=role(exactPos);
-  const position=window.PFC_POSITION_EFFECTIVENESS?.profile(b,exactPos);
+  const position=window.PFC_POSITION_EFFECTIVENESS?.competitiveProfile(b,exactPos);
   const val=w=>Math.min(99,20+.55*Object.entries(w).reduce((a,[k,v])=>a+(b[k]||0)*v,0));
   const speed=val({speed:.8,attack:.2}),attack=val({attack:.55,spAttack:.25,speed:.2}),defense=val({defense:.5,hp:.25,spDefense:.25}),passing=val({spAttack:.35,spDefense:.25,speed:.2,attack:.2});
   return {id:prefix+i+'-'+s.id,name:displayPokemon(s,item).name,speciesId:s.spriteId||s.id,pos,
-   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
+   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null,exactPosition:exactPos,pokemonStats:b,finishingIndex:position?.finishingIndex??null,main:{sprintSpeed:speed,shortPassing:passing,firstTouch:passing,vision:passing,tackling:defense,finishing:attack},detail:{reflexes:defense,handling:defense,positioning:defense,diving:defense,kicking:passing,strength:defense,decisionMaking:passing,composure:attack}};
  };
  const ours={id:'challenger',tactic:st.tactic,lineup:st.roster.map((id,i)=>build(BY.get(id),i,FORMS[st.formation][i],'c',st.items[i]))};
  const bossFormation=boss.formation||'4-3-3';
@@ -1707,8 +1707,8 @@ function playBoss(){
  })};
  const seed='challenge:'+st.rng+':'+st.round;
  const preview={home:ours,away:theirs,seed};
- const regulation=window.FXI_QUICK.simulate(preview,{seed,positionEffectiveness:'v1'});
- const ko=window.PFC_KNOCKOUT?.resolve?.(preview,regulation,{seed,positionEffectiveness:'v1'})||null;
+ const regulation=window.FXI_QUICK.simulate(preview,{seed,positionEffectiveness:'v2'});
+ const ko=window.PFC_KNOCKOUT?.resolve?.(preview,regulation,{seed,positionEffectiveness:'v2'})||null;
  const out=ko?.match||regulation;
  let outcome=out.score[0]>out.score[1]?'Victory':out.score[0]<out.score[1]?'Defeat':'Draw',
   tiebreak=null,shootout=ko?.shootout||null;
