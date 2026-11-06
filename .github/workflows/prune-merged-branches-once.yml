@@ -1,9 +1,10 @@
-name: Prune merged branch refs (guarded one-time cleanup)
+name: Prune merged and superseded branch refs (archived, guarded)
 on:
   push:
     branches: [main]
     paths:
       - ".github/workflows/prune-merged-branches-once.yml"
+      - "scripts/prune-merged-branches.sh"
   workflow_dispatch:
 permissions:
   contents: write
@@ -28,6 +29,7 @@ jobs:
           mkdir -p prune-audit
           gh api --paginate "repos/$GITHUB_REPOSITORY/branches?per_page=100" | jq -sr 'add | .[] | [.name,.commit.sha] | @tsv' > prune-audit/branch-heads-before.tsv
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" | jq -sr 'add | .[] | select(.merged_at != null) | [.number,.head.ref,.head.sha] | @tsv' > prune-audit/merged-pr-heads.tsv
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" | jq -sr 'add | .[] | select(.merged_at == null) | [.number,.head.ref,.head.sha] | @tsv' > prune-audit/closed-unmerged-heads.tsv
           wc -l prune-audit/*.tsv
       - name: Dry-run safe pruning
         run: bash scripts/prune-merged-branches.sh --dry-run | tee prune-audit/dry-run.log
@@ -43,6 +45,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pokefc-merged-branch-prune-audit
+          name: pokefc-superseded-branch-prune-audit
           path: prune-audit/
           retention-days: 90

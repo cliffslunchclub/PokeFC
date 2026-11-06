@@ -7,7 +7,7 @@ const html=fs.readFileSync(root+'/franchise/index.html','utf8');
 assert(html.includes('assets/js/soccerjs-franchise-viewer.js'),'Franchise loads Soccer-JS adapter');
 assert(html.includes('../watch/soccerjs/watch-bridge.js'),'Franchise loads same-origin Watch bridge');
 const store=new Map(),els=new Map();
-let tactical=false,mounts=0,finished=0,active=null;
+let tactical=false,mounts=0,finished=0,highlightsOpened=0,active=null;
 const pitch={classList:{add(){},remove(){}},appendChild(){}};
 const canvas={parentElement:pitch,hidden:false,getContext(){return {clearRect(){}}}};
 function el(id){
@@ -47,6 +47,7 @@ const bridge={
    play(){return true},pause(){return true},
    setProjection(){return true},setCamera(){return true},setSpeed(){return true},
    seek(){return true},
+   openHighlights(){highlightsOpened++;return true},
    simToEnd(){if(this.ended)return false;this.ended=true;
     o.onProgress({minute:90,score:o.result.score.slice(),finished:true,handedOff:true});
     this.record();return true},
@@ -90,6 +91,11 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(el('viewerProjection').value,'orthographic','Broadcast default in Franchise');
  assert.equal(el('viewerCamera').value,'follow','Follow Ball default in Franchise');
  assert.equal(el('viewerMode').disabled,true,'Cannot change engines mid-replay');
+ assert.equal(el('viewerHighlights').hidden,false,'Franchise Watch Highlights must be visible');
+ assert.equal(el('viewerHighlights').disabled,false,'Highlights must be usable once Watch is ready');
+ el('viewerHighlights').onclick();
+ assert.equal(highlightsOpened,1,'Franchise mode must open official goal replay gallery');
+ assert.equal(JSON.stringify(game.state()),before,'Opening Franchise replays must not mutate career');
  assert.equal(JSON.stringify(game.state()),before,'Opening Watch must not mutate career save');
  assert.equal(active.record(),false,'Cannot record prior to official full time');
  el('viewerComplete').onclick();
@@ -117,5 +123,5 @@ const navTactical=()=>{tactical=true;document.click({target:{closest:()=>({datas
  assert.equal(JSON.stringify(game.state()),beforeCancel,'Cancel leaves all career state identical');
  assert.equal(finished,1);
  assert.equal(el('viewerMode').disabled,false);
- console.log('PASS Franchise native 2.5D: Sim to End auto-records one matchweek, opens saved results and preserves cancel');
+ console.log('PASS Franchise native 2.5D: goal Highlights accessible, Sim to End records once, cancel unchanged');
 })().catch(e=>{console.error(e);process.exitCode=1});

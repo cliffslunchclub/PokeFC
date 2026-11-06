@@ -39,5 +39,9 @@ jobs:
           node tests/test-challenge-pse-watch.cjs
           node tests/test-challenge-soccerjs-watch.cjs
           node tests/test-franchise-soccerjs-watch.cjs
+          node tests/test-phase10-quickplay-lifecycle.cjs
+          node tests/test-challenge-result-replays.cjs
+          node tests/test-challenge-save-slots.cjs
+          bash -n scripts/prune-merged-branches.sh
           node tests/test-play.cjs
           node tests/test-challenge-match-report.cjs
