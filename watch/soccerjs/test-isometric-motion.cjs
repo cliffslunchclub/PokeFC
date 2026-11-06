@@ -22,8 +22,11 @@ for(let tick=0;tick<=1200;tick++){
  types.add(frame.action);
  runs++;
 }
-for(const action of ['illustrative-carry','illustrative-pass','illustrative-dribble','illustrative-challenge'])
+for(const action of ['illustrative-carry','illustrative-dribble','illustrative-challenge'])
  assert(types.has(action),'No '+action+' in five-minute clip');
+assert(['illustrative-pass','illustrative-give-and-go','illustrative-cross',
+ 'illustrative-through-ball','illustrative-bank-pass'].some(action=>types.has(action)),
+ 'No real passing animation (including a valid wall bank) in five-minute clip');
 for(const goal of fixture.events){
  const before=motionFrame(fixture,goal.minute-.08,field);
  const at=motionFrame(fixture,goal.minute,field);
