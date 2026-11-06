@@ -1,0 +1,39 @@
+name: PSE official incident integration
+on:
+  pull_request:
+    branches: [main, feature/pse-official-set-pieces-v1]
+    paths:
+      - "quick-sim.js"
+      - "watch/soccerjs/**"
+      - "challenge/**"
+      - "play/play.js"
+      - "tests/test-pse-*.cjs"
+      - ".github/workflows/pse-incident-integration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  event-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax validation
+        run: |
+          node --check quick-sim.js
+          node --check watch/soccerjs/watch-bridge.js
+          node --check watch/soccerjs/phase10-motion.cjs
+          node --check watch/soccerjs/viewer-entry.cjs
+          node --check challenge/match-report.js
+          node --check play/play.js
+      - name: Run official incident and cross-mode regressions
+        run: |
+          node tests/test-pse-set-pieces.cjs
+          node tests/test-pse-watch-events.cjs
+          node tests/test-challenge-match-report.cjs
+          node tests/test-challenge-player-shots.cjs
+          node tests/test-challenge-soccerjs-watch.cjs
+          node tests/test-franchise-soccerjs-watch.cjs
+          node watch/soccerjs/test-inline-bridge.cjs
+          node watch/soccerjs/test-isometric-motion.cjs
+          node tests/test-play.cjs
+          node tests/test-v08-league.cjs
