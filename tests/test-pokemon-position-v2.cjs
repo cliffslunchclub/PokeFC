@@ -61,7 +61,8 @@ function team(id,forcePenalty){
 const ordinary={home:team('h',false),away:team('a',false)};
 const degraded={home:team('h',true),away:team('a',false)};
 let different=0,marginOrdinary=0,marginDegraded=0,knockouts=0;
-for(let i=0;i<500;i++){
+let normalGoals=0,weakenedGoals=0,normalShots=0,weakenedShots=0;
+for(let i=0;i<2000;i++){
  const seed='POKEMON-V2-'+i;
  const a=pse.simulate(ordinary,{seed,positionEffectiveness:'v2'});
  const b=pse.simulate(degraded,{seed,positionEffectiveness:'v2'});
@@ -72,6 +73,7 @@ for(let i=0;i<500;i++){
  if(a.stats.some((s,k)=>JSON.stringify(s)!==JSON.stringify(b.stats[k])))different++;
  marginOrdinary+=a.score[0]-a.score[1];
  marginDegraded+=b.score[0]-b.score[1];
+ normalGoals+=a.score[0];weakenedGoals+=b.score[0];normalShots+=a.stats[0].shots;weakenedShots+=b.stats[0].shots;
  if(knockouts<4&&a.score[0]===a.score[1]){
   const r=ko.resolve(ordinary,a,{seed});
   assert.equal(r.match.positionEffectiveness,'v2');
@@ -83,7 +85,16 @@ for(let i=0;i<500;i++){
 assert(different>100,'Competitive efficiency must affect real PSE match outcomes');
 assert(marginDegraded<marginOrdinary,'Weakening one XI should reduce its aggregate goal differential');
 assert.equal(knockouts,4,'Extra time and shootout pathway covered');
+const altered=JSON.parse(JSON.stringify(ordinary));
+for(const t of [altered.home,altered.away])for(const p of t.lineup){
+ for(const k of Object.keys(p.main))p.main[k]=0;
+ for(const k of Object.keys(p.detail))p.detail[k]=0;
+}
+assert.deepEqual(pse.simulate(altered,{seed:'DIRECT-STATS',positionEffectiveness:'v2'}),
+ pse.simulate(ordinary,{seed:'DIRECT-STATS',positionEffectiveness:'v2'}),
+ 'PSE v2 must rely on Pokémon stats, not legacy soccer-attribute adapter');
 // PSE legacy path remains unchanged with no v2 request.
 assert.deepEqual(pse.simulate(ordinary,{seed:'LEGACY-V2-CHECK'}),
  pse.simulate(ordinary,{seed:'LEGACY-V2-CHECK'}));
-console.log('PASS Pokémon-stat precise positions, Competitive curve, BST finishing, 500 seeded PSE matches, knockout continuity');
+console.log('PASS Pokémon-stat precise positions, Competitive curve, BST finishing, 2000 seeded PSE matches, knockout continuity');
+console.log('Competitive calibration (per match): normal XI', (normalGoals/2000).toFixed(3),'goals and',(normalShots/2000).toFixed(3),'shots; penalized XI',(weakenedGoals/2000).toFixed(3),'goals and',(weakenedShots/2000).toFixed(3),'shots; margin changes',marginOrdinary,'->',marginDegraded);
