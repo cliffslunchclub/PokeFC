@@ -28,7 +28,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 .challenge-banner{background:linear-gradient(90deg,#1c3549,#0f2134);border:1px solid #405d6d;padding:13px;border-radius:8px}
 @media(max-width:720px){.challenge-frame{padding:17px 14px 38px}.grid{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}}
 </style>
-<link rel="stylesheet" href="./challenge.css?v=35">
+<link rel="stylesheet" href="./challenge.css?v=36">
 <link rel="stylesheet" href="../assets/css/newtro.css?v=1">
 </head>
 <body>
@@ -78,6 +78,14 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
 const FORMS={'4-3-3':['GK','LB','CB','CB','RB','CM','CM','CM','LW','ST','RW'],'4-2-3-1':['GK','LB','CB','CB','RB','CDM','CDM','LW','CAM','RW','ST'],'4-4-2':['GK','LB','CB','CB','RB','LM','CM','CM','RM','ST','ST'],'3-5-2':['GK','CB','CB','CB','LWB','RWB','CM','CM','CAM','ST','ST'],'5-3-2':['GK','LWB','CB','CB','CB','RWB','CM','CM','CM','ST','ST']};
+// Qualitative soccer shape descriptions, not hidden numerical match bonuses.
+const FORMATION_GUIDES={
+ '4-3-3':{pro:'Three forwards provide natural width and options for attacking runs.',con:'Three central midfield roles can be outnumbered by a packed midfield.'},
+ '4-2-3-1':{pro:'Two holding midfielders protect the back line; a CAM links the attack.',con:'A lone striker may lack close support if the attacking midfield drops deep.'},
+ '4-4-2':{pro:'Two strikers offer passing combinations; four midfielders provide wide cover.',con:'Only two central midfield spots can surrender possession in the middle.'},
+ '3-5-2':{pro:'Three central defenders, central midfield options, and two forwards.',con:'Wing-backs must cover both ends, leaving space behind when they push up.'},
+ '5-3-2':{pro:'Five defenders form a compact base for defending and counterattacks.',con:'Few high wide outlets can isolate the two strikers when playing forward.'}
+};
 const draftOrder=formation=>FORMS[formation].map((pos,index)=>({
  index,priority:pos==='ST'?0:['LW','RW'].includes(pos)?1:pos==='GK'?4:['CB','LB','RB','LWB','RWB'].includes(pos)?3:2
 })).sort((a,b)=>a.priority-b.priority||a.index-b.index).map(x=>x.index);
@@ -291,6 +299,7 @@ let selectedShopItem=null,shopMessage="",shopScrollTop=0,dragStatus="",shopStatF
 let goalReplaySession=null;
 let draftPickerOpen=true,shopDrawerOpen=true,matchResultDismissed=false,draftWindowPosition=null,draftWindowCleanup=null,shopWindowPosition=null,shopWindowCleanup=null;
 let formationWindowOpen=false,moveWindowOpen=false,formationWindowPosition=null,moveWindowPosition=null,formationWindowCleanup=null,moveWindowCleanup=null;
+let formationPreview=null; // UI-only: never saved or used to simulate a match until Apply.
 let pendingRollAnimation=false,slotAnimationBusy=false;
 const BOARD=window.PFC_CHALLENGE_LEADERBOARD;
 const RUN_CARD=window.PFC_CHALLENGE_RUN_CARD;
@@ -836,7 +845,7 @@ body+='<div class="challenge-run-layout stage-'+esc(st.phase)+(isShop&&shopDrawe
   '<div><strong>FINAL XI · '+esc(st.formation)+'</strong><small>Your Pokémon lineup is locked for the Indigo League.</small></div>')+
  '</div>'+
  '<section class="panel challenge-roster-panel"><div class="challenge-section-heading"><div><h2>'+(isDraft?'BUILD YOUR XI':isShop?'EQUIP YOUR TEAM':'YOUR FINAL XI')+'</h2>'+
- '<p>'+(isDraft?'Tap an open position to open the Pokémon picker.':isShop?'Choose an item in the floating shop, then click a compatible Pokémon on the pitch.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
+ '<p>'+(isDraft?'Tap an open position to open the Pokémon picker.':isShop?'Choose an item in the floating shop, then click a compatible Pokémon on the pitch.':'The same eleven stay together for the gauntlet.')+'</p></div><span class="formation-tag" id="challengeFormationTag">'+esc(st.formation)+' · '+(filled===11?teamScore().toFixed(1)+' SCORE':'IN PROGRESS')+'</span></div>'+
  (isDraft||isShop?'<div class="challenge-drag-tip" role="note"><strong>⠿ DRAG &amp; DROP POKÉMON</strong><span>'+
   (isDraft?'Click an open spot to choose Pokémon in a popup, or drag a candidate from the picker onto the pitch.':
    st.moves>0?'Click and hold a Pokémon on the pitch to move or swap it (1 move). Drag shop items onto Pokémon to equip them.':
@@ -846,7 +855,7 @@ body+='<div class="challenge-run-layout stage-'+esc(st.phase)+(isShop&&shopDrawe
  (isDraft||isShop?'<div class="challenge-pitch-controls" role="toolbar" aria-label="Formation and position adjustments">'+
  '<button type="button" id="openFormationWindow" aria-controls="challengeFormationModal" aria-expanded="'+formationWindowOpen+'"'+(!st.formationChanges?' disabled':'')+' title="Open formation selector (one change before locking)">↻ SWAP FORMATION <small>'+st.formationChanges+' LEFT</small></button>'+
  '<button type="button" id="openMoveWindow" aria-controls="challengeMoveModal" aria-expanded="'+moveWindowOpen+'"'+(!st.moves||!filled?' disabled':'')+' title="Move or swap one drafted Pokémon between positions">⇄ SWAP POSITION <small>'+st.moves+' LEFT</small></button></div>':'')+
- '<div class="challenge-pitch">'+
+ '<div id="challengePitch" class="challenge-pitch">'+
  '<div class="pitch-line"></div><div class="pitch-circle"></div><div class="pitch-box pitch-box-top"></div><div class="pitch-box pitch-box-bottom"></div>';
 body+=slots.map((pos,i)=>{
  const s=BY.get(st.roster[i]),point=posMap[st.formation][i],style=' style="left:'+point[0]+'%;top:'+point[1]+'%"';
@@ -910,9 +919,15 @@ if(isDraft||isShop){
  body+='<dialog id="challengeFormationModal" class="challenge-dialog challenge-lineup-window challenge-formation-window" aria-modal="false" aria-labelledby="challengeFormationTitle">'+
   '<div id="challengeFormationDragHandle" class="challenge-dialog-bar challenge-lineup-drag-bar" role="group" tabindex="0" aria-label="Move formation window with mouse or arrow keys" title="Drag to move · Arrow keys to nudge"><span>⠿ MOVE WINDOW · FORMATION</span><button type="button" id="closeFormationWindow" aria-label="Close formation window">✕ CLOSE</button></div>'+
   '<div class="challenge-lineup-window-body"><div class="challenge-lineup-window-heading"><h3 id="challengeFormationTitle">SWAP FORMATION</h3><small>'+st.formationChanges+' LEFT</small></div>'+
-  '<p>Change the position layout once before locking your Final XI. Drafted Pokémon keep their slots and items.</p>'+
+  '<p>Choose a shape to preview every role and Pokémon position on the pitch. Nothing is spent until you apply it.</p>'+
   '<label for="formationChange">FORMATION<select id="formationChange" '+(!st.formationChanges?'disabled':'')+'>'+Object.keys(FORMS).map(x=>'<option '+(x===st.formation?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
-  '<button type="button" id="applyFormation" class="primary" '+(!st.formationChanges?'disabled':'')+'>APPLY FORMATION</button></div></dialog>';
+  '<div class="challenge-formation-analysis" aria-label="Formation strengths and weaknesses">'+
+   '<strong id="formationPreviewStatus" role="status" aria-live="polite">CURRENT · '+esc(st.formation)+'</strong>'+
+   '<div><b>STRENGTHS</b><p id="formationPros">'+esc(FORMATION_GUIDES[st.formation].pro)+'</p></div>'+
+   '<div><b>WEAKNESSES</b><p id="formationCons">'+esc(FORMATION_GUIDES[st.formation].con)+'</p></div>'+
+   '<small>Descriptions explain the soccer shape; Pokémon position fit determines effectiveness.</small>'+
+  '</div>'+
+  '<button type="button" id="applyFormation" class="primary" disabled>APPLY FORMATION</button></div></dialog>';
  body+='<dialog id="challengeMoveModal" class="challenge-dialog challenge-lineup-window challenge-move-window" aria-modal="false" aria-labelledby="challengeMoveTitle">'+
   '<div id="challengeMoveDragHandle" class="challenge-dialog-bar challenge-lineup-drag-bar" role="group" tabindex="0" aria-label="Move position window with mouse or arrow keys" title="Drag to move · Arrow keys to nudge"><span>⠿ MOVE WINDOW · POSITION</span><button type="button" id="closeMoveWindow" aria-label="Close position window">✕ CLOSE</button></div>'+
   '<div class="challenge-lineup-window-body"><div class="challenge-lineup-window-heading"><h3 id="challengeMoveTitle">SWAP POSITION</h3><small>'+st.moves+' LEFT</small></div>'+
@@ -1024,6 +1039,50 @@ const mountShopWindow=()=>{
   currentPosition:()=>shopWindowPosition,onMove:position=>{shopWindowPosition=position}
  })||null;
 };
+// Live formation preview touches the DOM only. It does NOT mutate st,
+// autosave, spend a change, move roster entries, or change item assignments.
+const paintFormationPreview=formation=>{
+ const choice=FORMS[formation]?formation:st.formation;
+ const previewing=formationWindowOpen&&choice!==st.formation;
+ formationPreview=previewing?choice:null;
+ const shape=formationPreview||st.formation;
+ const layout=FORMS[shape],coordinates=posMap[shape],guide=FORMATION_GUIDES[shape];
+ app.querySelectorAll('[data-slot-card]').forEach(card=>{
+  const i=Number(card.dataset?.slotCard);
+  if(!Number.isInteger(i)||i<0||i>=11)return;
+  const point=coordinates[i],pokemon=BY.get(st.roster[i]),item=st.items[i];
+  if(card.style){card.style.left=point[0]+'%';card.style.top=point[1]+'%'}
+  const role=card.querySelector?.('.slot-role');
+  if(role)role.textContent=layout[i];
+  const tier=card.querySelector?.('.slot-tier');
+  if(tier&&pokemon){
+   const value=tierFor(pokemon,layout[i],item);
+   tier.textContent=value+' TIER';
+   tier.className='slot-tier tier-'+value.toLowerCase();
+  }
+  const click=card.querySelector?.('button[data-slot]');
+  if(click){
+   click.disabled=previewing||!((isDraft&&!pokemon)||pokemon);
+   if(!pokemon)click.setAttribute?.('aria-label',layout[i]+' empty slot'+(previewing?' (preview only)':''));
+  }
+ });
+ const pitch=document.getElementById('challengePitch');
+ pitch?.classList?.toggle('is-formation-preview',previewing);
+ pitch?.setAttribute?.('aria-label',previewing?'Preview of '+shape+' formation; not applied':'Current '+st.formation+' formation');
+ const badge=document.getElementById('challengeFormationTag');
+ if(badge){
+  const score=filled===11?(st.roster.reduce((sum,id,i)=>sum+rating(BY.get(id),layout[i],st.items[i]),0)/11).toFixed(1)+' SCORE':'IN PROGRESS';
+  badge.textContent=shape+(previewing?' · PREVIEW':'')+' · '+score;
+ }
+ const status=document.getElementById('formationPreviewStatus');
+ if(status)status.textContent=previewing?'PREVIEW ONLY · '+shape+' · NOT APPLIED':'CURRENT · '+st.formation;
+ const pros=document.getElementById('formationPros');
+ if(pros)pros.textContent=guide.pro;
+ const cons=document.getElementById('formationCons');
+ if(cons)cons.textContent=guide.con;
+ const apply=document.getElementById('applyFormation');
+ if(apply)apply.disabled=!previewing||st.formationChanges<1;
+};
 // Formation and move/swap windows share the same keyboard/pointer movement
 // behavior as the draft and item windows. Positions survive a draft rerender.
 if(isDraft||isShop){
@@ -1045,8 +1104,11 @@ if(isDraft||isShop){
   const closeButton=document.getElementById(isFormation?'closeFormationWindow':'closeMoveWindow');
   const canOpen=()=>isFormation?st.formationChanges>0:st.moves>0&&st.roster.some(Boolean);
   const close=()=>{
-   if(isFormation){formationWindowOpen=false;formationWindowCleanup?.();formationWindowCleanup=null}
-   else{moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
+   if(isFormation){
+    formationWindowOpen=false;
+    paintFormationPreview(st.formation); // restore exact original cards/tiers
+    formationWindowCleanup?.();formationWindowCleanup=null;
+   }else{moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
    closeDialog(dialog);
    button?.setAttribute?.('aria-expanded','false');
   };
@@ -1057,23 +1119,40 @@ if(isDraft||isShop){
    const otherId=isFormation?'challengeMoveModal':'challengeFormationModal';
    const otherButton=document.getElementById(isFormation?'openMoveWindow':'openFormationWindow');
    if(isFormation){moveWindowOpen=false;moveWindowCleanup?.();moveWindowCleanup=null}
-   else{formationWindowOpen=false;formationWindowCleanup?.();formationWindowCleanup=null}
+   else{
+    formationWindowOpen=false;
+    paintFormationPreview(st.formation); // swapping windows cancels the preview
+    formationWindowCleanup?.();formationWindowCleanup=null;
+   }
    closeDialog(document.getElementById(otherId));
    otherButton?.setAttribute?.('aria-expanded','false');
    if(isFormation)formationWindowOpen=true;else moveWindowOpen=true;
    openFloatingDialog(dialog);
    mountLineupWindow(dialog,grip,kind);
+   if(isFormation){
+    const selector=document.getElementById('formationChange');
+    if(selector)selector.value=st.formation;
+    paintFormationPreview(st.formation);
+   }
    button?.setAttribute?.('aria-expanded','true');
   };
   if(button)button.onclick=open;
   if(closeButton)closeButton.onclick=close;
   if(dialog){
-   dialog.oncancel=()=>{close()};
+   dialog.oncancel=e=>{e?.preventDefault?.();close()};
    dialog.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault?.();close();button?.focus?.()}};
+   if(isFormation)dialog.onclose=()=>{
+    if(formationWindowOpen){formationWindowOpen=false;paintFormationPreview(st.formation)}
+   };
    if((isFormation?formationWindowOpen:moveWindowOpen)&&canOpen())open();
   }
  };
  setupLineupWindow('formation');setupLineupWindow('move');
+ const formationChoice=document.getElementById('formationChange');
+ if(formationChoice){
+  formationChoice.onchange=()=>paintFormationPreview(formationChoice.value);
+  formationChoice.oninput=formationChoice.onchange; // live keyboard selection
+ }
 }
 const detailDialog=document.getElementById('challengePokemonDetailModal');
 const closePokemonDetail=()=>closeDialog(detailDialog);
@@ -1417,7 +1496,7 @@ if(isDraft||isShop){
   document.getElementById('applyFormation').onclick=()=>{
    const choice=document.getElementById('formationChange')?.value;
    if(!FORMS[choice]||choice===st.formation)return;
-   formationWindowOpen=false;st.formation=choice;st.formationChanges--;
+   formationWindowOpen=false;formationPreview=null;st.formation=choice;st.formationChanges--;
    if(st.phase==='draft')st.selected=nextDraftSlot();
    save();render();
   };
@@ -1531,6 +1610,7 @@ if(st.phase==='finished'){
 if((st.phase==='draft'||st.phase==='shop')&&window.PFC_CHALLENGE_DND){
  const candidateIds=new Set(st.phase==='draft'?eligible().map(s=>s.id):[]);
  const canDrag=source=>{
+  if(formationPreview)return false; // do not drag or draft into a hypothetical layout
   if(source.type==='candidate')return st.phase==='draft'&&candidateIds.has(Number(source.value));
   if(source.type==='pokemon')return st.moves>0&&Boolean(st.roster[Number(source.value)]);
   if(source.type==='item')return st.phase==='shop'&&itemTargets(source.value).length>0;
