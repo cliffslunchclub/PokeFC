@@ -44,8 +44,12 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const landingAfter=motionFrame(fixture,(restartEnd+1e-5)/60,field);
  assert(distance(landingBefore.ball,landingAfter.ball)<.01,
   'Kickoff pass must connect to next possession without a jump');
- assert(Math.max(...landingBefore.actors.map((actor,i)=>distance(actor,landingAfter.actors[i])))<.05,
-  'Kickoff players must return continuously to regular play');
+ const actorGaps=landingBefore.actors.map((actor,i)=>distance(actor,landingAfter.actors[i]));
+ const largest=Math.max(...actorGaps),id=actorGaps.indexOf(largest);
+ assert(largest<.05,'Kickoff players must return continuously to regular play; '+
+  'goal '+pos+', boundary '+restartEnd+', player '+id+', gap '+largest+
+  ', before '+JSON.stringify(landingBefore.actors[id])+
+  ', after '+JSON.stringify(landingAfter.actors[id]));
  tested++;
 }
 assert(tested>=2,'Expected multiple goal restart checks');

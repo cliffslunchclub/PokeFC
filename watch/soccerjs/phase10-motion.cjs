@@ -310,9 +310,19 @@ function motionFrame(fixture,t,field,options=false){
     const phase=limit((seconds-start)/(finish-start),0,1);
     // Finish on an existing controlled position at a deterministic cycle
     // boundary. The kickoff pass lands without a second visual jump.
-    const landing=motionFrame(fixture,finish/60,field,true).ball;
+    const landingFrame=motionFrame(fixture,finish/60,field,true);
+    const landing=landingFrame.ball;
     const release=ease((phase-.22)/.78);
-    const actor=actors[kicker],recover=ease((phase-.24)/.76);
+    const recover=ease((phase-.24)/.76);
+    // Faster possession can change the scripted team shape at the exact
+    // restart boundary. Have every player finish the kickoff by matching
+    // their next live-play position, not just the kicker. That avoids a
+    // sudden post-goal 8m defensive reposition when normal play resumes.
+    for(let i=0;i<actors.length;i++){
+     actors[i].x=lerp(actors[i].x,landingFrame.actors[i].x,recover);
+     actors[i].y=lerp(actors[i].y,landingFrame.actors[i].y,recover);
+    }
+    const actor=actors[kicker];
     actor.x=lerp(center.x-(nextSide===0?.72:-.72),actor.x,recover);
     actor.y=lerp(center.y-.32,actor.y,recover);
     actor.frame=phase>.20&&phase<.40?3:0;

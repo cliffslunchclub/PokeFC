@@ -46,7 +46,9 @@ for(const turn of plan.turnovers){
  assert.equal(p1.pressingSide,turn.oldSide);
  assert.equal(p1.pressingPlayers.length,3);
  // A second turnover can legitimately interrupt the previous recovery.
- const another=plan.turnovers.some(x=>x.time>turn.time&&x.time<=turn.time+10);
+ // Include the 10.5-second settled-state sample: a new turnover just
+ // after 10s legitimately starts its own counterpress window.
+ const another=plan.turnovers.some(x=>x.time>turn.time&&x.time<=turn.time+10.5);
  if(!another){
   assert.equal(motionFrame(fixture,(turn.time+5)/60,field).pressPhase,'recover');
   assert.equal(motionFrame(fixture,(turn.time+8)/60,field).pressPhase,'recover');

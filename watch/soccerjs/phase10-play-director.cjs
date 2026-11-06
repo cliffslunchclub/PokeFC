@@ -9,6 +9,8 @@ const Wall=require('./phase10-wall-physics.cjs');
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
 const lerp=(a,b,u)=>a+(b-a)*u;
+const CARRY_SPEED=3.8;
+const CARRY_EASE_PEAK=1.5; // cubic smoothstep has 1.5x peak speed
 function hash(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0}
 const seed=f=>String(f.visualSeed||f.seed||'pfc');
 const sideOf=id=>Math.floor(id/11);
@@ -100,7 +102,7 @@ function makePlan(f,field){
  // unprotected goal opening or fabricate a PSE goal.
  function chooseWall(from,to,time,pattern,arc,salt){
   if(arc>1.2)return null; // high crosses clear the rink-height boards
-  const chance=pattern==='cross'?48:pattern==='switch'?35:
+  const chance=pattern==='weave'?6:pattern==='cross'?48:pattern==='switch'?35:
    pattern==='one-two'?24:pattern==='through'?24:29;
   if(dice('wall-bank:'+salt,100)>=chance)return null;
   const axes=[['y','min'],['y','max'],['x','min'],['x','max']];
@@ -133,6 +135,14 @@ function makePlan(f,field){
   }
   const length=Math.min(duration,total-seconds);
   if(length<.00001)return;
+  // A controlled carry cannot outrun the Pokémon carrying it. Cubic easing
+  // peaks at 1.5x the average travel speed, so bound the full displacement.
+  if(mode==='carry'){
+   const dx=end.x-ball.x,dy=end.y-ball.y,distance=Math.hypot(dx,dy);
+   const limit=CARRY_SPEED*length/CARRY_EASE_PEAK;
+   if(distance>limit){end=point(field,ball.x+dx*limit/distance,
+    ball.y+dy*limit/distance)}
+  }
   const start=seconds,from={...ball},aim=point(field,end.x,end.y),next=recipient??owner;
   const wall=forcedWall||(mode==='pass'?
    chooseWall(from,aim,length,pattern,arc,actions.length):null);
@@ -197,11 +207,12 @@ function makePlan(f,field){
   const team=sideOf(owner)===0?f.home:f.away;
   const p=styleFor(team.tactic),regained=actions.at(-1)?.mode==='challenge';
   const list=[
-   ['dribble',26*p.dribble*(regained?1.24:1)],
-   ['one-two',24*p.oneTwo],
-   ['cross',21*p.cross],
-   ['through',17*p.through*(regained?1.36:1)],
-   ['switch',12*p.switch]
+   ['dribble',15*p.dribble*(regained?1.18:1)],
+   ['one-two',25*p.oneTwo],
+   ['weave',17*p.oneTwo],
+   ['cross',17*p.cross],
+   ['through',16*p.through*(regained?1.36:1)],
+   ['switch',10*p.switch]
   ];
   const total=list.reduce((sum,row)=>sum+row[1],0);
   let target=dice('pattern',100000)/100000*total;
@@ -213,36 +224,53 @@ function makePlan(f,field){
   const sign=dice('side',2)?1:-1;
   const lane=sign*(3+dice('lane',60)/10);
   if(kind==='dribble'){
-   carry(5+dice('carry-time',100)/10,8+dice('carry-move',80)/10,lane*.42,kind);
+   // Make a deliberate forward carry, then release rather than waiting
+   // 5–15 seconds for the next meaningful action.
+   carry(1.6+dice('carry-time',20)/10,5+dice('carry-move',32)/10,lane*.26,kind);
+   pass(1.4+dice('dribble-release',14)/10,
+    destination(7,-lane*.42,3),kind,.22,'one-two');
+  }else if(kind==='weave'){
+   // Three-player triangle combination: alternate the two lateral lanes
+   // while gaining ground. Receiver selection still enforces offside.
+   const run=side===0?1:-1,shift=5+dice('weave-lane',35)/10;
+   pass(1.4+dice('weave-first',11)/10,
+    point(field,ball.x+run*2.2,clamp(ball.y+sign*shift,4,field.height-4)),kind,.14,'one-two');
+   carry(1.0+dice('weave-control-1',10)/10,2.1,-sign*.9,kind);
+   pass(1.3+dice('weave-second',12)/10,
+    point(field,ball.x+run*2.8,clamp(ball.y-sign*(shift+1.5),4,field.height-4)),kind,.16,'one-two');
+   carry(1.0+dice('weave-control-2',9)/10,2.0,sign*.8,kind);
+   pass(1.5+dice('weave-third',13)/10,
+    point(field,ball.x+run*3.2,clamp(ball.y+sign*shift,4,field.height-4)),kind,.18,'one-two');
   }else if(kind==='one-two'){
    pass(1.3+dice('one-first',12)/10,destination(11,lane*.55,3),kind,.45,'one-two');
-   carry(1.2+dice('one-touch',13)/10,2,sign*.8,kind);
+   carry(1.0+dice('one-touch',11)/10,2,sign*.8,kind);
    append('pass',1.4+dice('one-return',12)/10,destination(12,lane*.3,3),
     initial,kind,.45);
-   carry(1.5+dice('one-run',22)/10,7,sign,kind);
+   carry(1.3+dice('one-run',15)/10,5,sign,kind);
   }else if(kind==='cross'){
    const wingY=sign>0?field.height-7:7;
    pass(2+dice('cross-open',14)/10,
     point(field,ball.x+(side===0?10:-10),lerp(ball.y,wingY,.58)),
     kind,.7,'wing');
-   carry(2+dice('cross-run',30)/10,7,(wingY-ball.y)*.38,kind);
+   carry(1.5+dice('cross-run',18)/10,6,(wingY-ball.y)*.30,kind);
    pass(2.1+dice('cross-flight',20)/10,
     point(field,ball.x+(side===0?11:-11),field.height*.5+sign*(dice('target',7)-3)),
     kind,3,'box');
    carry(1+dice('cross-control',20)/10,3,-sign*1.2,kind);
   }else if(kind==='through'){
-   carry(1.8+dice('through-carry',24)/10,6,lane*.2,kind);
+   carry(1.4+dice('through-carry',14)/10,6,lane*.2,kind);
    pass(2.5+dice('through-flight',16)/10,
     destination(18+dice('through-long',80)/10,sign*3,5),
     kind,2.6,'through');
-   carry(1.6+dice('through-finish',25)/10,7,sign*1.5,kind);
+   carry(1.3+dice('through-finish',17)/10,6,sign*1.5,kind);
   }else{
-   carry(3+dice('switch-start',30)/10,5,sign*2,kind);
+   carry(1.6+dice('switch-start',17)/10,5,sign*2,kind);
    const farSide=sign>0?field.height*.2:field.height*.8;
    pass(3+dice('switch-pass',22)/10,
     point(field,ball.x+(side===0?7:-7),lerp(ball.y,farSide,.8)),kind,1.1,'switch');
-   carry(4+dice('switch-carry',60)/10,7,-sign*2,kind);
-   if(dice('long-attack',3)===0)carry(5+dice('extra',70)/10,7,sign,kind);
+   carry(1.7+dice('switch-carry',16)/10,5,-sign*2,kind);
+   if(dice('long-attack',3)===0)
+    pass(1.6+dice('extra',15)/10,destination(6,sign*2,3),kind,.35,'one-two');
   }
   // Low rebounds and spontaneous pickups occur in ordinary play too.
   // The next attacking pattern starts from whoever collects this ball.
@@ -355,5 +383,5 @@ function nextBoundary(f,field,after){
  const plan=planFor(f,field);
  return plan.actions.find(a=>a.start>=after-.000001)?.start??plan.duration;
 }
-module.exports={planFor,stageAt,ballAt,actorAt,sample,nextBoundary,base,hash,smooth,isOffside,offsideLine};
+module.exports={planFor,stageAt,ballAt,actorAt,sample,nextBoundary,base,hash,smooth,isOffside,offsideLine,CARRY_SPEED};
 
