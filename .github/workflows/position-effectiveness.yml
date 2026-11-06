@@ -1,0 +1,38 @@
+name: PSE position effectiveness in Quick Play and Challenges
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'position-effectiveness.js'
+      - 'quick-sim.js'
+      - 'pse-knockout.js'
+      - 'play/**'
+      - 'challenge/**'
+      - 'tests/test-position-effectiveness.cjs'
+      - 'tests/test-play.cjs'
+      - '.github/workflows/position-effectiveness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  position-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and PSE position effectiveness
+        run: |
+          node --check position-effectiveness.js
+          node --check quick-sim.js
+          node --check pse-knockout.js
+          node --check play/play.js
+          node tests/test-position-effectiveness.cjs
+      - name: Quick Play and knockout baseline
+        run: |
+          node tests/test-play.cjs
+          node tests/test-pse-knockout.cjs
+          node tests/test-quick-seed-compat.cjs
+          node tests/test-challenge-play.cjs
+          node tests/test-challenge-tier-positions.cjs
