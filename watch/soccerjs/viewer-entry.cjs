@@ -8,6 +8,7 @@ const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
 const Commentary=require('./phase10-commentary.cjs');
+const Wall=require('./phase10-wall-physics.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
@@ -209,12 +210,10 @@ function smoothMotion(script,t){
 // mouths open. These are presentation-only and cannot award penalties,
 // trigger fouls, or change the authoritative PSE match result.
 function drawEnclosure(ctx,field){
- const mid=field.height/2,mouth=3.66;
- const sides=[
-  [[0,0],[field.width,0]],[[0,field.height],[field.width,field.height]],
-  [[0,0],[0,mid-mouth]],[[0,mid+mouth],[0,field.height]],
-  [[field.width,0],[field.width,mid-mouth]],[[field.width,mid+mouth],[field.width,field.height]]
- ];
+ // Draw only six physical board segments. The goal-mouth opening shares
+ // the exact post coordinates with wall collision physics; never connect
+ // the end rails behind/through the Soccer-JS goal net.
+ const sides=Wall.boardSegments(field);
  for(const [[x1,y1],[x2,y2]] of sides){
   const a=Utils.toScreen(x1,y1,0),b=Utils.toScreen(x2,y2,0);
   const c=Utils.toScreen(x2,y2,.85),d=Utils.toScreen(x1,y1,.85);
