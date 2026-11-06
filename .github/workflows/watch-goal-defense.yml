@@ -1,0 +1,47 @@
+name: Watch soft goal boards and keeper rush
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/phase10-wall-physics.cjs'
+      - 'watch/soccerjs/phase10-play-director.cjs'
+      - 'watch/soccerjs/phase10-team-shape.cjs'
+      - 'watch/soccerjs/phase10-goalkeeper-rush.cjs'
+      - 'watch/soccerjs/phase10-motion.cjs'
+      - 'watch/soccerjs/phase10-player-pace.cjs'
+      - 'watch/soccerjs/viewer-entry.cjs'
+      - 'watch/soccerjs/test-goal-defense.cjs'
+      - 'watch/soccerjs/test-wall-physics.cjs'
+      - 'watch/soccerjs/test-enclosed-wall-play.cjs'
+      - '.github/workflows/watch-goal-defense.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'watch/soccerjs/phase10-goalkeeper-rush.cjs'
+      - 'watch/soccerjs/phase10-team-shape.cjs'
+      - 'watch/soccerjs/phase10-wall-physics.cjs'
+      - '.github/workflows/watch-goal-defense.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check watch/soccerjs/phase10-wall-physics.cjs
+      - run: node --check watch/soccerjs/phase10-goalkeeper-rush.cjs
+      - run: node --check watch/soccerjs/phase10-team-shape.cjs
+      - run: node --check watch/soccerjs/phase10-play-director.cjs
+      - run: node --check watch/soccerjs/phase10-motion.cjs
+      - run: node --check watch/soccerjs/viewer-entry.cjs
+      - run: node watch/soccerjs/test-goal-defense.cjs
+      - run: node watch/soccerjs/test-wall-physics.cjs
+      - run: node watch/soccerjs/test-enclosed-wall-play.cjs
+      - run: node watch/soccerjs/test-three-defender-press.cjs
+      - run: node watch/soccerjs/test-hybrid-counterpress.cjs
+      - run: node watch/soccerjs/test-possession-continuity.cjs
+      - run: node watch/soccerjs/test-isometric-motion.cjs
+      - run: node watch/soccerjs/test-player-pace.cjs
+      - run: node watch/soccerjs/test-goal-kickoff-reset.cjs
+      - run: node watch/soccerjs/test-offside-aware-passing.cjs
+      - run: node watch/soccerjs/test-commentary.cjs
