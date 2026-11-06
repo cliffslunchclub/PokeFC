@@ -68,9 +68,17 @@ for(const event of fixture.events.filter(e=>e.type==='goal')){
  for(const moment of [event.minute-.7,event.minute+.22]){
   const left=motionFrame(fixture,moment-.000001,field);
   const right=motionFrame(fixture,moment+.000001,field);
-  assert(distance(left.ball,right.ball)<.15,'Ball teleports at goal scene boundary');
-  assert(Math.max(...left.actors.map((p,i)=>distance(p,right.actors[i])))<.15,
-   'Defenders jump when goal sequence begins/ends');
+  if(moment===event.minute-.7){
+   assert(distance(left.ball,right.ball)<.15,'Ball teleports into goal scene');
+   assert(Math.max(...left.actors.map((p,i)=>distance(p,right.actors[i])))<.15,
+    'Defenders jump when the goal buildup starts');
+  }else{
+   assert.equal(left.action,'official-goal','Goal must finish in the net');
+   assert.equal(right.action,'illustrative-kickoff','Goal must cut to a kickoff');
+   assert.equal(right.sceneCut,'post-goal-kickoff');
+   assert(distance(right.ball,{x:field.width/2,y:field.height/2})<.03,
+    'Kickoff restarts at midfield');
+  }
  }
 }
 const joggingA=motionFrame(fixture,2,field),joggingB=motionFrame(fixture,2+1/60,field);

@@ -29,6 +29,8 @@ jobs:
           node tests/test-pse-120-watch.cjs
           node watch/soccerjs/test-inline-bridge.cjs
           node watch/soccerjs/test-isometric-motion.cjs
+          node watch/soccerjs/test-possession-continuity.cjs
+          node watch/soccerjs/test-goal-kickoff-reset.cjs
           node tests/test-pse-knockout.cjs
           node tests/test-pse-knockout-modes.cjs
           node tests/test-challenge-pse-watch.cjs

@@ -179,11 +179,9 @@ function motionFrame(fixture,t,field,options=false){
    keeper.y=lerp(field.height*.50,field.height*.57,shot);
   }
   if(t>=event.minute){ball=net;keeper.frame=8;}
-  // Blend goal-scene boundaries into the ordinary continuous player paths
-  // rather than snapping all 22 players and the ball to goal positions.
-  const enter=ease((t-(event.minute-.7))/.08);
-  const exit=ease(((event.minute+.22)-t)/.08);
-  const blend=enter*exit;
+  // Blend INTO the goal buildup, but never animate the scored ball
+  // backwards out of the net. The restart below is an explicit camera cut.
+  const blend=ease((t-(event.minute-.7))/.08);
   if(blend<1){
    const usual=motionFrame(fixture,t,field,true);
    for(let i=0;i<actors.length;i++){
@@ -197,6 +195,40 @@ function motionFrame(fixture,t,field,options=false){
    label:t>=event.minute?'GOAL! '+roster.lineup[scorer].name:
      'Attack: '+roster.lineup[scorer].name,
    officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
+ }
+ // After an official PSE goal, pause on the ball in the net, then use
+ // a clearly labelled, discrete kickoff camera CUT to midfield. Never tween
+ // the ball backward from the goal to a random illustrative possession.
+ // Kickoff itself is illustrative; it changes no PSE event or match statistic.
+ if(!ignoreGoal){
+  let scored=null;
+  for(const g of goals)if(t>g.minute+.22&&(!scored||g.minute>scored.minute))scored=g;
+  if(scored){
+   const start=(scored.minute+.22)*60,finish=Math.ceil((start+4)/8)*8;
+   if(seconds<finish){
+    const nextSide=scored.team===teams[0].id?1:0;
+    const kicker=nextSide*11+6;
+    const center={x:field.width*.5,y:field.height*.5,z:.23};
+    const phase=limit((seconds-start)/(finish-start),0,1);
+    // Finish on an existing controlled position at a deterministic cycle
+    // boundary. The kickoff pass lands without a second visual jump.
+    const landing=motionFrame(fixture,finish/60,field,true).ball;
+    const release=ease((phase-.22)/.78);
+    const actor=actors[kicker],recover=ease((phase-.24)/.76);
+    actor.x=lerp(center.x-(nextSide===0?.72:-.72),actor.x,recover);
+    actor.y=lerp(center.y-.32,actor.y,recover);
+    actor.frame=phase>.20&&phase<.40?3:0;
+    const controlled=phase<=.22;
+    ball=controlled?center:{
+     x:lerp(center.x,landing.x,release),
+     y:lerp(center.y,landing.y,release),
+     z:.23+.40*Math.sin(Math.PI*release)};
+    return {actors,ball,action:'illustrative-kickoff',ownerIndex:controlled?kicker:-1,
+     contact:controlled?'kickoff-setup':'kickoff-pass',sceneCut:'post-goal-kickoff',
+     label:phase<.35?'KICKOFF · '+teams[nextSide].name:'',
+     officialEvent:null,illustrative:true};
+   }
+  }
  }
  // The same receiver who controls the ball at the end of this passage
  // starts the next passage as its carrier. No hidden return to midfield.

@@ -10,7 +10,7 @@ const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
+let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,kickIndex=0,kickElapsed=0;
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
@@ -66,7 +66,7 @@ function showHighlightNotice(entry){
  $('highlightNotice').hidden=false;
 }
 function clearMotionTracking(){
- smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;
+ smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;trackedPhase=null;
 }
 function setHighlightDrawer(open){
  highlightDrawerOpen=!!open;
@@ -168,10 +168,14 @@ function cameraFit(canvas,field,ball){
 // instantaneously teleport when a new illustrative action is chosen.
 // All tracking is presentation-only; official score/events stay untouched.
 function smoothMotion(script,t){
- if(trackedMinute===null||t<trackedMinute||!trackedActors||!trackedBall){
+ // A goal-to-kickoff transition is a broadcast camera cut, never ball travel.
+ // Discard positional and camera smoothing for the FIRST kickoff frame only.
+ const kickoffCut=script.sceneCut==='post-goal-kickoff'&&trackedPhase!=='illustrative-kickoff';
+ if(kickoffCut)smoothedFocus=null;
+ if(trackedMinute===null||t<trackedMinute||!trackedActors||!trackedBall||kickoffCut){
   trackedActors=script.actors.map(p=>({x:p.x,y:p.y}));
   trackedBall={x:script.ball.x,y:script.ball.y,z:script.ball.z};
-  trackedMinute=t;return script;
+  trackedMinute=t;trackedPhase=script.action;return script;
  }
  const seconds=Math.max(0,(t-trackedMinute)*60);
  const follow=(prev,next,maxDistance)=>{
@@ -187,7 +191,7 @@ function smoothMotion(script,t){
  const ball=follow(trackedBall,script.ball,seconds*28);
  trackedActors=actors.map(p=>({x:p.x,y:p.y}));
  trackedBall={x:ball.x,y:ball.y,z:ball.z};
- trackedMinute=t;
+ trackedMinute=t;trackedPhase=script.action;
  return {...script,actors,ball};
 }
 function render(t,options={}){
@@ -247,7 +251,7 @@ function render(t,options={}){
   $('shootoutAdvance').hidden=!shootoutPending;
  }
  const actionText={
-  'illustrative-carry':'Ball carry','illustrative-pass':'Passing sequence',
+  'illustrative-kickoff':'Kickoff restart','illustrative-carry':'Ball carry','illustrative-pass':'Passing sequence',
   'illustrative-dribble':'Attacking dribble','illustrative-challenge':'Defensive challenge',
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'official-goal':'OFFICIAL QUICK SIM GOAL',

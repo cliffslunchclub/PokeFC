@@ -22,7 +22,7 @@ for(let cycle=0;cycle<Math.floor(90*60/8);cycle++){
  const middle=motionFrame(fixture,secToMin(start+8*.60),field);
  const finalPass=motionFrame(fixture,secToMin(start+8*.74),field);
  const received=motionFrame(fixture,secToMin(start+8*.76),field);
- if([held,launched,middle,finalPass,received].some(x=>x.action==='official-goal'||x.action==='illustrative-goal-buildup'||x.action==='illustrative-shot'))continue;
+ if([held,launched,middle,finalPass,received].some(x=>x.action==='official-goal'||x.action==='illustrative-goal-buildup'||x.action==='illustrative-shot'||x.action==='illustrative-kickoff'))continue;
  assert(Number.isInteger(held.ownerIndex)&&held.ownerIndex>=0,'No prior carrier');
  assert.equal(launched.ownerIndex,-1,'Carrier label must disappear during flight');
  assert.equal(middle.ownerIndex,-1,'Midflight must not claim new possession');
