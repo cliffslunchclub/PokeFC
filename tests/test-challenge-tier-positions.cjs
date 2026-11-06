@@ -45,6 +45,8 @@ for(const file of ['assets/js/national-species.js','assets/js/calibration-profil
 const html=fs.readFileSync(path.join(root,'challenge/index.html'),'utf8');
 vm.runInContext(html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>')),ctx,{filename:'challenge-inline',timeout:15000});
 assert.match(app.innerHTML,/class="slot-tier tier-/);
+assert.match(app.innerHTML,/class="slot-fit-badges"/,'Filled Challenge card has tier + efficiency');
+assert.match(app.innerHTML,/class="slot-efficiency"[^>]*>\d{2,3}%/,'Challenge shows numeric efficiency, not hidden role fit');
 assert.match(app.innerHTML,/class="pick-tier tier-/);
 assert.doesNotMatch(app.innerHTML,/\d+(?:\.\d+)? OVR/);
 const slots=bound.get('[data-slot-card]');
