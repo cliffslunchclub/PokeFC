@@ -129,7 +129,8 @@ function press(f,field,seconds,visual,shape,actors,ball){
   const attackProgress=shape.active===0?ball.x/field.width:1-ball.x/field.width;
   const finalThird=ease((attackProgress-.60)/.16);
   const ordinary=.48*ease(phase/.30)*(1-ease((phase-.62)/.36));
-  const edgeSeconds=Math.max(0,Math.min(seconds-stage.start,stage.end-seconds));
+  const end=Number.isFinite(stage.end)?stage.end:stage.start+stage.duration;
+  const edgeSeconds=Math.max(0,Math.min(seconds-stage.start,end-seconds));
   const settledThreat=finalThird*.65*ease(edgeSeconds/.55);
   intensity=Math.max(ordinary,settledThreat);
   if(shape.turnover)intensity*=ease((shape.age-10)/1.3);
