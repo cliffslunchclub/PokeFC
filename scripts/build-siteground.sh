@@ -67,6 +67,7 @@ if [[ "${PFC_INCLUDE_SOCCERJS:-0}" == "1" ]]; then
   cp -R watch/soccerjs/dist/assets watch/soccerjs/dist/presets dist/watch/soccerjs/dist/
   test ! -e dist/watch/soccerjs/dist/fixture.json
   test -s dist/watch/soccerjs/dist/viewer.bundle.js
+  test -s dist/watch/soccerjs/dist/assets/pfc-soccer-ball.svg
   echo "Included opt-in Soccer-JS 2.5D assets for a controlled development deploy."
 elif [[ "${PFC_INCLUDE_SOCCERJS:-0}" != "0" ]]; then
   echo "PFC_INCLUDE_SOCCERJS must be 0 or 1" >&2
