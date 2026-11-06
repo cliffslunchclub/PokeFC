@@ -11,6 +11,9 @@ const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,kickIndex=0,kickElapsed=0;
+let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,highlightFilter='all',
+ lastCatalogIds='',highlightDrawerOpen=false;
+const promptedGoals=new Set();
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -315,6 +318,11 @@ function step(now){
    !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
   last=playing?now:null;
   render(minute);
+  const newGoal=match.events.find(e=>e.type==='goal'&&e.minute>before+1e-7&&e.minute<=minute+1e-7);
+  if(newGoal){
+   const entry=catalog(match,minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
+   if(entry&&!promptedGoals.has(entry.id)){promptedGoals.add(entry.id);showHighlightNotice(entry);}
+  }
  }
  requestAnimationFrame(step);
 }
