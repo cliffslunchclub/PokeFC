@@ -24,7 +24,7 @@ function catalog(fixture,minute=0,kickIndex=0){
   entries.push({id,kind,minute:event.minute,side:team.id,shooterName:shooter?.name||'the attacker',
    name:String(player.name||player.id),teamName:String(team.name||team.id),
    title:kind==='save'?'Goalkeeper save':'GOAL',description:String(player.name||player.id)+' · '+String(team.name||team.id),
-   event});
+   replayAvailable:kind!=='save'||!!shooter,event});
  }
  if(current>=max&&fixture.shootout?.version==='pse-shootout-v1'){
   const attempts=fixture.shootout.attempts||[];
@@ -39,11 +39,12 @@ function catalog(fixture,minute=0,kickIndex=0){
     description:String(taker.name||taker.id)+' · '+String(team.name||team.id),event:kick});
   }
  }
- return entries.sort((a,b)=>a.minute-b.minute||a.id.localeCompare(b.id));
+ return entries.sort((a,b)=>a.minute-b.minute||(a.kickIndex||0)-(b.kickIndex||0)||fixture.events.indexOf(a.event)-fixture.events.indexOf(b.event));
 }
 function clipFor(fixture,entry){
  if(!entry||typeof entry.id!=='string')return null;
  const duration=durationOf(fixture);
+ if(entry.kind==='save'&&entry.replayAvailable===false)return null;
  if(entry.kind==='goal'||entry.kind==='save'){
   const start=clamp(entry.minute-8/60,0,duration);
   const end=clamp(entry.minute+(entry.kind==='save'?.4:1)/60,0,duration);

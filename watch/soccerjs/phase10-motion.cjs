@@ -3,7 +3,7 @@
  * Phase 10C v0.1: deterministic ILLUSTRATIVE five-minute visual sequences.
  * Runs only on official Quick Sim fixture snapshots. Does not simulate goals,
  * player stats, tackles, substitutions, shot probability, or possession totals.
- * All events except official Quick Sim goal timestamps are animation inventions.
+ * Official goals and goalkeeper saves retain their Quick Sim timestamps; other movement is illustrative.
  */
 const PlayDirector=require('./phase10-play-director.cjs');
 const TeamShape=require('./phase10-team-shape.cjs');
@@ -42,7 +42,7 @@ function shotSummary(stats){
  }
  return 'FULL-TIME TOTALS (not live) · Shots '+stats[0].shots+'–'+stats[1].shots+
   ' · On target '+stats[0].shotsOnTarget+'–'+stats[1].shotsOnTarget+
-  ' · Keeper saves '+stats[0].saves+'–'+stats[1].saves;
+  ' · Saves '+stats[0].saves+'–'+stats[1].saves;
 }
 // Preserve the viewer-selected speed all the way through the goal. The
 // goal modal, not a hidden time dilation, handles celebration and replay.

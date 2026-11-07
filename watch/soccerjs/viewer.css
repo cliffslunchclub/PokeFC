@@ -266,3 +266,5 @@ html.pfc-watch-fullscreen .watch-commentary{bottom:74px}
 }
 
 .save-auto-control{display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.4;max-width:420px;padding:8px 0}.save-auto-control[hidden]{display:none}.save-auto-control input{width:20px;height:20px;vertical-align:middle}.save-auto-control small{font-size:11px;opacity:.8}
+
+.controls .save-auto-control{flex-basis:100%;margin-left:0;align-items:flex-start;white-space:normal}.save-auto-control span,.save-auto-control small{white-space:normal}

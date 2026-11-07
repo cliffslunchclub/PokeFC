@@ -36,7 +36,7 @@ function setSaveAuto(value){
 function continueMatch(){
  if(incidentQueue.length&&liveSaveEvent){
   const at=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
-  clearHighlightNotice();playing=false;last=null;
+  clearHighlightNotice();playing=false;last=null;lastSent=-2;
   queuedPresentation={phase:'restart',seconds:minute*60,end:at.saveSequence.finish,entry:null,last:null};
   return;
  }
@@ -44,14 +44,17 @@ function continueMatch(){
 }
 function queuedStep(now){
  const q=queuedPresentation;if(!q)return false;
- const delta=q.last===null?0:Math.min(2,Math.max(0,(now-q.last)/1000))*speed;q.last=now;
+ if(q.paused){q.last=now;return true;}
+ const realDelta=q.last===null?0:Math.max(0,(now-q.last)/1000);q.last=now;
+ if(realDelta>2){q.paused=true;lastSent=-2;render(minute);return true;}
+ const delta=realDelta*speed;
  const field=Utils.getFieldBounds();
  if(q.phase==='transition'){
   q.elapsed+=delta;const u=Math.min(1,q.elapsed/q.duration);
   const move=(a,b)=>({...b,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z||0,b.z||0,u)});
   const frame={...q.to,ball:move(q.from.ball,q.to.ball),actors:q.from.actors.map((a,i)=>move(a,q.to.actors[i])),
    action:'illustrative-save-buildup',officialEvent:null,ownerIndex:-1};
-  render(minute,{sceneFrame:frame});
+  q.frame=frame;render(minute,{sceneFrame:frame,sceneSeconds:q.clock+q.elapsed});
   if(u>=1)queuedPresentation={phase:'save',seconds:q.start,end:q.end,entry:q.entry,last:now};
  }else{
   q.seconds=Math.min(q.end,q.seconds+delta);render(minute,{sceneSeconds:q.seconds});
@@ -65,7 +68,7 @@ function queuedStep(now){
     const start=Math.max(0,target.saveSequence.start),to=motionFrame(match,start/60,field,{saveEvent:entry.event});
     const duration=Math.max(.5,Math.hypot(from.ball.x-to.ball.x,from.ball.y-to.ball.y)/14,
      ...from.actors.map((a,i)=>Math.hypot(a.x-to.actors[i].x,a.y-to.actors[i].y)/4));
-    queuedPresentation={phase:'transition',elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
+    queuedPresentation={phase:'transition',frame:from,clock:q.end,elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
    }
   }
  }
@@ -130,6 +133,7 @@ function showHighlightNotice(entry,allowCountdown=true){
  $('highlightNoticeMessage').textContent=save?entry.name+' saves the shot from '+entry.shooterName+'!':
   'Ball in the net. Match paused. Watch the illustrative buildup again or continue at the selected speed.';
  $('highlightNoticePlay').textContent=save?'Watch Replay':'↺ VIEW REPLAY';
+ $('highlightNoticePlay').disabled=entry.replayAvailable===false;
  $('highlightNoticeDismiss').textContent=save?'Continue Match':'▶ CONTINUE';
  $('highlightNoticeDismiss').setAttribute('aria-label','Continue match after '+entry.kind);
  $('saveAutoAlertLabel').hidden=!save;
@@ -187,7 +191,7 @@ function highlightEntryElement(entry,buttonLabel){
  const detail=document.createElement('small');detail.textContent=entry.description;
  info.append(title,detail);
  const button=document.createElement('button');button.type='button';
- button.textContent=buttonLabel;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
+ button.textContent=entry.replayAvailable===false?'Replay unavailable':buttonLabel;button.disabled=entry.replayAvailable===false;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
  button.addEventListener('click',()=>replayMoment(entry.id));
  row.append(time,info,button);return row;
 }
@@ -390,18 +394,23 @@ function renderCommentary(t,script,isReplay){
 }
 function render(t,options={}){
  const isReplay=options.replay===true;
+ if(queuedPresentation&&!isReplay&&!Number.isFinite(options.sceneSeconds)){
+  const q=queuedPresentation;options={...options,sceneSeconds:q.phase==='transition'?q.clock+q.elapsed:q.seconds,
+   sceneFrame:q.phase==='transition'?q.frame:options.sceneFrame};
+ }
  const sceneMinute=Number.isFinite(options.sceneSeconds)?options.sceneSeconds/60:t;
  const saveEvent=isReplay&&replaySession?.entry.kind==='save'?replaySession.entry.event:liveSaveEvent;
  if($('fullscreenPlayback')){
-  $('fullscreenPause').hidden=!playing;
-  $('fullscreenResume').hidden=!!playing;
+  const running=playing||queuedPresentation&&!queuedPresentation.paused;
+  $('fullscreenPause').hidden=!running;
+  $('fullscreenResume').hidden=!!running;
   $('fullscreenSpeed').value=String(speed);
  }
  const field=Utils.getFieldBounds(),s=scoreAt(t);
  if(!commentaryFeed)commentaryFeed=Commentary.build(match,field);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
- const script=options.sceneFrame?smoothMotion(options.sceneFrame,t):isReplay&&replaySession?.clip.kind==='shootout'?
+ const script=options.sceneFrame?smoothMotion(options.sceneFrame,sceneMinute):isReplay&&replaySession?.clip.kind==='shootout'?
   motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
   match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
    motionFrame(match,t,field,{kickIndex}):
@@ -483,7 +492,7 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing,watchSpeed:speed});
+   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -533,14 +542,15 @@ function step(now){
  if(queuedStep(now)){requestAnimationFrame(step);return;}
  if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
- // This is a fixed 800 ms real-time hold, not a change to match time.
+ // Goals retain a minimum 800 ms hold. Any remaining physical settling
+ // happens with the presentation clock held, at the selected movement speed.
  if(pendingGoal&&!replaySession){
   render(minute);
   const source=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
   const visible=window.__PFC_SNAPSHOT__,entry=pendingGoal.entry;
   const close=Math.hypot(visible.ball.x-source.ball.x,visible.ball.y-source.ball.y)<.15;
   const keeper=entry.kind==='save'?visible.actorWorldPositions[source.saveSequence?.keeper]:null;
-  const secured=entry.kind!=='save'||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
+  const secured=entry.kind!=='save'||!source.saveSequence||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
   if(now>=pendingGoal.showAt&&close&&secured){pendingGoal=null;showHighlightNotice(entry)}
  }
  if(replaySession){
@@ -581,7 +591,7 @@ function step(now){
    if(entry&&!promptedGoals.has(entry.id)){
     promptedGoals.add(entry.id);minute=newGoal.minute;playing=false;last=null;
     liveSaveEvent=entry.kind==='save'?entry.event:null;
-    incidentQueue=catalog(match,minute,kickIndex).filter(e=>e.kind==='save'&&e.minute===minute&&!promptedGoals.has(e.id));
+    incidentQueue=catalog(match,minute,kickIndex).filter(e=>e.kind==='save'&&e.replayAvailable!==false&&e.minute===minute&&!promptedGoals.has(e.id));
     render(minute);
     pendingGoal={entry,showAt:now+(entry.kind==='save'?0:800)};
    }else render(minute);
@@ -720,8 +730,9 @@ async function boot(){
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
-  $('fullscreenPause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
+  $('fullscreenPause').onclick=()=>{if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
+   if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
    if(replayNotice||pendingGoal)clearHighlightNotice();
    lastSent=-2;
    if(minute<match.durationMinutes){playing=true;last=null;}
@@ -762,6 +773,7 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
+    if(queuedPresentation){speed=Math.max(1,Math.min(16,Number(msg.speed)||speed));queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
@@ -770,6 +782,7 @@ async function boot(){
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
+    if(queuedPresentation)queuedPresentation.paused=true;
     playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){
     $('fullscreenPlayback').hidden=!msg.active;
