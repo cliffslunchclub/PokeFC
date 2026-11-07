@@ -102,7 +102,7 @@
     box[player.id].tackles+=wins;box[player.id].tackleAttempts+=attempts;
    }
   }
-  events.sort((a,b)=>a.minute-b.minute);
+  qs.spaceEvents(events,[[90,105],[105,120]],options.previousIncident??-Infinity);
   for(let side=0;side<2;side++){
    requireValid(stats[side].goals===score[side],'Extra-time score mismatch');
    requireValid(stats[side].shotsOnTarget===stats[side].goals+stats[1-side].saves,'Extra-time shots and saves mismatch');
@@ -176,7 +176,7 @@
   const old=JSON.stringify(regulation);
   let match=regulation,extra=null,kicks=null,winner,decidedBy='regulation';
   if(regulation.score[0]===regulation.score[1]){
-   extra=extraTime(preview,seed,{positionEffectiveness:regulation.positionEffectiveness});match=merge(regulation,extra);decidedBy='extra-time';
+   extra=extraTime(preview,seed,{positionEffectiveness:regulation.positionEffectiveness,previousIncident:Math.max(-Infinity,...regulation.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>e.minute))});match=merge(regulation,extra);decidedBy='extra-time';
    if(match.score[0]===match.score[1]){
     kicks=shootout(preview,seed,{positionEffectiveness:regulation.positionEffectiveness});decidedBy='shootout';
     winner=kicks.winner;

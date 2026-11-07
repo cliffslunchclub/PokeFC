@@ -1,6 +1,7 @@
 'use strict';
 // Official saves are immutable PSE events; all movement between them is visual.
 const Goal=require('./phase10-goal-sequence.cjs'),Director=require('./phase10-play-director.cjs');
+const Onside=require('./phase10-onside-movement.cjs');
 const cache=new WeakMap(),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),mix=(a,b,u)=>a+(b-a)*clamp(u,0,1);
 const blend=(a,b,u)=>({...a,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z||0,b.z||0,u)});
@@ -21,7 +22,7 @@ function sequence(f,field,event,normal){
  const shotStart=end-shotDuration,passStart=shotStart-(s.shotStart-s.passStart);
  const active=Math.min(s.active,passStart-.1),opening=normal(active);
  const data={...s,active,opening,from:{...opening.ball},passStart,shotStart,net:catchPoint,end,
-  defending,keeper:keeperId,event,fixture:f,width:field.width,height:field.height};
+  defending,keeper:keeperId,event,fixture:f,field,width:field.width,height:field.height};
  const release=end+.85;
  const targetX=clamp(catchPoint.x+(side===0?-1:1)*42,12,field.width-12);
  const receiver=defending*11+6;
@@ -40,16 +41,26 @@ function buildupActors(s,seconds,normal){
  const u=clamp((seconds-s.start)/(s.shotStart-s.start),0,1);
  const fin={x:s.finish.x-(s.side===0?.55:-.55),y:s.finish.y-.3};
  Object.assign(actors[s.scorer],blend(s.openingRun.actors[s.scorer],fin,u));
+ if(seconds<s.active){
+  const u=Math.max(0,Math.min(1,(seconds-s.start)/Math.max(.001,s.active-s.start)));
+  Object.assign(actors[s.support],blend(s.openingRun.actors[s.support],
+   {x:s.from.x-(s.side===0?.72:-.72),y:s.from.y-.32},u));
+ }
  if(seconds>=s.active){
-  const supportTarget={x:s.passFrom.x-(s.side===0?.6:-.6),y:s.passFrom.y-.3};
-  Object.assign(actors[s.support],blend(s.opening.actors[s.support],supportTarget,(seconds-s.active)/Math.max(.01,s.passStart-s.active)));
+  const carry=Goal.sample(s,Director.planFor(s.fixture,s.field),Math.min(seconds,s.passStart)).ball;
+  Object.assign(actors[s.support],{x:carry.x-(s.side===0?.72:-.72),y:carry.y-.32});
   Object.assign(actors[s.keeper],blend(s.opening.actors[s.keeper],s.net,(seconds-s.active)/(s.end-s.active)));
  }
+ Onside.apply(actors,s.field,Goal.sample(s,Director.planFor(s.fixture,s.field),seconds).ball,s.side,{
+  carrier:seconds<s.passStart?s.support:-1,runner:s.scorer,
+  run:(seconds-s.passStart)/Math.max(.001,s.shotStart-s.passStart),
+  strength:Math.max(0,Math.min(1,(seconds-s.start)/.2))
+ });
  actors[s.keeper].z=0;
  return actors;
 }
 function restartActors(s,seconds,normal){
- const terminal=buildupActors(s,s.end,normal),landing=normal(s.arrival).actors;
+ const terminal=buildupActors(s,s.end,normal),landing=normal(Math.min(s.arrival,(s.fixture.durationMinutes||90)*60)).actors;
  return terminal.map((a,id)=>{
   if(id===s.keeper)return {...a,x:s.net.x,y:s.net.y,z:0};
   const target=id===s.receiver?{...landing[id],x:s.target.x-(s.defending===0?.72:-.72),y:s.target.y-.32}:landing[id];
@@ -88,6 +99,9 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
   }
   return {...frame,actors,ball,ownerIndex:owner,action,contact,sceneCut:null,
    officialEvent:seconds>=s.end&&seconds<s.release?e:null,
+   onsideGuard:seconds<s.end?[{side:s.side,carrier:owner,runner:s.scorer,
+    run:(seconds-s.passStart)/Math.max(.001,s.shotStart-s.passStart),
+    strength:Math.max(0,Math.min(1,(seconds-s.start)/.2))}]:null,
    saveSequence:{start:s.start,active:s.active,shotStart:s.shotStart,end:s.end,release:s.release,arrival:s.arrival,finish:s.recoveryEnd,keeper:s.keeper,shooter:s.scorer},
    illustrative:seconds<s.end||seconds>=s.release,passStart:s.passStart,passArrival:s.shotStart};
  }

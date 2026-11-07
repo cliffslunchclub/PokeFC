@@ -6,8 +6,9 @@ const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/
 const base=require('../watch/soccerjs/fixture.json'),root=path.resolve(__dirname,'..');
 const preview={home:base.home,away:base.away},result=qs.simulate(preview,{seed:'official-saves-1'});
 const fixture=bridge.snapshot(preview,result),first=fixture.events.find(e=>e.type==='save');
-const tied=fixture.events.filter(e=>e.type==='save'&&fixture.events.some(o=>o!==e&&o.type==='save'&&o.minute===e.minute));
-assert(first&&tied.length>=2);
+const incidents=fixture.events.filter(e=>e.type==='save'||e.type==='goal');
+assert(first);
+for(let i=1;i<incidents.length;i++)assert(incidents[i].minute-incidents[i-1].minute>=3-1e-9);
 const original=JSON.stringify(result),out=path.join(root,'pse-browser-artifacts');fs.mkdirSync(out,{recursive:true});
 const server=spawn('python3',['-m','http.server','8767','--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
 const origin='http://127.0.0.1:8767';
@@ -62,23 +63,20 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   await page.evaluate(()=>window.session.pause());
   await page.locator('.pfc-save-auto-control input').uncheck();
   await frame.waitForFunction(()=>!window.__PFC_SNAPSHOT__.autoContinueSaves);
-  // Identical official times queue separate natural reconstructions at a held clock.
-  await seek(tied[0].minute-.03/60);await page.evaluate(()=>window.session.play(16));
+  // Spaced saves retain separate stable replay entries and no queue.
+  const next=fixture.events.filter(e=>e.type==='save')[1];assert(next);
+  await seek(next.minute-.03/60);await page.evaluate(()=>window.session.play(16));
   await frame.locator('#highlightNotice').waitFor({state:'visible'});
-  const before=await snap();assert.equal(before.queuedSaveCount,1);
-  await frame.locator('#highlightNoticeDismiss').click();
-  await frame.waitForFunction(()=>!!window.__PFC_SNAPSHOT__.queuedSavePresentation);
-  assert.equal((await snap()).minute,tied[0].minute);
-  await frame.waitForFunction(keeper=>window.__PFC_SNAPSHOT__.savePaused&&window.__PFC_SNAPSHOT__.saveSequence.keeper!==keeper,before.saveSequence.keeper,{timeout:30000});
-  assert.equal((await snap()).minute,tied[0].minute);
-  // Both timestamp-identical saves have stable replay entries.
-  await frame.locator('#highlightNoticePlay').click();assert.equal((await snap()).replay.id,'save-'+fixture.events.filter(e=>e.type==='save').indexOf(tied[1]));
+  assert.equal((await snap()).queuedSaveCount,0);
+  assert.equal((await snap()).minute,next.minute);
+  await frame.locator('#highlightNoticePlay').click();
+  assert.equal((await snap()).replay.id,'save-1');
   await frame.locator('#highlightReplayReturn').click();
   // Sim to End from a save alert records the original result exactly once.
   await page.evaluate(()=>window.session.simToEnd());await page.waitForFunction(()=>window.records===1);
   await page.evaluate(()=>{window.session.record();window.session.record()});assert.equal(await page.evaluate(()=>window.records),1);
   assert.deepEqual((await snap()).score,result.score);assert.equal(JSON.stringify(result),original);assert.deepEqual(errors,[]);
-  console.log('PASS '+device+': saves at 1/4/16x, replay cancel/return, synced persistent preference, real 3s automatic Continue, long punt, tied-save queue, once-only Watch→Sim');
+  console.log('PASS '+device+': saves at 1/4/16x, replay cancel/return, synced persistent preference, real 3s automatic Continue, long punt, spaced-save replay entries, once-only Watch→Sim');
   await page.close();
  }
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}})().catch(e=>{console.error(e);process.exitCode=1});

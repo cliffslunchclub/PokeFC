@@ -7,7 +7,12 @@ const f=require('./fixture.json'),field={width:106,height:68},before=JSON.string
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 for(const goal of f.events.filter(e=>e.type==='goal')){
  const end=rawMotionFrame(f,goal.minute,field),kick=end.goalShotStart;
- assert(goal.minute*60-end.goalBallStart<12,'Active buildup was stretched instead of distance-timed');
+ const carryStart=end.goalBallStart,carryEnd=end.goalPassStart;
+ if(carryEnd-carryStart>.02){
+  const mid=(carryStart+carryEnd)/2;
+  const a=rawMotionFrame(f,(mid-.005)/60,field),b=rawMotionFrame(f,(mid+.005)/60,field);
+  assert(Math.abs(dist(a.ball,b.ball)/.01-3.6)<.01,'Active carry must move at its natural speed');
+ }
  for(const [start,finish,speed] of [[end.goalPassStart,kick,14],[kick,goal.minute*60,24]]){
   const mid=(start+finish)/2;
   const a=rawMotionFrame(f,(mid-.005)/60,field),b=rawMotionFrame(f,(mid+.005)/60,field);

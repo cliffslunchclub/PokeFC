@@ -1,8 +1,8 @@
 name: Watch official saves and restart verification
 on:
   pull_request:
-    branches: [main]
-    paths: ['watch/soccerjs/**', 'tests/**', '.github/workflows/watch-official-saves.yml']
+    branches: [main, 'feature/official-saves-restarts-recovery']
+    paths: ['assets/js/quick-sim.js', 'assets/js/pse-knockout.js', 'watch/soccerjs/**', 'tests/**', '.github/workflows/watch-official-saves.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
+      - run: node tests/test-pse-incident-spacing.cjs
+      - run: node watch/soccerjs/test-followup-guardrails.cjs
+      - run: node watch/soccerjs/test-onside-movement.cjs
       - run: node watch/soccerjs/test-official-saves-restarts.cjs
       - run: node watch/soccerjs/test-one-on-one.cjs
       - run: node tests/test-watch-highlights.cjs

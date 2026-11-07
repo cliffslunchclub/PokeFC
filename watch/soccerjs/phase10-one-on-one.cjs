@@ -72,6 +72,37 @@ function build(f,field,rawFrame){
   if(landing.ball.x<.34||landing.ball.x>field.width-.34||
    landing.ball.y<.34||landing.ball.y>field.height-.34||
    distance(impact,landing.ball)*1.5/(end-impactSeconds)>24)continue;
+  // A separate illustrative block is a loose deflection, never a held save.
+  // Keep long recoveries out of all official scenes and period kickoffs.
+  const keeperFrom={...frame.actors[chance.keeper]},block={x:keeperFrom.x,y:keeperFrom.y,z:.23};
+  const hit=sec+Math.max(.18,distance(from,block)/24);
+  const loose={x:clamp(block.x+(chance.side===0?-3:3),1,field.width-1),
+   y:clamp(block.y+(wing*1.5),1,field.height-1),z:.23};
+  const spilled=hit+.6,defending=1-chance.side,atHit=rawFrame(hit);
+  const candidates=atHit.actors.map((p,id)=>({id,d:distance(p,loose)}))
+   .filter(p=>Math.floor(p.id/11)===defending&&p.id!==chance.keeper&&p.d<=8)
+   .sort((a,b)=>a.d-b.d||a.id-b.id);
+  const clearer=candidates[0]?.id??chance.keeper;
+  const recoveryFrom=clearer===chance.keeper?block:atHit.actors[clearer];
+  const clearAt=spilled+Math.max(.2,distance(recoveryFrom,loose)/4);
+  const clearTo={x:clamp(loose.x+(defending===0?42:-42),8,field.width-8),y:field.height*.5,z:.23};
+  const clearArrival=clearAt+distance(loose,clearTo)/22;
+  const finish=clearArrival+15;
+  const hazards=f.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>{
+   const at=rawFrame(e.minute*60);return {start:at.saveSequence?.start??at.goalSequenceStart??e.minute*60-40,end:e.minute*60+65};
+  });
+  const period=[0,2700,5400,6300].some(t=>t>sec&&t<finish);
+  if(finish<plan.duration&&!period&&!hazards.some(h=>sec<h.end&&finish>h.start)){
+   const terminal=rawFrame(finish);
+   const actorsAtClear=atHit.actors.map((p,id)=>id===clearer?{...p,x:loose.x,y:loose.y}:id===chance.keeper?{...p,x:block.x,y:block.y}:p);
+   const maxReturn=Math.max(...actorsAtClear.map((p,id)=>distance(p,terminal.actors[id])/15));
+   if(maxReturn<=4&&distance(clearTo,terminal.ball)/15<=16){
+    shots.push({...chance,start:sec,impactSeconds:hit,end:finish,from,impact:block,
+     spilled,loose,clearAt,clearTo,clearArrival,clearer,keeperFrom,clearerFrom:{...recoveryFrom},
+     actorsAtHit:atHit.actors.map(p=>({...p})),actorsAtClear,to:{...terminal.ball},terminal,outcome:'block'});
+    available=finish+.1;continue;
+   }
+  }
   shots.push({...chance,start:sec,impactSeconds,end,from,impact,to:{...landing.ball},
    outcome:'miss'});
   // Do not chain another shot before the missed ball has been recovered.
@@ -86,6 +117,7 @@ function apply(f,field,seconds,frame,rawFrame){
  let lo=0,hi=shots.length;
  while(lo<hi){const mid=(lo+hi)>>1;if(shots[mid].start<=seconds+1e-8)lo=mid+1;else hi=mid;}
  const shot=shots[lo-1];if(!shot||seconds>=shot.end-1e-8)return frame;
+ if(shot.outcome==='block')return blockFrame(shot,seconds,frame);
  const flight=seconds<shot.impactSeconds-1e-8;
  const u=flight?(seconds-shot.start)/(shot.impactSeconds-shot.start):
   (seconds-shot.impactSeconds)/(shot.end-shot.impactSeconds);
@@ -103,5 +135,43 @@ function apply(f,field,seconds,frame,rawFrame){
    impactSeconds:shot.impactSeconds,end:shot.end,outcome:shot.outcome},
   passStart:null,passArrival:null,passOrigin:null,passTarget:null,
   wall:null,wallImpactSeconds:null};
+}
+function blockFrame(s,t,frame){
+ const actors=(t>=s.impactSeconds-1e-8?s.actorsAtHit:frame.actors).map(p=>({...p}));
+ const lerpPoint=(a,b,u,arc=0)=>{u=clamp(u,0,1);return {x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z??.23,b.z??.23,u)+Math.sin(Math.PI*u)*arc}};
+ let ball,action,contact;
+ if(t<s.impactSeconds-1e-8){
+  ball=lerpPoint(s.from,s.impact,(t-s.start)/(s.impactSeconds-s.start),.35);
+  action='illustrative-one-on-one-shot';contact='one-on-one-shot';
+  if(t-s.start<.3)actors[s.shooter].frame=3;
+ }else if(t<s.spilled){
+  ball=lerpPoint(s.impact,s.loose,(t-s.impactSeconds)/(s.spilled-s.impactSeconds),.4);
+  action='illustrative-keeper-block';contact='loose-deflection';
+ }else if(t<s.clearAt){
+  ball={...s.loose};action='illustrative-block-recovery';contact='loose-ball';
+ }else if(t<s.clearArrival){
+  ball=lerpPoint(s.loose,s.clearTo,(t-s.clearAt)/(s.clearArrival-s.clearAt),5);
+  action='illustrative-upfield-clearance';contact='foot-clearance';
+ }else{
+  ball=lerpPoint(s.clearTo,s.to,(t-s.clearArrival)/(s.end-s.clearArrival),.5);
+  action='illustrative-clearance-recovery';contact='clearance-recovery';
+ }
+ const hitU=clamp((t-s.start)/(s.impactSeconds-s.start),0,1);
+ const keeper=actors[s.keeper];
+ Object.assign(keeper,lerpPoint(s.keeperFrom,s.impact,hitU));keeper.z=0;
+ if(t>=s.impactSeconds&&t<s.spilled)keeper.frame=8;
+ if(t>=s.impactSeconds-1e-8){
+  const p=actors[s.clearer],from=s.clearer===s.keeper?s.impact:s.actorsAtClear[s.clearer];
+  // Start a defender from the actual impact frame, not the future clear pose.
+  Object.assign(p,lerpPoint(s.clearerFrom??from,s.loose,(t-s.impactSeconds)/(s.clearAt-s.impactSeconds)));p.z=0;
+  if(t>=s.clearAt&&t<s.clearAt+.2)p.frame=3;
+ }
+ if(t>=s.clearArrival){
+  const u=(t-s.clearArrival)/(s.end-s.clearArrival);
+  for(let id=0;id<actors.length;id++)Object.assign(actors[id],lerpPoint(s.actorsAtClear[id],s.terminal.actors[id],u),{z:0});
+ }
+ return {...frame,actors,ball,ownerIndex:-1,action,contact,label:'',officialEvent:null,illustrative:true,onsideGuard:null,
+  oneOnOne:{shooter:s.shooter,keeper:s.keeper,start:s.start,impactSeconds:s.impactSeconds,end:s.end,outcome:s.outcome,clearer:s.clearer,clearAt:s.clearAt,clearArrival:s.clearArrival},
+  passStart:null,passArrival:null,passOrigin:null,passTarget:null,wall:null,wallImpactSeconds:null};
 }
 module.exports={opportunity,build,apply,STEP,SHOOTING_RANGE,BOX_DEPTH,BOX_HALF_WIDTH};

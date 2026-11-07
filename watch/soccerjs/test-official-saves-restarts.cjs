@@ -22,8 +22,9 @@ for(let seed=0;seed<16;seed++){
   assert.equal(shoot.action,'illustrative-save-shot');assert.equal(shoot.actors[s.shooter].frame,3);
   assert(dist(shoot.ball,shoot.actors[s.shooter])<1.8,'No waiting away from the receiving touch');
   assert.equal(motionFrame(fixture,(sec+.3)/60,field,{saveEvent:event}).ownerIndex,s.keeper,'Save ends held, never rebound');
-  assert.equal(motionFrame(fixture,(s.release+.1)/60,field,{saveEvent:event}).action,'illustrative-keeper-punt');
+  if(s.release+.1<(fixture.durationMinutes||90)*60)assert.equal(motionFrame(fixture,(s.release+.1)/60,field,{saveEvent:event}).action,'illustrative-keeper-punt');
   for(const at of [s.start,s.active,s.shotStart,s.end,s.release,s.arrival,s.finish]){
+   if(at<=0||at>=(fixture.durationMinutes||90)*60)continue;
    const a=presentationFrame(fixture,at-.000001,field,{saveEvent:event}),b=presentationFrame(fixture,at+.000001,field,{saveEvent:event});
    const seam=Math.max(dist(a.ball,b.ball),...a.actors.map((p,i)=>dist(p,b.actors[i])));
    maxSeam=Math.max(maxSeam,seam);assert(seam<.03,'Save/restart scene discontinuity at '+at+': '+seam);
