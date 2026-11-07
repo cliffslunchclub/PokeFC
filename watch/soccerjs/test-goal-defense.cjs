@@ -46,8 +46,16 @@ const rush=Keeper.target(1,field,{mode:'carry',owner:6},
 assert(rush.urgent,'Keeper must charge when opposition is within 10m');
 assert(rush.x<field.width*.955,'Keeper must leave the goal line toward attacker');
 const outside=Keeper.target(1,field,{mode:'carry',owner:6},
- {x:90,y:34,z:.23});
-assert(!outside.urgent,'Keeper must not rush beyond 10m');
+ {x:89,y:34,z:.23});
+assert(!outside.urgent,'Keeper must not rush beyond the penalty area');
+for(const side of [0,1]){
+ const owner=(1-side)*11+6,ball={x:side===0?14:92,y:34,z:.23};
+ const early=Keeper.target(side,field,{mode:'carry',owner},ball);
+ assert(early.urgent,'One-on-one at 14m must trigger closure before the old 10m radius');
+ assert(Math.abs(early.x-ball.x)<1.2,'Keeper should close to the attacker, not hug the line');
+ assert(!Keeper.target(side,field,{mode:'carry',owner},
+  {...ball,y:10}).urgent,'Wide ball outside box should not trigger a blind charge');
+}
 const ownCollection=Keeper.target(1,field,
  {mode:'rebound',owner:6,receiver:11,duration:3,to:{x:100,y:34}},
  {x:102,y:34,z:.23});
@@ -87,7 +95,8 @@ assert.deepEqual(Director.planFor(noGoal,field).actions,plan.actions,
  'Goalkeeper and defender choreography cannot change the PSE goal schedule');
 assert.equal(JSON.stringify(fixture),snapshot,'PSE fixture mutated');
 const render=require('node:fs').readFileSync(require('node:path').join(__dirname,'viewer-entry.cjs'),'utf8');
-assert(render.includes('Wall.boardSegments(field)'),'Renderer must honor actual goalpost cutouts');
+assert(render.includes('left:sim.pitch.leftGoal,right:sim.pitch.rightGoal'),
+ 'Renderer must use the native goalpost positions, not independent width constants');
 assert.equal(Wall.boardSegments(field).length,6);
 console.log('PASS near-goal pressure and keeper: three nearest, '+rushSeconds+
  ' rush samples, '+pick.length+' loose pickups, max '+maxSpeed.toFixed(3)+

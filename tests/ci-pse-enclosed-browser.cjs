@@ -3,7 +3,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
 const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
-const {planFor}=require('../watch/soccerjs/phase10-play-director.cjs');
+const {planFor,sample}=require('../watch/soccerjs/phase10-play-director.cjs');
+const {motionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const root=path.resolve(__dirname,'..');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id,offset){
@@ -14,10 +15,22 @@ function team(id,offset){
  }))};
 }
 const preview={seed:'PSE-ENCLOSED-BROWSER',home:team('home',0),away:team('away',11)};
-let result;
+let result,keeperSceneSeconds;
 for(let n=0;n<100;n++){
  const next=qs.simulate(preview,{seed:'ENCLOSED-BROWSER-'+n});
- if(next.events.some(e=>e.type==='goal'&&e.minute>3&&e.minute<86)){result=next;break;}
+ const candidate=bridge.snapshot(preview,next),field={width:106,height:68};
+ for(const goal of candidate.events.filter(e=>e.type==='goal'&&e.minute>3&&e.minute<86)){
+  const attack=goal.team===candidate.home.id?0:1,start=(goal.minute-.7)*60;
+  const initial=sample(candidate,field,start);
+  const depth=attack===0?106-initial.ball.x:initial.ball.x;
+  if(depth>13||Math.abs(initial.ball.y-34)>5||Math.floor(initial.stage.owner/11)!==attack)continue;
+  const sec=start+42*.82,frame=motionFrame(candidate,sec/60,field);
+  const keeper=frame.actors[(1-attack)*11];
+  if(frame.goalkeeperRushSide===1-attack&&Math.hypot(keeper.x-frame.ball.x,keeper.y-frame.ball.y)<2){
+   result=next;keeperSceneSeconds=sec;break;
+  }
+ }
+ if(result)break;
 }
 assert(result,'Need a deterministic seeded match with a goal');
 assert(result.events.every(e=>e.type==='goal'||e.type==='save'));
@@ -86,6 +99,24 @@ async function serve(){
     el.step='any';el.value=String(sec/60);
     el.dispatchEvent(new Event('input',{bubbles:true}));
    },seconds);
+   await seekExact(keeperSceneSeconds);
+   for(const view of ['orthographic','isometric','topdown']){
+    await page.locator('#projection').selectOption(view);
+    const scene=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+    for(const goal of scene.goalGeometry){
+     const rails=scene.boardGeometry.filter(s=>s[0][0]===goal.x&&s[1][0]===goal.x);
+     assert.equal(rails.length,2);
+     assert(rails.every(s=>s[1][1]<goal.min||s[0][1]>goal.max),
+      'Rendered wall extends between native goalposts in '+view);
+    }
+    const side=scene.goalkeeperRushSide;
+    assert(side===0||side===1,'Goal-scene keeper must charge in '+view);
+    const keeper=scene.actorWorldPositions[side*11];
+    assert(Math.hypot(keeper[0]-scene.ball.x,keeper[1]-scene.ball.y)<2,
+     'Rendered keeper did not close the one-on-one in '+view);
+    await page.screenshot({path:path.join(screenshots,'goal-clearance-keeper-'+view+'-'+device+'.png')});
+   }
+   await page.locator('#projection').selectOption('orthographic');
    const at=bank.start+bank.duration*bank.wall.impactU;
    await seekExact(at);
    const impact=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
@@ -139,7 +170,7 @@ async function serve(){
     ' four-board physical banks, loose-ball pickup, six boards, no whistles, stable goal replay');
    // The production game uses the *embedded* iframe, not the standalone
    // Watch page. Check its actual positioned overlay and zoom controls.
-   await page.goto(url+'?embedded=1&inline=1&v=17',
+   await page.goto(url+'?embedded=1&inline=1&v=18',
     {waitUntil:'domcontentloaded',timeout:30000});
    await page.waitForFunction(()=>
     document.documentElement.classList.contains('pfc-inline'),

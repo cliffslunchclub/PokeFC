@@ -7,10 +7,14 @@
  * cross a goal line through those openings. No events or stats are made.
  */
 const RADIUS=.34;
-const GOAL_HALF_WIDTH=3.66;
-// Padding around the posts matches the collision no-board clearance. It
-// keeps the raised rail visibly OUTSIDE the projected goal net too.
-const GOAL_BOARD_OPEN_HALF_WIDTH=GOAL_HALF_WIDTH+RADIUS+.65;
+// Pinned Soccer-JS Goal.createPair uses 40–60% of pitch height. Its
+// rendered mouth is 13.6m on this pitch, not a regulation 7.32m goal.
+const GOAL_HALF_WIDTH=68*.1;
+const POST_CLEARANCE=.2;
+const GOAL_BOARD_OPEN_HALF_WIDTH=GOAL_HALF_WIDTH+POST_CLEARANCE;
+function goalBounds(field,goal){
+ return {min:goal?.yMin??field.height*.4,max:goal?.yMax??field.height*.6};
+}
 // Very soft padded boards: retain only 3–7% of the prior .82 rebound.
 // The ball rolls at most 0.6 m outward from the contact point.
 const ORIGINAL_RESTITUTION=.82;
@@ -35,7 +39,9 @@ function candidate(from,to,field,axis,edge,reboundFactor=DEFAULT_REBOUND_FACTOR)
  impact[lateral]=lerp(from[lateral],to[lateral],ratio);
  if(axis==='x'){
   // The goal is an OPENING in the end board. Never bounce across it.
-  if(Math.abs(impact.y-field.height/2)<=GOAL_BOARD_OPEN_HALF_WIDTH)return null;
+  const mouth=goalBounds(field);
+  if(impact.y>=mouth.min-POST_CLEARANCE-RADIUS&&
+   impact.y<=mouth.max+POST_CLEARANCE+RADIUS)return null;
   if(impact.y<RADIUS+.8||impact.y>field.height-RADIUS-.8)return null;
  }else if(impact.x<RADIUS+.8||impact.x>field.width-RADIUS-.8)return null;
  const inLength=Math.hypot(impact.x-from.x,impact.y-from.y);
@@ -85,12 +91,13 @@ function sampleWall(stage,seconds){
 }
 // Shared render geometry and physics goal-mouth model. There are no crossbar
 // boards or rails spanning the goal opening; the six pieces meet the posts.
-function boardSegments(field){
- const mid=field.height/2,half=GOAL_BOARD_OPEN_HALF_WIDTH,w=field.width,h=field.height;
+function boardSegments(field,goals={}){
+ const left=goalBounds(field,goals.left),right=goalBounds(field,goals.right);
+ const w=field.width,h=field.height;
  return [
   [[0,0],[w,0]],[[0,h],[w,h]],
-  [[0,0],[0,mid-half]],[[0,mid+half],[0,h]],
-  [[w,0],[w,mid-half]],[[w,mid+half],[w,h]]
+  [[0,0],[0,left.min-POST_CLEARANCE]],[[0,left.max+POST_CLEARANCE],[0,h]],
+  [[w,0],[w,right.min-POST_CLEARANCE]],[[w,right.max+POST_CLEARANCE],[w,h]]
  ];
 }
 function boundary(ball,field){
@@ -99,4 +106,4 @@ function boundary(ball,field){
 }
 module.exports={candidate,sampleWall,boundary,RADIUS,GOAL_HALF_WIDTH,
  ORIGINAL_RESTITUTION,DEFAULT_REBOUND_FACTOR,MIN_REBOUND_FACTOR,MAX_REBOUND_FACTOR,
- MAX_REBOUND_DISTANCE,GOAL_BOARD_OPEN_HALF_WIDTH,boardSegments};
+ MAX_REBOUND_DISTANCE,GOAL_BOARD_OPEN_HALF_WIDTH,POST_CLEARANCE,goalBounds,boardSegments};

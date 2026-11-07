@@ -233,25 +233,22 @@ function motionFrame(fixture,t,field,options=false){
   const p2={x:lerp(p0.x,finish.x,.74),
    y:limit(lerp(p0.y,finish.y,.72)+wing*3,field.height*.13,field.height*.87)};
   const lob=(hash(String(event.player)+':through:'+String(event.minute))%4===0);
-  let phase='run',ownerIndex=support;
-  if(u<.34){
-   const v=ease(u/.34);
-   ball={x:lerp(p0.x,p1.x,v),y:lerp(p0.y,p1.y,v),z:.23};
-  }else if(u<.70){
-   const v=ease((u-.34)/.36);
-   ball={x:lerp(p1.x,p2.x,v),y:lerp(p1.y,p2.y,v),
-    z:.23+(lob?3:.48)*Math.sin(Math.PI*v)};
-   phase=lob?'lofted-through':'through';ownerIndex=-1;
-  }else if(u<.88){
-   const v=ease((u-.70)/.18);
-   ball={x:lerp(p2.x,finish.x,v),y:lerp(p2.y,finish.y,v),z:.23};
-   phase='run';ownerIndex=scorerId;
-  }else{
-   const v=ease((u-.88)/.12);
-   ball={x:lerp(finish.x,net.x,v),y:lerp(finish.y,net.y,v),
+  function goalBallAt(second){
+   const progress=limit((second/60-initial)/span,0,1);
+   if(progress<.34){const v=ease(progress/.34);
+    return {x:lerp(p0.x,p1.x,v),y:lerp(p0.y,p1.y,v),z:.23};}
+   if(progress<.70){const v=ease((progress-.34)/.36);
+    return {x:lerp(p1.x,p2.x,v),y:lerp(p1.y,p2.y,v),
+     z:.23+(lob?3:.48)*Math.sin(Math.PI*v)};}
+   if(progress<.88){const v=ease((progress-.70)/.18);
+    return {x:lerp(p2.x,finish.x,v),y:lerp(p2.y,finish.y,v),z:.23};}
+   const v=ease((progress-.88)/.12);
+   return {x:lerp(finish.x,net.x,v),y:lerp(finish.y,net.y,v),
     z:.23+1.3*Math.sin(v*Math.PI)};
-   phase='shot';ownerIndex=-1;
   }
+  ball=goalBallAt(seconds);
+  const phase=u<.34?'run':u<.70?(lob?'lofted-through':'through'):u<.88?'run':'shot';
+  let ownerIndex=u<.34?support:u>=.70&&u<.88?scorerId:-1;
   // Two attackers arrive at the ball along continuous paths. They never
   // teleport into their shooting poses at a goal-scene boundary.
   const starter=actors[support],startActor=opening.actors[support];
@@ -263,12 +260,13 @@ function motionFrame(fixture,t,field,options=false){
   const follow=u>.70&&u<.88?ball:finish;
   finisher.x=lerp(startScorer.x,u>=.70?follow.x-attack*.55:p2.x-attack*.55,arrival);
   finisher.y=lerp(startScorer.y,u>=.70?follow.y-.3:p2.y-.3,arrival);
-  const keeper=actors[(1-side)*11],ready=ease(u/.70);
-  // Keeper guards the goal line, then dives the wrong way as the ball
-  // crosses in the opposite side-netting lane. Entirely illustrative.
-  keeper.x=lerp(keeper.x,origin(side,.955,field),ready);
-  const shotDive=ease((u-.88)/.12);
-  keeper.y=lerp(keeper.y,field.height*.5-wing*2.2*shotDive,ready);
+  const keeper=actors[(1-side)*11];
+  const keeperPosition=Keeper.sceneAt(field,event,seconds,{
+   start:initial*60,end:event.minute*60,shot:(initial+span*.88)*60,
+   side:1-side,opening:opening.actors[(1-side)*11],ballAt:goalBallAt,
+   diveY:field.height*.5-wing*2.2
+  });
+  keeper.x=keeperPosition.x;keeper.y=keeperPosition.y;
   // The attack moves together before the official scorer takes the shot.
   // An official defender scorer makes a late run from deeper cover; others
   // follow without all abandoning their defensive positions.
@@ -298,6 +296,8 @@ function motionFrame(fixture,t,field,options=false){
    strength:enter
   });
   return {actors,ball,ownerIndex,contact:phase,
+   goalkeeperRushSide:u<.88&&Keeper.target(1-side,field,
+    {mode:'carry',owner:side*11+6},ball).urgent?1-side:null,
    action:t>=event.minute?'official-goal':u>=.88?'illustrative-shot':'illustrative-goal-buildup',
    label:t>=event.minute?'GOAL! '+roster.lineup[scorer].name:'',
    buildup:phase,officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
