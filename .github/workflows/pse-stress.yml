@@ -1,6 +1,11 @@
 name: PokéFC PSE stress and calibration — no deployment
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/phase10-motion.cjs'
+      - 'watch/soccerjs/test-shot-retreat.cjs'
+      - '.github/workflows/pse-stress.yml'
 permissions:
   contents: read
 jobs:
