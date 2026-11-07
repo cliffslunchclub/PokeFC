@@ -150,6 +150,7 @@ async function serve(){
    await page.locator('#highlightToggle').click();
    assert((await page.locator('#highlightList .highlight-entry').count())>0,
     'A recorded goal must be replayable from the highlight drawer');
+   await page.locator('[data-highlight-filter="goal"]').click();
    await page.locator('#highlightList .highlight-entry button').first().click();
    assert.equal((await page.evaluate(()=>window.__PFC_SNAPSHOT__)).replay?.kind,'goal');
    await page.locator('#highlightReplayReturn').click();

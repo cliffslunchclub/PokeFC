@@ -23,6 +23,8 @@ for(let seed=0;seed<16;seed++){
   assert(dist(shoot.ball,shoot.actors[s.shooter])<1.8,'No waiting away from the receiving touch');
   assert.equal(motionFrame(fixture,(sec+.3)/60,field,{saveEvent:event}).ownerIndex,s.keeper,'Save ends held, never rebound');
   assert.equal(motionFrame(fixture,(s.release+.1)/60,field,{saveEvent:event}).action,'illustrative-keeper-punt');
+  const received=motionFrame(fixture,s.arrival/60,field,{saveEvent:event});
+  assert(Math.min(...received.actors.filter(a=>a.side===Math.floor(s.keeper/11)&&a.index!==0).map(a=>dist(a,received.ball)))<1.8,'Long punt must reach an actual receiver');
   for(const at of [s.start,s.active,s.shotStart,s.end,s.release,s.arrival,s.finish]){
    const a=presentationFrame(fixture,at-.000001,field,{saveEvent:event}),b=presentationFrame(fixture,at+.000001,field,{saveEvent:event});
    const seam=Math.max(dist(a.ball,b.ball),...a.actors.map((p,i)=>dist(p,b.actors[i])));

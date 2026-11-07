@@ -19,7 +19,7 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/save-host-test',r=>r.fulfill({contentType:'text/html',body:host}));
   await page.goto(origin+'/save-host-test');await page.waitForFunction(()=>window.ready,null,{timeout:120000});
-  const frame=page.frames().find(f=>f.url().includes('dist/index.html'));
+  let frame=page.frames().find(f=>f.url().includes('dist/index.html'));
   assert(frame);const snap=()=>frame.evaluate(()=>window.__PFC_SNAPSHOT__);
   const seek=async t=>{await page.evaluate(t=>window.session.seek(t),t);await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__.minute-t)<1e-7,t);};
   assert.equal((await snap()).autoContinueSaves,false);
@@ -60,6 +60,11 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   await page.waitForTimeout(1800);assert((await snap()).savePaused,'Auto-continue fired before three seconds');
   await frame.waitForFunction(()=>!window.__PFC_SNAPSHOT__.savePaused&&window.__PFC_SNAPSHOT__.watchPlaying,null,{timeout:5000});
   await page.evaluate(()=>window.session.pause());
+  // Start a fresh match in the same browser: the preference must survive.
+  await page.reload();await page.waitForFunction(()=>window.ready,null,{timeout:120000});
+  frame=page.frames().find(f=>f.url().includes('dist/index.html'));
+  assert.equal((await snap()).autoContinueSaves,true,'Save preference must survive across matches');
+  assert(await page.locator('.pfc-save-auto-control input').isChecked());
   await page.locator('.pfc-save-auto-control input').uncheck();
   await frame.waitForFunction(()=>!window.__PFC_SNAPSHOT__.autoContinueSaves);
   // Identical official times queue separate natural reconstructions at a held clock.
@@ -81,4 +86,23 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   console.log('PASS '+device+': saves at 1/4/16x, replay cancel/return, synced persistent preference, real 3s automatic Continue, long punt, tied-save queue, once-only Watch→Sim');
   await page.close();
  }
+ // A goal only 5.4 seconds after a save must settle continuously at its
+ // immutable clock time rather than teleport from an unfinished keeper punt.
+ const clustered=qs.simulate(preview,{seed:'official-saves-12'});
+ const closeSave=clustered.events.find(e=>e.type==='save'&&clustered.events.some(g=>g.type==='goal'&&g.minute>e.minute&&g.minute-e.minute<.1));
+ assert(closeSave);const closeGoal=clustered.events.find(g=>g.type==='goal'&&g.minute>closeSave.minute&&g.minute-closeSave.minute<.1);
+ const page=await browser.newPage({viewport:{width:390,height:844}});
+ await page.route('**/cluster-host-test',r=>r.fulfill({contentType:'text/html',body:host.replace(JSON.stringify(result),JSON.stringify(clustered))}));
+ await page.goto(origin+'/cluster-host-test');await page.waitForFunction(()=>window.ready,null,{timeout:120000});
+ const frame=page.frames().find(f=>f.url().includes('dist/index.html'));
+ await page.evaluate(t=>window.session.seek(t),closeSave.minute-.03/60);
+ await page.evaluate(()=>window.session.play(16));await frame.locator('#highlightNotice').waitFor({state:'visible'});
+ await frame.locator('#highlightNoticeDismiss').click();
+ await frame.waitForFunction(t=>window.__PFC_SNAPSHOT__.goalPaused&&window.__PFC_SNAPSHOT__.minute===t,closeGoal.minute,{timeout:15000});
+ const end=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+ assert.equal(end.officialEventType,'goal');assert(end.ball.x>106||end.ball.x<0,'Goal alert must wait for ball to reach net');
+ assert.equal(await frame.locator('#highlightNoticeTitle').textContent(),"GOAL! · "+Math.floor(closeGoal.minute+1)+"′ · "+preview.home.lineup.find(p=>p.id===closeGoal.player).name);
+ assert.equal(await page.evaluate(()=>window.records),0);
+ console.log('PASS tightly clustered official save→goal: held presentation clock, secured save, natural punt transition and goal alert only after ball reaches net');
+ await page.close();
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}})().catch(e=>{console.error(e);process.exitCode=1});

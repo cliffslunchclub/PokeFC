@@ -24,9 +24,11 @@ function sequence(f,field,event,normal){
   defending,keeper:keeperId,event,fixture:f,width:field.width,height:field.height};
  const release=end+.85;
  const targetX=clamp(catchPoint.x+(side===0?-1:1)*42,12,field.width-12);
- const receiver=defending*11+6;
  const target={x:targetX,y:clamp(field.height/2+((Director.hash(event.player+event.minute)%2)?8:-8),5,field.height-5),z:.23};
- const arrival=release+dist(catchPoint,target)/18;
+ const receiver=Array.from({length:10},(_,i)=>defending*11+i+1)
+  .sort((a,b)=>dist(atEnd.actors[a],target)-dist(atEnd.actors[b],target)||a-b)[0];
+ const arrival=release+Math.max(dist(catchPoint,target)/18,
+  dist(atEnd.actors[receiver],target)/4-(release-end));
  let finish=arrival+12,landing;
  for(let i=0;i<5;i++){
   finish=Math.min(finish,(f.durationMinutes||90)*60);landing=normal(finish);
@@ -49,12 +51,24 @@ function buildupActors(s,seconds,normal){
  return actors;
 }
 function restartActors(s,seconds,normal){
- const terminal=buildupActors(s,s.end,normal),landing=normal(s.arrival).actors;
- return terminal.map((a,id)=>{
-  if(id===s.keeper)return {...a,x:s.net.x,y:s.net.y,z:0};
-  const target=id===s.receiver?{...landing[id],x:s.target.x-(s.defending===0?.72:-.72),y:s.target.y-.32}:landing[id];
-  return blend(a,target,(seconds-s.end)/(s.arrival-s.end));
- });
+ const terminal=buildupActors(s,s.end,normal);
+ if(!s.arrivalActors){
+  const direction=s.defending===0?1:-1,elapsed=s.arrival-s.end;
+  const opponents=terminal.map((a,id)=>({id,d:dist(a,s.target)}))
+   .filter(a=>Math.floor(a.id/11)!==s.defending&&a.id%11!==0)
+   .sort((a,b)=>a.d-b.d||a.id-b.id).slice(0,2).map(a=>a.id);
+  s.arrivalActors=normal(s.arrival).actors.map((a,id)=>{
+   if(id===s.keeper)return {...a,x:s.net.x,y:s.net.y,z:0};
+   let target={...a};
+   if(Math.floor(id/11)===s.defending)target.x=clamp(terminal[id].x+direction*8,1,s.width-1);
+   const rank=opponents.indexOf(id);
+   if(rank>=0)target={...a,x:s.target.x+direction*2.5,y:s.target.y+(rank===0?-2:2)};
+   if(id===s.receiver)target={...a,x:s.target.x-direction*.72,y:s.target.y-.32};
+   const d=dist(terminal[id],target),u=Math.min(1,elapsed*4/Math.max(.001,d));
+   return blend(terminal[id],target,u);
+  });
+ }
+ return terminal.map((a,id)=>blend(a,s.arrivalActors[id],(seconds-s.end)/(s.arrival-s.end)));
 }
 function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=null){
  if(frame.officialEvent?.type==='goal'&&!targetEvent)return frame;

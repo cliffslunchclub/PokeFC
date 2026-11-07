@@ -44,7 +44,7 @@ const summary=shotSummary(fixture.stats);
 assert.match(summary,/FULL-TIME TOTALS \(not live\)/);
 assert.match(summary,/Shots 14–16/);
 assert.match(summary,/On target 9–7/);
-assert.match(summary,/Keeper saves 6–7/);
+assert.match(summary,/Saves 6–7/);
 assert.throws(()=>shotSummary([{...fixture.stats[0],shotsOnTarget:99},fixture.stats[1]]),/reconcile/);
 assert.throws(()=>shotSummary([{...fixture.stats[0],saves:100},fixture.stats[1]]),/reconcile/);
 const goal=fixture.events.find(e=>e.type==='goal');

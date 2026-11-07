@@ -128,6 +128,7 @@ function showHighlightNotice(entry,allowCountdown=true){
  $('highlightNoticeMessage').textContent=save?entry.name+' saves the shot from '+entry.shooterName+'!':
   'Ball in the net. Match paused. Watch the illustrative buildup again or continue at the selected speed.';
  $('highlightNoticePlay').textContent=save?'Watch Replay':'↺ VIEW REPLAY';
+ $('highlightNoticePlay').disabled=entry.replayAvailable===false;
  $('highlightNoticeDismiss').textContent=save?'Continue Match':'▶ CONTINUE';
  $('highlightNoticeDismiss').setAttribute('aria-label','Continue match after '+entry.kind);
  $('saveAutoAlertLabel').hidden=!save;
@@ -185,7 +186,7 @@ function highlightEntryElement(entry,buttonLabel){
  const detail=document.createElement('small');detail.textContent=entry.description;
  info.append(title,detail);
  const button=document.createElement('button');button.type='button';
- button.textContent=buttonLabel;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
+ button.textContent=entry.replayAvailable===false?'Replay unavailable':buttonLabel;button.disabled=entry.replayAvailable===false;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
  button.addEventListener('click',()=>replayMoment(entry.id));
  row.append(time,info,button);return row;
 }
@@ -537,7 +538,7 @@ function step(now){
   const visible=window.__PFC_SNAPSHOT__,entry=pendingGoal.entry;
   const close=Math.hypot(visible.ball.x-source.ball.x,visible.ball.y-source.ball.y)<.15;
   const keeper=entry.kind==='save'?visible.actorWorldPositions[source.saveSequence?.keeper]:null;
-  const secured=entry.kind!=='save'||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
+  const secured=entry.kind!=='save'||!source.saveSequence||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
   if(now>=pendingGoal.showAt&&close&&secured){pendingGoal=null;showHighlightNotice(entry)}
  }
  if(replaySession){
@@ -578,7 +579,7 @@ function step(now){
    if(entry&&!promptedGoals.has(entry.id)){
     promptedGoals.add(entry.id);minute=newGoal.minute;playing=false;last=null;
     liveSaveEvent=entry.kind==='save'?entry.event:null;
-    incidentQueue=catalog(match,minute,kickIndex).filter(e=>e.kind==='save'&&e.minute===minute&&!promptedGoals.has(e.id));
+    incidentQueue=catalog(match,minute,kickIndex).filter(e=>e.kind==='save'&&e.replayAvailable!==false&&e.minute===minute&&!promptedGoals.has(e.id));
     render(minute);
     pendingGoal={entry,showAt:now+(entry.kind==='save'?0:800)};
    }else render(minute);

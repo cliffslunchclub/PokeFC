@@ -41,7 +41,7 @@ function shotSummary(stats){
  }
  return 'FULL-TIME TOTALS (not live) · Shots '+stats[0].shots+'–'+stats[1].shots+
   ' · On target '+stats[0].shotsOnTarget+'–'+stats[1].shotsOnTarget+
-  ' · Keeper saves '+stats[0].saves+'–'+stats[1].saves;
+  ' · Saves '+stats[0].saves+'–'+stats[1].saves;
 }
 // Preserve the viewer-selected speed all the way through the goal. The
 // goal modal, not a hidden time dilation, handles celebration and replay.
