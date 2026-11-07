@@ -26,7 +26,7 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
     const original=proto[name];proto[name]=function(...args){
      if(this.canvas.id==='pitch'){
       if(name==='clearRect')window.__paintOrder=[];
-      if(name==='stroke'&&this.strokeStyle==='#e53935')window.__paintOrder?.push('wall');
+      if(name==='stroke'&&this.strokeStyle==='#e53935'&&this.lineWidth===3)window.__paintOrder?.push('wall');
       if(name==='drawImage'&&args[0]?.src?.includes('/sprites/pokemon/'))window.__paintOrder?.push('pokemon');
      }
      return original.apply(this,args);
