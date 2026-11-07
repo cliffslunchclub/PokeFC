@@ -40,7 +40,9 @@ function apply(f,field,seconds,frame,normal,official=normal){
  if(!s||frame.officialEvent||frame.goalSequenceStart!==undefined)return frame;
  const ready=s.start+s.transit;
  let actors,ball,owner=-1,contact;
- if(seconds<ready){
+ // A seek uses minutes and then converts back to seconds; tolerate the
+ // resulting sub-microsecond roundoff at the exact ready boundary.
+ if(seconds<ready-1e-6){
   const u=(seconds-s.start)/s.transit;
   actors=s.opening.actors.map((a,i)=>blend(a,s.setup[i],u));ball=blend(s.opening.ball,s.center,u);contact='kickoff-reposition';
  }else if(seconds<s.kick){actors=s.setup.map(a=>({...a}));ball=s.center;owner=s.kicker;contact='kickoff-setup';}
