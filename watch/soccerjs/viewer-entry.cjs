@@ -9,16 +9,72 @@ const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
 const Commentary=require('./phase10-commentary.cjs');
 const Wall=require('./phase10-wall-physics.cjs');
+const Onside=require('./phase10-onside-movement.cjs');
+const Boundaries=require('./phase10-player-boundaries.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,kickIndex=0,kickElapsed=0;
+let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,trackedRenderAt=null,kickIndex=0,kickElapsed=0;
 let zoomFactor=1; // Reset by each fresh Watch iframe, retained across camera modes.
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
+const SAVE_AUTO_KEY='pokefc-auto-continue-saves';
+let autoContinueSaves=false,saveAutoDeadline=null;
+let liveSaveEvent=null,incidentQueue=[],queuedPresentation=null;
+try{autoContinueSaves=localStorage.getItem(SAVE_AUTO_KEY)==='true'}catch(_){}
+function setSaveAuto(value){
+ autoContinueSaves=!!value;
+ try{localStorage.setItem(SAVE_AUTO_KEY,String(autoContinueSaves))}catch(_){}
+ for(const id of ['saveAutoControl','saveAutoAlert'])if($(id))$(id).checked=autoContinueSaves;
+ saveAutoDeadline=autoContinueSaves&&replayNotice?.startsWith('save-')&&!replaySession?performance.now()+3000:null;
+ send({type:'save-preference',enabled:autoContinueSaves});
+ if(match&&sim){lastSent=-2;render(minute)}
+}
+function continueMatch(){
+ if(incidentQueue.length&&liveSaveEvent){
+  const at=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
+  clearHighlightNotice();playing=false;last=null;lastSent=-2;
+  queuedPresentation={phase:'restart',seconds:minute*60,end:at.saveSequence.finish,entry:null,last:null};
+  return;
+ }
+ clearHighlightNotice();lastSent=-2;last=null;playing=minute<stopAt;render(minute);
+}
+function queuedStep(now){
+ const q=queuedPresentation;if(!q)return false;
+ if(q.paused){q.last=now;return true;}
+ const realDelta=q.last===null?0:Math.max(0,(now-q.last)/1000);q.last=now;
+ if(realDelta>2){q.paused=true;lastSent=-2;render(minute);return true;}
+ const delta=realDelta*speed;
+ const field=Utils.getFieldBounds();
+ if(q.phase==='transition'){
+  q.elapsed+=delta;const u=Math.min(1,q.elapsed/q.duration);
+  const move=(a,b)=>({...b,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z||0,b.z||0,u)});
+  const frame={...q.to,ball:move(q.from.ball,q.to.ball),actors:q.from.actors.map((a,i)=>move(a,q.to.actors[i])),
+   action:'illustrative-save-buildup',officialEvent:null,ownerIndex:-1};
+  q.frame=frame;render(minute,{sceneFrame:frame,sceneSeconds:q.clock+q.elapsed});
+  if(u>=1)queuedPresentation={phase:'save',seconds:q.start,end:q.end,entry:q.entry,last:now};
+ }else{
+  q.seconds=Math.min(q.end,q.seconds+delta);render(minute,{sceneSeconds:q.seconds});
+  if(q.seconds>=q.end){
+   if(q.phase==='save'){
+    promptedGoals.add(q.entry.id);queuedPresentation=null;showHighlightNotice(q.entry);
+   }else{
+    const from=motionFrame(match,q.end/60,field,{saveEvent:liveSaveEvent});
+    const entry=incidentQueue.shift();liveSaveEvent=entry.event;
+    const target=motionFrame(match,entry.minute,field,{saveEvent:entry.event});
+    const start=Math.max(0,target.saveSequence.start),to=motionFrame(match,start/60,field,{saveEvent:entry.event});
+    const duration=Math.max(.5,Math.hypot(from.ball.x-to.ball.x,from.ball.y-to.ball.y)/14,
+     ...from.actors.map((a,i)=>Math.hypot(a.x-to.actors[i].x,a.y-to.actors[i].y)/4));
+    queuedPresentation={phase:'transition',frame:from,clock:q.end,elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
+   }
+  }
+ }
+ return true;
+}
+
 let commentaryFeed=null,commentaryShown=null,commentarySeenAt=null;
 let commentaryChangedAt=0,commentaryHistoryOpen=false,commentaryHistoryKey='';
 let commentaryLastKick=0,commentaryLastReplay=false;
@@ -66,18 +122,28 @@ function highlightEntries(){
  return catalog(match,position.minute,position.kickIndex);
 }
 function clearHighlightNotice(){
- pendingGoal=null;replayNotice=null;$('highlightNotice').hidden=true;
+ pendingGoal=null;replayNotice=null;saveAutoDeadline=null;$('highlightNotice').hidden=true;
 }
-function showHighlightNotice(entry){
- if(replaySession||!entry||entry.kind!=='goal')return;
- playing=false;last=null;
- replayNotice=entry.id;
- $('highlightNoticeTitle').textContent="GOAL! · "+Math.floor(entry.minute+1)+"′ · "+entry.name;
+function showHighlightNotice(entry,allowCountdown=true){
+ if(replaySession||!entry||!['goal','save'].includes(entry.kind))return;
+ playing=false;last=null;replayNotice=entry.id;
+ const save=entry.kind==='save';
+ $('highlightNoticeTitle').textContent=save?'Goalkeeper Save!':"GOAL! · "+Math.floor(entry.minute+1)+"′ · "+entry.name;
+ $('highlightNoticeEyebrow').textContent=save?'● OFFICIAL PSE SAVE':'● OFFICIAL PSE GOAL';
+ $('highlightNoticeMessage').textContent=save?entry.name+' saves the shot from '+entry.shooterName+'!':
+  'Ball in the net. Match paused. Watch the illustrative buildup again or continue at the selected speed.';
+ $('highlightNoticePlay').textContent=save?'Watch Replay':'↺ VIEW REPLAY';
+ $('highlightNoticePlay').disabled=entry.replayAvailable===false;
+ $('highlightNoticeDismiss').textContent=save?'Continue Match':'▶ CONTINUE';
+ $('highlightNoticeDismiss').setAttribute('aria-label','Continue match after '+entry.kind);
+ $('saveAutoAlertLabel').hidden=!save;
+ $('saveAutoAlert').checked=autoContinueSaves;
  $('highlightNotice').hidden=false;
+ saveAutoDeadline=save&&autoContinueSaves&&allowCountdown?performance.now()+3000:null;
  lastSent=-2;render(minute);
 }
 function clearMotionTracking(){
- smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;trackedPhase=null;
+ smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;trackedPhase=null;trackedRenderAt=null;
 }
 function setHighlightDrawer(open){
  highlightDrawerOpen=!!open;
@@ -86,7 +152,7 @@ function setHighlightDrawer(open){
  if(open){clearHighlightNotice();renderHighlightCatalog(true);}
 }
 function replayMoment(id){
- if(!match||replaySession)return false;
+ if(!match||replaySession||queuedPresentation)return false;
  const entry=resolveHighlight(match,String(id),minute,kickIndex);
  const clip=clipFor(match,entry);
  if(!clip)return false;
@@ -111,7 +177,7 @@ function returnToMatch(){
  render(minute);
  if(saved.goalPromptId){
   const goal=catalog(match,minute,kickIndex).find(e=>e.id===saved.goalPromptId);
-  if(goal)showHighlightNotice(goal);
+  if(goal)showHighlightNotice(goal,false);
  }
  return true;
 }
@@ -125,7 +191,7 @@ function highlightEntryElement(entry,buttonLabel){
  const detail=document.createElement('small');detail.textContent=entry.description;
  info.append(title,detail);
  const button=document.createElement('button');button.type='button';
- button.textContent=buttonLabel;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
+ button.textContent=entry.replayAvailable===false?'Replay unavailable':buttonLabel;button.disabled=entry.replayAvailable===false;button.setAttribute('aria-label','Replay '+entry.title+' by '+entry.name);
  button.addEventListener('click',()=>replayMoment(entry.id));
  row.append(time,info,button);return row;
 }
@@ -159,7 +225,7 @@ function renderHighlightCatalog(force=false){
    let lane=lanes.findIndex(last=>x-last>=36);
    if(lane<0){lane=lanes.length;lanes.push(-Infinity);}
    lanes[lane]=x;marker.style.left=(x/width*100)+'%';marker.style.top=(lane*36)+'px';
-   marker.textContent=entry.kind==='goal'?'⚽':'◎';
+   marker.textContent=entry.kind==='goal'?'⚽':entry.kind==='save'?'🧤':'◎';
    marker.title=(Math.floor(entry.minute)+1)+'′ · '+entry.title+' · View replay';
    marker.setAttribute('aria-label',marker.title);marker.dataset.highlightId=entry.id;
    marker.onclick=()=>replayMoment(entry.id);host.append(marker);
@@ -202,6 +268,7 @@ function cameraFit(canvas,field,ball){
 // instantaneously teleport when a new illustrative action is chosen.
 // All tracking is presentation-only; official score/events stay untouched.
 function smoothMotion(script,t){
+ const now=performance.now(),realElapsed=trackedRenderAt===null?0:Math.max(0,(now-trackedRenderAt)/1000);trackedRenderAt=now;
  // A goal-to-kickoff transition is a broadcast camera cut, never ball travel.
  // Discard positional and camera smoothing for the FIRST kickoff frame only.
  const kickoffCut=script.sceneCut==='post-goal-kickoff'&&trackedPhase!=='illustrative-kickoff';
@@ -211,14 +278,16 @@ function smoothMotion(script,t){
   trackedBall={x:script.ball.x,y:script.ball.y,z:script.ball.z};
   trackedMinute=t;trackedPhase=script.action;return script;
  }
- const seconds=Math.max(0,(t-trackedMinute)*60);
+ const seconds=Math.max(0,(t-trackedMinute)*60,
+  pendingGoal&&!replaySession?realElapsed*speed:0);
  // Apply the same travel-speed rules after a pass as before it.
  // Only active counterpressers get a short 5 m/s burst; neither their
  // position nor that of a recent passer can jump to a new tactical target.
- const actors=script.actors.map((p,i)=>({
+ let actors=script.actors.map((p,i)=>({
   ...p,...Pace.approach(trackedActors[i],p,seconds,Pace.speedFor(script,i))
  }));
  const ball=Pace.approach(trackedBall,script.ball,seconds,28);
+ actors=Boundaries.apply(Onside.guard({...script,actors,ball},Utils.getFieldBounds()),Utils.getFieldBounds()).actors;
  trackedActors=actors.map(p=>({x:p.x,y:p.y}));
  trackedBall={x:ball.x,y:ball.y,z:ball.z};
  trackedMinute=t;trackedPhase=script.action;
@@ -325,20 +394,27 @@ function renderCommentary(t,script,isReplay){
 }
 function render(t,options={}){
  const isReplay=options.replay===true;
+ if(queuedPresentation&&!isReplay&&!Number.isFinite(options.sceneSeconds)){
+  const q=queuedPresentation;options={...options,sceneSeconds:q.phase==='transition'?q.clock+q.elapsed:q.seconds,
+   sceneFrame:q.phase==='transition'?q.frame:options.sceneFrame};
+ }
+ const sceneMinute=Number.isFinite(options.sceneSeconds)?options.sceneSeconds/60:t;
+ const saveEvent=isReplay&&replaySession?.entry.kind==='save'?replaySession.entry.event:liveSaveEvent;
  if($('fullscreenPlayback')){
-  $('fullscreenPause').hidden=!playing;
-  $('fullscreenResume').hidden=!!playing;
+  const running=playing||queuedPresentation&&!queuedPresentation.paused;
+  $('fullscreenPause').hidden=!running;
+  $('fullscreenResume').hidden=!!running;
   $('fullscreenSpeed').value=String(speed);
  }
  const field=Utils.getFieldBounds(),s=scoreAt(t);
  if(!commentaryFeed)commentaryFeed=Commentary.build(match,field);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
- const script=isReplay&&replaySession?.clip.kind==='shootout'?
+ const script=options.sceneFrame?smoothMotion(options.sceneFrame,sceneMinute):isReplay&&replaySession?.clip.kind==='shootout'?
   motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
   match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
    motionFrame(match,t,field,{kickIndex}):
-   smoothMotion(motionFrame(match,t,field),t);
+   smoothMotion(motionFrame(match,sceneMinute,field,{saveEvent}),sceneMinute);
  for(const p of script.actors){
   const actor=(p.side===0?sim.teamA:sim.teamB).players[p.index];
   actor.x=p.x;actor.y=p.y;actor.z=p.z;
@@ -399,7 +475,9 @@ function render(t,options={}){
 
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
   'illustrative-one-on-one-shot':'Immediate one-on-one shot',
-  'illustrative-keeper-block':'Keeper block · illustrative',
+  'illustrative-one-on-one-miss':'Wide miss · illustrative',
+  'illustrative-save-buildup':'Goalkeeper save buildup','illustrative-save-shot':'Shot on target',
+  'official-save':'OFFICIAL PSE GOALKEEPER SAVE','illustrative-keeper-punt':'Keeper long kick',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
   'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
   'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
@@ -414,7 +492,7 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice,watchPlaying:!!playing,watchSpeed:speed});
+   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -448,7 +526,9 @@ function render(t,options={}){
    x:goal.lineX,min:goal.yMin,max:goal.yMax
   })),
   boardGeometry:Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal}),
-  goalPaused:!!replayNotice,watchPlaying:playing,
+  goalPaused:!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
+  queuedSavePresentation:queuedPresentation?.phase||null,queuedSaveCount:incidentQueue.length,
+  autoContinueSaves,saveAutoCountdown:saveAutoDeadline!==null,kickoff:script.kickoff||null,saveSequence:script.saveSequence||null,
   replay:isReplay?{id:replaySession.entry.id,
    kind:replaySession.clip.kind,progress:options.progress||0}:null};
  if(!isReplay)renderHighlightCatalog();
@@ -459,10 +539,19 @@ function advanceKick(){
  kickIndex++;kickElapsed=0;render(minute);return true;
 }
 function step(now){
+ if(queuedStep(now)){requestAnimationFrame(step);return;}
+ if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
- // This is a fixed 800 ms real-time hold, not a change to match time.
- if(pendingGoal&&!replaySession&&now>=pendingGoal.showAt){
-  const {entry}=pendingGoal;pendingGoal=null;showHighlightNotice(entry);
+ // Goals retain a minimum 800 ms hold. Any remaining physical settling
+ // happens with the presentation clock held, at the selected movement speed.
+ if(pendingGoal&&!replaySession){
+  render(minute);
+  const source=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
+  const visible=window.__PFC_SNAPSHOT__,entry=pendingGoal.entry;
+  const close=Math.hypot(visible.ball.x-source.ball.x,visible.ball.y-source.ball.y)<.15;
+  const keeper=entry.kind==='save'?visible.actorWorldPositions[source.saveSequence?.keeper]:null;
+  const secured=entry.kind!=='save'||!source.saveSequence||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
+  if(now>=pendingGoal.showAt&&close&&secured){pendingGoal=null;showHighlightNotice(entry)}
  }
  if(replaySession){
   if(replayLast!==null){
@@ -496,18 +585,22 @@ function step(now){
   if(minute>=stopAt&&(minute<match.durationMinutes||
    !match.shootout||kickIndex>=match.shootout.attempts.length))playing=false;
   last=playing?now:null;
-  const newGoal=match.events.find(e=>e.type==='goal'&&e.minute>before+1e-7&&e.minute<=minute+1e-7);
+  const newGoal=match.events.find(e=>['goal','save'].includes(e.type)&&e.minute>before+1e-7&&e.minute<=minute+1e-7);
   if(newGoal){
-   const entry=catalog(match,newGoal.minute,kickIndex).find(e=>e.kind==='goal'&&e.event===newGoal);
+   const entry=catalog(match,newGoal.minute,kickIndex).find(e=>e.kind===newGoal.type&&e.event===newGoal);
    if(entry&&!promptedGoals.has(entry.id)){
     promptedGoals.add(entry.id);minute=newGoal.minute;playing=false;last=null;
-    render(minute);pendingGoal={entry,showAt:now+800};
+    liveSaveEvent=entry.kind==='save'?entry.event:null;
+    incidentQueue=catalog(match,minute,kickIndex).filter(e=>e.kind==='save'&&e.replayAvailable!==false&&e.minute===minute&&!promptedGoals.has(e.id));
+    render(minute);
+    pendingGoal={entry,showAt:now+(entry.kind==='save'?0:800)};
    }else render(minute);
   }else render(minute);
  }
  requestAnimationFrame(step);
 }
 function seek(t){
+ queuedPresentation=null;incidentQueue=[];liveSaveEvent=null;
  if(replaySession)returnToMatch();
  if(t<minute)promptedGoals.clear();
  playing=false;last=null;clearMotionTracking();kickElapsed=0;
@@ -517,6 +610,7 @@ function seek(t){
  render(minute);
 }
 function finish(){
+ queuedPresentation=null;incidentQueue=[];liveSaveEvent=null;
  if(replaySession)returnToMatch()&&finish();
  playing=false;last=null;clearMotionTracking();clearHighlightNotice();
  minute=match.durationMinutes;kickIndex=match.shootout?.attempts.length||0;
@@ -581,9 +675,11 @@ async function boot(){
   $('highlightToggle').onclick=()=>setHighlightDrawer(!highlightDrawerOpen);
   $('highlightClose').onclick=()=>setHighlightDrawer(false);
   $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
-  $('highlightNoticeDismiss').onclick=()=>{
-   clearHighlightNotice();lastSent=-2;last=null;playing=minute<stopAt;render(minute);
-  };
+  $('highlightNoticeDismiss').onclick=continueMatch;
+  for(const id of ['saveAutoControl','saveAutoAlert']){
+   $(id).checked=autoContinueSaves;$(id).onchange=e=>setSaveAuto(e.target.checked);
+  }
+  window.addEventListener('storage',e=>{if(e.key===SAVE_AUTO_KEY)setSaveAuto(e.newValue==='true')});
   $('highlightReplayReturn').onclick=returnToMatch;
   $('highlightReplaySpeed').onclick=()=>{
    replaySpeed=replaySpeed===.5?1:.5;
@@ -634,8 +730,9 @@ async function boot(){
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
-  $('fullscreenPause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
+  $('fullscreenPause').onclick=()=>{if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
+   if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
    if(replayNotice||pendingGoal)clearHighlightNotice();
    lastSent=-2;
    if(minute<match.durationMinutes){playing=true;last=null;}
@@ -676,6 +773,7 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
+    if(queuedPresentation){speed=Math.max(1,Math.min(16,Number(msg.speed)||speed));queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
@@ -684,11 +782,14 @@ async function boot(){
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
+    if(queuedPresentation)queuedPresentation.paused=true;
     playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){
     $('fullscreenPlayback').hidden=!msg.active;
     document.documentElement.classList.toggle('pfc-watch-fullscreen',!!msg.active);
     render(minute);
+   }else if(msg.action==='save-auto'){
+    setSaveAuto(msg.enabled);
    }else if(msg.action==='speed'){
     const v=Number(msg.speed);
     if(Number.isFinite(v)&&v>0&&v<=16){speed=v;last=null;lastSent=-2;render(minute);}

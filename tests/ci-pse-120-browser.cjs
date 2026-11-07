@@ -67,9 +67,9 @@ async function serve(){
    assert.equal(await page.locator('#highlightList .highlight-entry').count(),0,
     'Highlight drawer cannot reveal future PSE events');
    await page.locator('#highlightClose').click();
-   const from=Math.max(0,firstGoal.minute-.12);
+   const from=Math.max(0,firstGoal.minute-.001);
    await page.locator('#scrub').evaluate((el,v)=>{
-    el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.step='any';el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
    },from);
    await page.locator('#speed').selectOption('16');
    await page.locator('#play').click();
@@ -122,6 +122,7 @@ async function serve(){
    // center-circle kickoff, never gliding backwards across the field.
    // The range control quantizes input by its step; seek the two adjacent
    // selectable moments around the goal-to-kickoff boundary.
+   await page.locator('#scrub').evaluate(el=>el.step='.05');
    const scrubStep=Number(await page.locator('#scrub').getAttribute('step'))||.05;
    const cutMinute=firstGoal.minute+.22;
    const holdMinute=Math.floor((cutMinute-1e-7)/scrubStep)*scrubStep;
@@ -136,19 +137,20 @@ async function serve(){
    },restartMinute);
    const restarted=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(restarted.animation,'illustrative-kickoff','Missing kickoff broadcast cut on '+device);
-   assert(['kickoff-setup','kickoff-pass'].includes(restarted.ballContact),
+   assert(['kickoff-reposition','kickoff-setup','kickoff-pass','kickoff-recovery'].includes(restarted.ballContact),
     'Kickoff must have a valid setup/pass phase on '+device);
    if(restarted.ballContact==='kickoff-setup')
     assert(restarted.carrier>=0,'Kickoff setup needs a controlling Pokémon on '+device);
    else assert.equal(restarted.carrier,-1,'Kickoff pass cannot claim midflight possession');
-   assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)>15,
-    'A reset cut should not pretend the scored ball travels backwards to midfield');
+   assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)<
+    (restartMinute-holdMinute)*60*14+.1,'Restart ball must travel continuously');
    assert.deepEqual(restarted.score,bridge.scoreAt(fixture,restartMinute),
     'Kickoff visual must never change the official PSE score');
    await page.screenshot({path:path.join(screenshotDir,'pse-kickoff-'+device+'.png')});
    await page.locator('#highlightToggle').click();
    assert((await page.locator('#highlightList .highlight-entry').count())>0,
     'A recorded goal must be replayable from the highlight drawer');
+   await page.locator('[data-highlight-filter="goal"]').click();
    await page.locator('#highlightList .highlight-entry button').first().click();
    assert.equal((await page.evaluate(()=>window.__PFC_SNAPSHOT__)).replay?.kind,'goal');
    await page.locator('#highlightReplayReturn').click();

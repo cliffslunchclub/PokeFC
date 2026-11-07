@@ -1,10 +1,9 @@
 {
   "schema": "pokefc-quick-sim-export/v1",
   "source": "PokeFC private Quick Sim v0.7b",
-  "engineBlob": "5287e3db03dba56b2b23555dd5c5c8eca8078e2e",
   "origin": "quick-sim",
   "seed": "phase10-real-fixture-2",
-  "exportedAs": "numerical match snapshot only — no private engine code",
+  "exportedAs": "result data only; no private simulation source",
   "competition": "league",
   "durationMinutes": 90,
   "home": {
@@ -160,7 +159,7 @@
   "events": [
     {
       "type": "goal",
-      "minute": 53.1507066229824,
+      "minute": 53.5,
       "team": "pewter",
       "player": "p9",
       "assist": "p8",
@@ -176,7 +175,7 @@
     },
     {
       "type": "goal",
-      "minute": 79.74485425720923,
+      "minute": 74.95,
       "team": "cerulean",
       "player": "c10",
       "assist": "c3",

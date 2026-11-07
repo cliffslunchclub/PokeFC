@@ -217,7 +217,7 @@ function renderGoalReplayActions(result){
  };
 }
 function openGoalReplay(id){
- if(!/^(goal|pk)-\d+$/.test(String(id))||!preview||!currentResult)return;
+ if(!/^(goal|save|pk)-\d+$/.test(String(id))||!preview||!currentResult)return;
  const modal=$('goalReplayModal'),stage=$('goalReplayStage'),status=$('goalReplayStatus');
  if(!modal||!stage)return;
  // The original Watch may still own the renderer even after it recorded.
@@ -225,7 +225,7 @@ function openGoalReplay(id){
  if(soccerSession)stopWatch();
  closeGoalReplay();
  stage.textContent='';
- if(status)status.textContent='Loading official '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
+ if(status)status.textContent='Loading official '+(id.startsWith('pk-')?'penalty':id.startsWith('save-')?'goalkeeper save':'goal')+' replay…';
  if(!modal.open){if(typeof modal.showModal==='function')modal.showModal();else modal.open=true}
  const bridge=window.FXI_PHASE10_WATCH;
  if(!bridge?.mountInline){if(status)status.textContent='2.5D replay player is not available.';return}
@@ -420,7 +420,7 @@ function watchSoccerMatch(){
     $('matchState').textContent='WATCHING · BROADCAST';
     $('engineStatus').textContent='Soccer-JS 2.5D in the match screen. Movement is illustrative; scores and statistics are official Quick Sim.';
    },
-   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout,pausedForGoal=false,watchPlaying=null,watchSpeed=null})=>{
+   onProgress:({minute,score,finished,handedOff,kickIndex=0,shootout,pausedForGoal=false,pausedForSave=false,watchPlaying=null,watchSpeed=null})=>{
     $('score').textContent=score.join(' : ');
     const totalKicks=shootout?.attempts.length||0;
     $('matchClock').textContent=finished?'FULL TIME':
@@ -429,9 +429,10 @@ function watchSoccerMatch(){
     if(Number.isFinite(watchSpeed)&&watchSpeed>0)$('watchSpeed').value=String(watchSpeed);
     if(!finished&&!handedOff){
      if(pausedForGoal)$('matchState').textContent='GOAL! · PAUSED FOR REPLAY';
+     else if(pausedForSave)$('matchState').textContent='GOALKEEPER SAVE · PAUSED FOR REPLAY';
      else if(watchPlaying!==null)$('matchState').textContent=watchPlaying?'WATCHING · BROADCAST':'PAUSED';
-     if(watchPlaying!==null||pausedForGoal){
-      const running=!!watchPlaying&&!pausedForGoal;
+     if(watchPlaying!==null||pausedForGoal||pausedForSave){
+      const running=!!watchPlaying&&!pausedForGoal&&!pausedForSave;
       $('pause').disabled=!running;$('resume').disabled=running;
      }
     }

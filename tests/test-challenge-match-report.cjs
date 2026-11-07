@@ -83,9 +83,9 @@ const allEvents=report.timelineFromEvents([
 assert.deepEqual(Array.from(allEvents.map(e=>e.type)),['goal','foul','save','card','half-time','substitution'],
  'Every supported recorded event is chronological and unsupported/unknown events are omitted');
 const html=report.renderTimeline(allEvents);
-for(const label of ['GOAL','FOUL','SAVE','YELLOW CARD','HALF-TIME','SUBSTITUTION','Lapras','Porygon2'])
+for(const label of ['GOAL','FOUL','Goalkeeper save','YELLOW CARD','HALF-TIME','SUBSTITUTION','Lapras','Porygon2'])
  assert(html.includes(label),'Timeline includes '+label);
-assert(html.indexOf('GOAL')<html.indexOf('FOUL')&&html.indexOf('FOUL')<html.indexOf('SAVE'),'Chronological timeline displayed');
+assert(html.indexOf('GOAL')<html.indexOf('FOUL')&&html.indexOf('FOUL')<html.indexOf('Goalkeeper save'),'Chronological timeline displayed');
 assert.doesNotMatch(html,/SIM TO END|WATCHED|QUICK SIM|pfc-event-origin/,'Display hides per-event engine tags while saved records retain origin');
 const escaped=report.renderTimeline([{type:'foul',side:0,minuteLabel:'3',player:'<script>alert(1)</script>',origin:'tacticmesh'}]);
 const grouped=report.renderGroupedTimeline(allEvents);

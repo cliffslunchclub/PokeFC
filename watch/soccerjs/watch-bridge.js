@@ -326,7 +326,7 @@
    if(watchdog!==null)root.clearTimeout(watchdog);
    root.removeEventListener('message',onMessage);
    if(fullscreenActive(container))void leaveFullscreen(container);
-   frame.remove();
+   frame.remove();saveControl?.remove();root.removeEventListener('storage',syncSaveControl);
    if(active===session)active=null;
   }
   function fail(message){
@@ -345,6 +345,8 @@
     if(ready)return;ready=true;
     frame.contentWindow.postMessage({type:TYPE+'-fixture',fixture},origin);
     announce('loading',{message:'Official Quick Sim fixture accepted; preparing Broadcast Soccer-JS'});
+   }else if(e.data.type===TYPE+'-save-preference'){
+    syncSaveControl();
    }else if(e.data.type===TYPE+'-booted'){
     if(booted||!ready||error)return;
     if(e.data.projection!=='orthographic'){
@@ -373,7 +375,7 @@
     if(typeof onProgress==='function')onProgress({
      minute,score:official,finished,handedOff,recorded,
      durationMinutes:duration,kickIndex,shootout:fixture.shootout||null,
-     pausedForGoal:e.data.pausedForGoal===true,
+     pausedForGoal:e.data.pausedForGoal===true,pausedForSave:e.data.pausedForSave===true,
      watchPlaying:typeof e.data.watchPlaying==='boolean'?e.data.watchPlaying:null,
      watchSpeed:[1,2,4,8,16].includes(Number(e.data.watchSpeed))?Number(e.data.watchSpeed):null
     });
@@ -393,6 +395,7 @@
    getState:()=>({ready:booted,minute,durationMinutes:duration,kickIndex,score:scoreAt(fixture,minute),finished,handedOff,recorded,error,closed}),
    play:(speed=1)=>!finished&&send('play',{speed:Number(speed)||1}),
    pause:()=>send('pause'),
+   setAutoContinueSaves:(enabled)=>send('save-auto',{enabled:!!enabled}),
    setSpeed:(speed)=>Number.isFinite(Number(speed))&&Number(speed)>0&&Number(speed)<=16&&send('speed',{speed:Number(speed)}),
    setProjection:(projection)=>['isometric','orthographic','topdown'].includes(projection)&&send('projection',{projection}),
    setCamera:(camera)=>['wide','follow'].includes(camera)&&send('camera',{camera}),
@@ -400,7 +403,7 @@
    // Highlight controls are presentation-only; no Sim-to-Watch handoff.
    openHighlights:()=>!closed&&(!handedOff||finished)&&send('highlights'),
    replayHighlight:(id)=>!closed&&(!handedOff||finished)&&
-    typeof id==='string'&&/^(goal|pk)-\d+$/.test(id)&&send('replay',{id}),
+    typeof id==='string'&&/^(goal|save|pk)-\d+$/.test(id)&&send('replay',{id}),
    // Rewind/scrub is visual only. After Watch → Sim, replay cannot resume.
    seek:(target)=>Number.isFinite(Number(target))&&Number(target)>=0&&Number(target)<=duration&&!handedOff&&!recorded&&send('seek',{minute:Number(target)}),
    simToEnd:()=>{
@@ -427,6 +430,27 @@
   };
   active=session;
   root.addEventListener('message',onMessage);
+  // Inline Watch hides the viewer's normal controls, so expose the synced
+  // preference alongside the host's Watch speed control as well.
+  let saveControl=null;
+  const speedSelect=document.getElementById?.('watchSpeed');
+  function syncSaveControl(){
+   if(saveControl)try{saveControl.querySelector('input').checked=root.localStorage.getItem('pokefc-auto-continue-saves')==='true'}catch(_){}
+  }
+  if(speedSelect){
+   saveControl=document.createElement('label');saveControl.className='pfc-save-auto-control';
+   saveControl.style.cssText='display:flex;flex-direction:column;gap:4px;font-size:13px;width:100%;padding:8px 0';
+   const line=document.createElement('span'),check=document.createElement('input');check.type='checkbox';
+   check.setAttribute('aria-label','Auto-continue after goalkeeper saves');
+   line.append(check,document.createTextNode(' Auto-continue after goalkeeper saves'));
+   const help=document.createElement('small');help.textContent='Resume play automatically 3 seconds after a goalkeeper save.';
+   saveControl.append(line,help);speedSelect.closest('label').after(saveControl);syncSaveControl();
+   check.onchange=()=>{
+    try{root.localStorage.setItem('pokefc-auto-continue-saves',String(check.checked))}catch(_){}
+    send('save-auto',{enabled:check.checked});
+   };
+   root.addEventListener('storage',syncSaveControl);
+  }
   container.appendChild(frame);
   watchdog=root.setTimeout(()=>{if(!booted)fail('Soccer-JS viewer bundle did not initialize. Build watch/soccerjs/dist locally.');},15000);
   announce('loading',{message:'Loading the 2.5D Soccer-JS field'});

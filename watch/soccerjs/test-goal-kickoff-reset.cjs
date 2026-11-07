@@ -2,7 +2,8 @@
 const assert=require('node:assert/strict');
 const fixture=require('./fixture.json');
 const {motionFrame}=require('./phase10-motion.cjs');
-const {nextBoundary}=require('./phase10-play-director.cjs');
+const Kickoff=require('./phase10-kickoff.cjs');
+const {rawMotionFrame}=require('./phase10-motion.cjs');
 const field={width:106,height:68},original=JSON.stringify(fixture);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 let tested=0;
@@ -33,11 +34,12 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const after=motionFrame(fixture,cut+1e-7,field);
  assert.equal(before.action,'official-goal');
  assert.equal(after.action,'illustrative-kickoff');
- assert.equal(after.sceneCut,'post-goal-kickoff');
- assert(distance(after.ball,{x:field.width/2,y:field.height/2})<.001);
+ assert.equal(after.sceneCut,null);
+ assert(distance(before.ball,after.ball)<.001,'No net-to-centre teleport');
+ assert(Math.max(...before.actors.map((a,i)=>distance(a,after.actors[i])))<.001);
  assert.equal(after.officialEvent,null,'Kickoff is not an invented official PSE event');
  const restartStart=(pos+.22)*60;
- const restartEnd=nextBoundary(fixture,field,restartStart+4);
+ const restartEnd=after.kickoff.end;
  const mid=motionFrame(fixture,((restartStart+restartEnd)/2)/60,field);
  assert.equal(mid.action,'illustrative-kickoff');
  const landingBefore=motionFrame(fixture,(restartEnd-1e-5)/60,field);

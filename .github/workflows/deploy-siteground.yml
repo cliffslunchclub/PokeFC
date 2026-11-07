@@ -169,10 +169,13 @@ jobs:
           set -euo pipefail
           (cd soccer-js-upstream && npm install --no-audit --no-fund)
           cp watch/soccerjs/viewer-entry.cjs soccer-js-upstream/pfc-viewer-entry.cjs
+          cp watch/soccerjs/phase10-player-boundaries.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-motion.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-onside-movement.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-one-on-one.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-goal-sequence.cjs soccer-js-upstream/
+          cp watch/soccerjs/phase10-kickoff.cjs soccer-js-upstream/
+          cp watch/soccerjs/phase10-save-sequence.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-play-director.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-player-pace.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-goalkeeper-rush.cjs soccer-js-upstream/

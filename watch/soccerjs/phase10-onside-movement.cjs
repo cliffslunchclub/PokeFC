@@ -22,4 +22,11 @@ function apply(actors,field,ball,side,{carrier=-1,runner=-1,run=0,strength=1}={}
  }
  return boundary;
 }
-module.exports={BUFFER,line,apply};
+// Apply the same live-position rule after screen-frame smoothing and seeking.
+function guard(frame,field){
+ if(!frame.onsideGuard)return frame;
+ const actors=frame.actors.map(p=>({...p}));
+ for(const rule of frame.onsideGuard)apply(actors,field,frame.ball,rule.side,rule);
+ return {...frame,actors};
+}
+module.exports={BUFFER,line,apply,guard};

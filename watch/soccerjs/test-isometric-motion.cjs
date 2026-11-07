@@ -44,7 +44,7 @@ const summary=shotSummary(fixture.stats);
 assert.match(summary,/FULL-TIME TOTALS \(not live\)/);
 assert.match(summary,/Shots 14–16/);
 assert.match(summary,/On target 9–7/);
-assert.match(summary,/Keeper saves 6–7/);
+assert.match(summary,/Saves 6–7/);
 assert.throws(()=>shotSummary([{...fixture.stats[0],shotsOnTarget:99},fixture.stats[1]]),/reconcile/);
 assert.throws(()=>shotSummary([{...fixture.stats[0],saves:100},fixture.stats[1]]),/reconcile/);
 const goal=fixture.events.find(e=>e.type==='goal');
@@ -90,9 +90,8 @@ for(const event of fixture.events.filter(e=>e.type==='goal')){
   }else{
    assert.equal(left.action,'official-goal','Goal must finish in the net');
    assert.equal(right.action,'illustrative-kickoff','Goal must cut to a kickoff');
-   assert.equal(right.sceneCut,'post-goal-kickoff');
-   assert(distance(right.ball,{x:field.width/2,y:field.height/2})<.03,
-    'Kickoff restarts at midfield');
+   assert.equal(right.sceneCut,null);
+   assert(distance(left.ball,right.ball)<.03,'Ball travels continuously back to midfield');
   }
  }
 }

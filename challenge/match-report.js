@@ -13,7 +13,7 @@
   const teams=[fixture?.home||{},fixture?.away||{}];
   const names=teams.map(t=>new Map((t.lineup||[]).map(p=>[safe(p.id),safe(p.name)||'Unknown Pokémon'])));
   const resolve=(side,id)=>id==null?null:names[side]?.get(safe(id))||null;
-  const all=[];let goalIndex=0;
+  const all=[];let goalIndex=0,saveIndex=0;
   for(const [index,e] of (Array.isArray(events)?events:[]).entries()){
    if(!TYPES.has(e?.type))continue;
    const period=['half-time','second-half','full-time'].includes(e.type);
@@ -24,7 +24,7 @@
    if(!validLabel(minuteLabel))minuteLabel=inRange(minute)?String(Math.floor(minute)+(period?0:1)):'?';
    const rawCard=typeof e.card==='string'?e.card:typeof e.card?.type==='string'?e.card.type:'';
    const card=/red/i.test(rawCard)?'red':/yellow/i.test(rawCard)?'yellow':null;
-   all.push({...(e.type==='goal'?{replayId:'goal-'+goalIndex++}:{}),type:e.type,side,minute:inRange(minute)?scalar(minute):null,minuteLabel,
+   all.push({...(e.type==='goal'?{replayId:'goal-'+goalIndex++}:e.type==='save'?{replayId:'save-'+saveIndex++}:{}),type:e.type,side,minute:inRange(minute)?scalar(minute):null,minuteLabel,
     player:side==null?null:resolve(side,e.player),
     assist:side==null?null:resolve(side,e.assist),
     shooter:side==null?null:resolve(1-side,e.shooter),
@@ -37,11 +37,11 @@
   return all.sort((a,b)=>(a.minute??999)-(b.minute??999)||a.index-b.index).map(({index,...entry})=>entry);
  }
  function attachReplayIds(entries,events,fixture){
-  const recorded=timelineFromEvents(events,fixture).filter(e=>e.type==='goal');
+  const recorded=timelineFromEvents(events,fixture).filter(e=>e.type==='goal'||e.type==='save');
   return (Array.isArray(entries)?entries:[]).map(e=>{
-   if(e?.type!=='goal'||e.replayId)return e;
+   if(!['goal','save'].includes(e?.type)||e.replayId)return e;
    let matches=e.id?recorded.filter(g=>g.id&&g.id===e.id):[];
-   if(!matches.length)matches=recorded.filter(g=>g.side===e.side&&g.player===e.player&&
+   if(!matches.length)matches=recorded.filter(g=>g.type===e.type&&g.side===e.side&&g.player===e.player&&
     (num(g.minute)!=null&&num(e.minute)!=null?Math.abs(g.minute-e.minute)<.051:g.minuteLabel===e.minuteLabel));
    return matches.length===1?{...e,replayId:matches[0].replayId}:e;
   });
@@ -49,7 +49,7 @@
  function renderTimeline(entries,opts={}){
   const list=Array.isArray(entries)?entries.filter(x=>TYPES.has(x?.type)):[];
   if(!list.length)return '<p class="match-event-empty">'+escape(opts.empty||'No individual match events were recorded.')+'</p>';
-  const labels={goal:'GOAL',save:'SHOT ON TARGET · SAVED',shot:'SHOT',corner:'CORNER',foul:'FOUL','free-kick':'FREE KICK','penalty-kick':'PENALTY KICK',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
+  const labels={goal:'GOAL',save:'Goalkeeper save',shot:'SHOT',corner:'CORNER',foul:'FOUL','free-kick':'FREE KICK','penalty-kick':'PENALTY KICK',card:'CARD',substitution:'SUBSTITUTION','half-time':'HALF-TIME','second-half':'SECOND HALF','full-time':'FULL-TIME'};
   const symbols={goal:'⚽',save:'🧤',shot:'◉',corner:'⚑',foul:'⚑','free-kick':'⚽','penalty-kick':'◎',card:'▣',substitution:'⇄','half-time':'◷','second-half':'▶','full-time':'■'};
   return '<ol class="pfc-event-timeline">'+list.map(e=>{
    const type=e.type,side=e.side===0?'home':e.side===1?'away':'neutral';
@@ -65,7 +65,7 @@
     '<span class="pfc-event-content"><strong>'+escape(heading)+'</strong>'+
      (detail?'<span>'+escape(detail)+'</span>':'')+
      '<small>'+(side==='home'?'YOUR XI':side==='away'?'OPPONENT':'MATCH')+'</small>'+
-     (type==='goal'&&typeof opts.replayButton==='function'?opts.replayButton(e):'')+'</span></li>';
+     (['goal','save'].includes(type)&&typeof opts.replayButton==='function'?opts.replayButton(e):'')+'</span></li>';
   }).join('')+'</ol>';
  }
  function renderGroupedTimeline(entries,opts={}){

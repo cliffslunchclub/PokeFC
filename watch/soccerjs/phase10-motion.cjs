@@ -3,7 +3,7 @@
  * Phase 10C v0.1: deterministic ILLUSTRATIVE five-minute visual sequences.
  * Runs only on official Quick Sim fixture snapshots. Does not simulate goals,
  * player stats, tackles, substitutions, shot probability, or possession totals.
- * All events except official Quick Sim goal timestamps are animation inventions.
+ * Official goals and goalkeeper saves retain their Quick Sim timestamps; other movement is illustrative.
  */
 const PlayDirector=require('./phase10-play-director.cjs');
 const TeamShape=require('./phase10-team-shape.cjs');
@@ -12,6 +12,9 @@ const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const Onside=require('./phase10-onside-movement.cjs');
 const OneOnOne=require('./phase10-one-on-one.cjs');
 const GoalSequence=require('./phase10-goal-sequence.cjs');
+const Kickoff=require('./phase10-kickoff.cjs');
+const Saves=require('./phase10-save-sequence.cjs');
+const Boundaries=require('./phase10-player-boundaries.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -39,7 +42,7 @@ function shotSummary(stats){
  }
  return 'FULL-TIME TOTALS (not live) · Shots '+stats[0].shots+'–'+stats[1].shots+
   ' · On target '+stats[0].shotsOnTarget+'–'+stats[1].shotsOnTarget+
-  ' · Keeper saves '+stats[0].saves+'–'+stats[1].saves;
+  ' · Saves '+stats[0].saves+'–'+stats[1].saves;
 }
 // Preserve the viewer-selected speed all the way through the goal. The
 // goal modal, not a hidden time dilation, handles celebration and replay.
@@ -136,7 +139,7 @@ function supportingPose(fixture,owner,field,seconds,wave=waveAt(fixture,field,se
  const advanced=lerp(progress,Math.max(progress,target),pressure*amount);
  return {x:limit(origin(side,advanced,field),1,field.width-1),y:original.y};
 }
-function rawMotionFrame(fixture,t,field,options=false){
+function unboundedMotionFrame(fixture,t,field,options=false){
  const ignoreGoal=options===true;
  const kickIndex=options&&typeof options==='object'&&Number.isInteger(options.kickIndex)?options.kickIndex:0;
  if(!fixture||!fixture.home||!fixture.away||!Array.isArray(fixture.events))
@@ -197,22 +200,42 @@ function rawMotionFrame(fixture,t,field,options=false){
  const event=goals.find(g=>t<=g.minute+.22&&
   seconds>=GoalSequence.forGoal(fixture,field,g,sec=>rawMotionFrame(fixture,sec/60,field,true)).start);
  if(event){
-  const sequence=GoalSequence.forGoal(fixture,field,event,sec=>rawMotionFrame(fixture,sec/60,field,true));
+  let sequence=GoalSequence.forGoal(fixture,field,event,sec=>rawMotionFrame(fixture,sec/60,field,true));
+  const previous=goals.filter(g=>g!==event&&g.minute<event.minute).at(-1);
+  const entryTime=Math.max(sequence.start,previous?(previous.minute+.22)*60:0);
+  const director=sec=>rawMotionFrame(fixture,sec/60,field,true);
+  let entry=director(entryTime);
+  if(previous&&entryTime===(previous.minute+.22)*60)entry=rawMotionFrame(fixture,(entryTime-.000001)/60,field);
+  else entry=Kickoff.apply(fixture,field,entryTime,entry,director,sec=>rawMotionFrame(fixture,sec/60,field));
+  const changed=entry.kickoff||entry.officialEvent||entryTime>sequence.start;
+  if(changed)sequence={...sequence,start:entryTime,active:Math.max(entryTime+.1,sequence.active),openingRun:entry};
   const {side,scorer:scorerId,support,finish,net,wing}=sequence;
   const normal=rawMotionFrame(fixture,t,field,true);
   for(let i=0;i<actors.length;i++)Object.assign(actors[i],normal.actors[i]);
   const pose=GoalSequence.sample(sequence,plan,seconds);
+  if(changed&&seconds<sequence.active){
+   const u=limit((seconds-sequence.start)/Math.max(.001,sequence.active-sequence.start),0,1);
+   pose.ball={x:lerp(entry.ball.x,sequence.from.x,u),y:lerp(entry.ball.y,sequence.from.y,u),z:lerp(entry.ball.z,.23,u)};
+   for(let i=0;i<actors.length;i++){
+    actors[i].x=lerp(entry.actors[i].x,actors[i].x,u);actors[i].y=lerp(entry.actors[i].y,actors[i].y,u);
+   }
+   pose.owner=-1;
+  }
   ball=pose.ball;
   let ownerIndex=pose.owner;
   const u=limit((seconds-sequence.start)/Math.max(.001,sequence.shotStart-sequence.start),0,1);
   const finisher=actors[scorerId],startScorer=sequence.openingRun.actors[scorerId];
   finisher.x=lerp(startScorer.x,finish.x-(side===0?.55:-.55),u);
   finisher.y=lerp(startScorer.y,finish.y-.3,u);
+  const starter=actors[support];
+  if(seconds<sequence.active){
+   const approach=ease((seconds-sequence.start)/Math.max(.001,sequence.active-sequence.start));
+   starter.x=lerp(sequence.openingRun.actors[support].x,sequence.from.x-(side===0?.72:-.72),approach);
+   starter.y=lerp(sequence.openingRun.actors[support].y,sequence.from.y-.32,approach);
+  }
   if(seconds>=sequence.active){
-   const starter=actors[support],startActor=sequence.opening.actors[support];
-   const receive=limit((seconds-sequence.active)/Math.max(.001,sequence.passStart-sequence.active),0,1);
-   starter.x=lerp(startActor.x,sequence.passFrom.x-(side===0?.6:-.6),receive);
-   starter.y=lerp(startActor.y,sequence.passFrom.y-.3,receive);
+   const carry=GoalSequence.sample(sequence,plan,Math.min(seconds,sequence.passStart)).ball;
+   starter.x=carry.x-(side===0?.72:-.72);starter.y=carry.y-.32;
    const keeper=actors[(1-side)*11];
    Object.assign(keeper,Keeper.sceneAt(field,event,seconds,{
     start:sequence.active,end:sequence.end,shot:sequence.shotStart,side:1-side,
@@ -228,6 +251,9 @@ function rawMotionFrame(fixture,t,field,options=false){
   if(t>=event.minute){ball=net;ownerIndex=-1;}
   const shooting=seconds>=sequence.shotStart;
   return {actors,ball,ownerIndex,contact:pose.phase,attackingSide:side,
+   onsideGuard:[{side,carrier:ownerIndex,runner:scorerId,
+    run:(seconds-sequence.passStart)/Math.max(.001,sequence.shotStart-sequence.passStart),
+    strength:ease((seconds-sequence.start)/.2)}],
    goalSequenceStart:sequence.start,goalShotStart:sequence.shotStart,
    goalPassStart:sequence.passStart,goalBallStart:sequence.active,
    goalkeeperRushSide:seconds>=sequence.active&&!shooting&&Keeper.target(1-side,field,
@@ -236,50 +262,6 @@ function rawMotionFrame(fixture,t,field,options=false){
     pose.phase==='ordinary'?normal.action:'illustrative-goal-buildup',
    label:t>=event.minute?'GOAL! '+teams[side].lineup[scorerId%11].name:'',
    buildup:pose.phase,officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
- }
- // After an official PSE goal, pause on the ball in the net, then use
- // a clearly labelled, discrete kickoff camera CUT to midfield. Never tween
- // the ball backward from the goal to a random illustrative possession.
- // Kickoff itself is illustrative; it changes no PSE event or match statistic.
- if(!ignoreGoal){
-  let scored=null;
-  for(const g of goals)if(t>g.minute+.22&&(!scored||g.minute>scored.minute))scored=g;
-  if(scored){
-   const start=(scored.minute+.22)*60,finish=PlayDirector.nextBoundary(fixture,field,start+4);
-   if(seconds<finish){
-    const nextSide=scored.team===teams[0].id?1:0;
-    const kicker=nextSide*11+6;
-    const center={x:field.width*.5,y:field.height*.5,z:.23};
-    const phase=limit((seconds-start)/(finish-start),0,1);
-    // Finish on an existing controlled position at a deterministic cycle
-    // boundary. The kickoff pass lands without a second visual jump.
-    const landingFrame=rawMotionFrame(fixture,finish/60,field,true);
-    const landing=landingFrame.ball;
-    const release=ease((phase-.22)/.78);
-    const recover=ease((phase-.24)/.76);
-    // Faster possession can change the scripted team shape at the exact
-    // restart boundary. Have every player finish the kickoff by matching
-    // their next live-play position, not just the kicker. That avoids a
-    // sudden post-goal 8m defensive reposition when normal play resumes.
-    for(let i=0;i<actors.length;i++){
-     actors[i].x=lerp(actors[i].x,landingFrame.actors[i].x,recover);
-     actors[i].y=lerp(actors[i].y,landingFrame.actors[i].y,recover);
-    }
-    const actor=actors[kicker];
-    actor.x=lerp(center.x-(nextSide===0?.72:-.72),actor.x,recover);
-    actor.y=lerp(center.y-.32,actor.y,recover);
-    actor.frame=phase>.20&&phase<.40?3:0;
-    const controlled=phase<=.22;
-    ball=controlled?center:{
-     x:lerp(center.x,landing.x,release),
-     y:lerp(center.y,landing.y,release),
-     z:.23+.40*Math.sin(Math.PI*release)};
-    return {actors,ball,action:'illustrative-kickoff',ownerIndex:controlled?kicker:-1,
-     contact:controlled?'kickoff-setup':'kickoff-pass',sceneCut:'post-goal-kickoff',
-     label:phase<.35?'KICKOFF · '+teams[nextSide].name:'',
-     officialEvent:null,illustrative:true};
-   }
-  }
  }
  // Variable-length play sequences are visual only. Never alter PSE events.
  ball=visual.ball;
@@ -330,15 +312,28 @@ function rawMotionFrame(fixture,t,field,options=false){
   segmentStart:visual.segmentStart,segmentEnd:visual.segmentEnd,
   passStart:visual.passStart,passArrival:visual.passArrival,
   passOrigin:visual.passOrigin,passTarget:visual.passTarget,
+  onsideGuard:[defenderSide,attackerSide].map(side=>({side,carrier:visual.ownerIndex,
+   runner:step.mode!=='carry'?step.receiver:-1,
+   run:step.mode!=='carry'?(seconds-step.start)/Math.min(.6,step.duration):0,
+   strength:shape.attack[side]})),
   offsideBoundary,
   wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds};
 
 }
-function motionFrame(fixture,t,field,options=false){
- const frame=rawMotionFrame(fixture,t,field,options);
- // Internal continuity diagnostics can still request the director alone.
- if(options===true)return frame;
- return OneOnOne.apply(fixture,field,t*60,frame,
-  sec=>rawMotionFrame(fixture,sec/60,field));
+function rawMotionFrame(fixture,t,field,options=false){
+ return Boundaries.apply(unboundedMotionFrame(fixture,t,field,options),field);
 }
-module.exports={motionFrame,rawMotionFrame,base,hash,shotSummary,playbackRate};
+function presentationFrame(fixture,seconds,field,options=false){
+ const normal=sec=>rawMotionFrame(fixture,sec/60,field,true);
+ let frame=rawMotionFrame(fixture,seconds/60,field,options);
+ frame=Kickoff.apply(fixture,field,seconds,frame,normal,sec=>rawMotionFrame(fixture,sec/60,field));
+ return Saves.apply(fixture,field,seconds,frame,sec=>Kickoff.apply(fixture,field,sec,
+  rawMotionFrame(fixture,sec/60,field),normal),fixture.events.length,options?.saveEvent||null);
+}
+function motionFrame(fixture,t,field,options=false){
+ if(options===true)return rawMotionFrame(fixture,t,field,true);
+ const frame=presentationFrame(fixture,t*60,field,options);
+ return Boundaries.apply(OneOnOne.apply(fixture,field,t*60,frame,
+  sec=>presentationFrame(fixture,sec,field,options)),field);
+}
+module.exports={motionFrame,rawMotionFrame,presentationFrame,base,hash,shotSummary,playbackRate};

@@ -43,7 +43,7 @@ jobs:
           node tests/test-pse-knockout.cjs
           node tests/test-challenge-play.cjs
           node tests/test-challenge-tier-positions.cjs
-      - name: Confirm no change to default PSE results from enclosed-pitch baseline
+      - name: Preserve default PSE outcomes while allowing approved incident scheduling
         run: |
           mkdir -p /tmp/pfc-position-baseline
           git show 54de561027d9238cc9720a16afe3991a54351601:quick-sim.js > /tmp/pfc-position-baseline/quick-sim.js
@@ -59,10 +59,19 @@ jobs:
               detail:{strength:72+i,reflexes:69+i,positioning:70+i,handling:71+i,
                 diving:67+i,kicking:76+i,decisionMaking:68+i,composure:75+i}}))});
           const preview={home:team('h'),away:team('a')};
+          // Incident scheduling intentionally changes minute/label only.
+          // Keep the historical engine comparison for every other field.
+          const outcomes=result=>({...result,events:result.events.map(event=>{
+            const {minute,minuteLabel,...identity}=event;return identity;
+          })});
           for(let i=0;i<500;i++){
             const seed='PFC-POS-DEFAULT-'+i;
-            assert.deepStrictEqual(current.simulate(preview,{seed}),prior.simulate(preview,{seed}),
-              'New position feature must not alter existing default PSE output for '+seed);
+            assert.deepStrictEqual(outcomes(current.simulate(preview,{seed})),outcomes(prior.simulate(preview,{seed})),
+              'Position and scheduling changes must preserve default PSE outcomes for '+seed);
           }
-          console.log('PASS 500 seeded PSE matches unchanged when position effects are not enabled');
+          console.log('PASS 500 seeded PSE outcomes unchanged apart from approved incident timestamps');
           NODE
+      - name: Verify approved incident spacing and extra-time capacity
+        run: |
+          node tests/test-pse-incident-spacing.cjs
+          node tests/test-pse-extra-time-cap.cjs

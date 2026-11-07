@@ -6,7 +6,7 @@ const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/
 const {planFor,sample}=require('../watch/soccerjs/phase10-play-director.cjs');
 const {motionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const OneOnOne=require('../watch/soccerjs/phase10-one-on-one.cjs');
-const {rawMotionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
+const {rawMotionFrame,presentationFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const root=path.resolve(__dirname,'..');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id,offset){
@@ -42,7 +42,7 @@ assert.equal(fixture.setPieceRules,undefined);
 assert.equal(fixture.durationMinutes,90);
 const stagePlan=planFor(fixture,{width:106,height:68});
 const attempts=OneOnOne.build(fixture,{width:106,height:68},
- sec=>rawMotionFrame(fixture,sec/60,{width:106,height:68}));
+ sec=>presentationFrame(fixture,sec,{width:106,height:68}));
 const outsideGoal=stage=>!fixture.events.some(e=>e.type==='goal'&&
  stage.start<e.minute*60+18&&stage.end>e.minute*60-43);
 const bank=stagePlan.actions.find(stage=>stage.mode==='pass'&&stage.wall&&
@@ -126,11 +126,10 @@ async function serve(){
     assert.equal(shot.carrier,-1);assert.equal(shot.oneOnOne.shooter,attempt.shooter);
     await seekExact(attempt.impactSeconds+.0001);
     const blocked=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
-    assert.equal(blocked.animation,'illustrative-keeper-block');
+    assert.equal(blocked.animation,'illustrative-one-on-one-miss');
     assert.equal(blocked.officialEventType,null);
     const keeper=blocked.actorWorldPositions[attempt.keeper];
-    assert(Math.hypot(blocked.ball.x-keeper[0],blocked.ball.y-keeper[1])<.55,
-     'Keeper block did not visibly contact the ball');
+    assert(Math.abs(blocked.ball.y-34)>6.8,'Illustrative miss must clear goal mouth');
     assert.deepEqual(blocked.score,bridge.scoreAt(fixture,blocked.minute));
     await page.locator('.pitchwrap').screenshot({path:path.join(screenshots,
      'immediate-shot-block-'+view+'-'+device+'.png')});
