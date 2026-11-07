@@ -330,10 +330,47 @@ function presentationFrame(fixture,seconds,field,options=false){
  return Saves.apply(fixture,field,seconds,frame,sec=>Kickoff.apply(fixture,field,sec,
   rawMotionFrame(fixture,sec/60,field),normal),fixture.events.length,options?.saveEvent||null);
 }
+// Backpedal the attacking outfield XI after shots to avoid implying an
+// unrecorded open-net putback from a loose visual block or ricochet.
+// Display-only offsets: PSE outcomes, ball, goalkeeper and future play
+// planning are never changed. Arbitrary seeks and speeds remain stable.
+function retreatAfterShot(frame,seconds){
+ let side,start,release,end,shooter=-1;
+ const one=frame.oneOnOne,save=frame.saveSequence;
+ if(one){
+  side=Math.floor(one.shooter/11);start=one.start;shooter=one.shooter;
+  if(one.outcome==='block'){
+   release=one.clearAt??one.impactSeconds+.8;
+   end=Math.min(one.end,(one.clearArrival??release)+2.5);
+  }else{
+   release=one.impactSeconds+.5;
+   end=Math.min(one.end,one.impactSeconds+2.5);
+  }
+ }else if(save){
+  side=Math.floor(save.shooter/11);start=save.shotStart;shooter=save.shooter;
+  release=save.release;end=Math.min(save.finish,save.release+2.5);
+ }else if(Number.isFinite(frame.goalShotStart)){
+  side=frame.attackingSide;start=frame.goalShotStart;
+  release=start+1.5;end=start+3.5;
+  shooter=frame.actors.findIndex((p,id)=>Math.floor(id/11)===side&&p.frame===3);
+ }else return frame;
+ if((side!==0&&side!==1)||seconds<=start||seconds>=end||frame.kickoff)return frame;
+ const elapsed=seconds-start;
+ const fade=1-ease((seconds-release)/Math.max(.001,end-release));
+ const actors=frame.actors.map((p,id)=>{
+  if(Math.floor(id/11)!==side||id%11===0)return p;
+  // Preserve the kick contact, then retreat 3.2 m at a natural pace.
+  const ramp=ease((elapsed-(id===shooter ? .25 : .08))/1.25);
+  const retreat=3.2*ramp*fade;
+  return {...p,x:p.x+(side===0?-retreat:retreat)};
+ });
+ return {...frame,actors};
+}
 function motionFrame(fixture,t,field,options=false){
  if(options===true)return rawMotionFrame(fixture,t,field,true);
  const frame=presentationFrame(fixture,t*60,field,options);
- return Boundaries.apply(OneOnOne.apply(fixture,field,t*60,frame,
-  sec=>presentationFrame(fixture,sec,field,options)),field);
+ const shot=OneOnOne.apply(fixture,field,t*60,frame,
+  sec=>presentationFrame(fixture,sec,field,options));
+ return Boundaries.apply(retreatAfterShot(shot,t*60),field);
 }
 module.exports={motionFrame,rawMotionFrame,presentationFrame,base,hash,shotSummary,playbackRate};
