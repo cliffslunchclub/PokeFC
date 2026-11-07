@@ -550,8 +550,10 @@ function matchReportHtml(match){
    '<span class="goal-club">'+(side==='home'?'YOUR XI':'OPPONENT')+'</span><div class="goal-info">'+
    '<strong>⚽ '+player+'</strong>'+assist+'</div></li>';
  }).join(''):'<li class="match-no-goals">'+(Number(score[0])===0&&Number(score[1])===0?'No goals in regulation.':'Goal scorer and minute details were not recorded for this match.')+'</li>';
- const savedTimeline=Array.isArray(report?.timeline)&&report.timeline.length?report.timeline:
+ const storedTimeline=Array.isArray(report?.timeline)&&report.timeline.length?report.timeline:
   goals.map(goal=>({...goal,type:'goal'})); // Legacy runs retain their real scorer ledger.
+ const savedTimeline=match.replay?.version===1&&MATCH_REPORT?.attachReplayIds?
+  MATCH_REPORT.attachReplayIds(storedTimeline,match.replay.result?.events,match.replay.preview):storedTimeline;
  const timelineHtml=MATCH_REPORT?.renderGroupedTimeline?.(savedTimeline,{
   replayButton:e=>match.replay?.version===1&&e.replayId?
    '<button type="button" data-match-replay="'+Number(match.round)+'" data-replay-id="'+esc(e.replayId)+'">▶ View replay</button>':'',

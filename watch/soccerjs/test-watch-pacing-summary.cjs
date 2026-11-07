@@ -38,5 +38,10 @@ const events=f.events.filter(e=>e.type==='goal'),timeline=report.timelineFromEve
 assert.deepEqual(Array.from(timeline,e=>e.replayId),events.map((_,i)=>'goal-'+i));
 const html=report.renderGroupedTimeline(timeline,{replayButton:e=>'<button data-replay="'+e.replayId+'">View replay</button>'});
 assert.equal((html.match(/>View replay<\/button>/g)||[]).length,events.length);
+const older=Array.from(timeline,e=>{const {replayId,...rest}=e;return rest;});
+const saved=JSON.stringify(older);
+const restored=report.attachReplayIds(older,events,f);
+assert.deepEqual(Array.from(restored,e=>e.replayId),events.map((_,i)=>'goal-'+i));
+assert.equal(JSON.stringify(older),saved,'Rendering an older report must not mutate its saved data');
 assert.equal(JSON.stringify(f),before,'PSE fixture changed');
 console.log('PASS distance-paced goals, continuous phase transitions, fixed Watch speed, team summaries and timeline replay IDs');

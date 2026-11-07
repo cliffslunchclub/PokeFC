@@ -36,6 +36,16 @@
   }
   return all.sort((a,b)=>(a.minute??999)-(b.minute??999)||a.index-b.index).map(({index,...entry})=>entry);
  }
+ function attachReplayIds(entries,events,fixture){
+  const recorded=timelineFromEvents(events,fixture).filter(e=>e.type==='goal');
+  return (Array.isArray(entries)?entries:[]).map(e=>{
+   if(e?.type!=='goal'||e.replayId)return e;
+   let matches=e.id?recorded.filter(g=>g.id&&g.id===e.id):[];
+   if(!matches.length)matches=recorded.filter(g=>g.side===e.side&&g.player===e.player&&
+    (num(g.minute)!=null&&num(e.minute)!=null?Math.abs(g.minute-e.minute)<.051:g.minuteLabel===e.minuteLabel));
+   return matches.length===1?{...e,replayId:matches[0].replayId}:e;
+  });
+ }
  function renderTimeline(entries,opts={}){
   const list=Array.isArray(entries)?entries.filter(x=>TYPES.has(x?.type)):[];
   if(!list.length)return '<p class="match-event-empty">'+escape(opts.empty||'No individual match events were recorded.')+'</p>';
@@ -123,5 +133,5 @@
    handoffMinute:scalar(num(result?.handoff?.minute))
   };
  }
- root.PFC_MATCH_REPORT={fromResult,timelineFromEvents,renderTimeline,renderGroupedTimeline};
+ root.PFC_MATCH_REPORT={fromResult,timelineFromEvents,renderTimeline,renderGroupedTimeline,attachReplayIds};
 })(typeof window!=='undefined'?window:globalThis);
