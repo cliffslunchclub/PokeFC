@@ -132,7 +132,8 @@ function highlightEntryElement(entry,buttonLabel){
 function renderHighlightCatalog(force=false){
  if(!match||!spriteRoster)return;
  const all=highlightEntries();
- const signature=all.map(e=>e.id).join('|')+'::'+highlightFilter;
+ const signature=all.map(e=>e.id).join('|')+'::'+highlightFilter+':'+
+  $('highlightTimeline').clientWidth+':'+$('timelineMarkers').clientWidth;
  if(!force&&signature===lastCatalogIds)return;
  lastCatalogIds=signature;
  $('highlightCount').textContent=String(all.length);
@@ -151,14 +152,19 @@ function renderHighlightCatalog(force=false){
  }else for(const entry of all)aside.append(highlightEntryElement(entry,'▶ VIEW REPLAY'));
  for(const host of [$('highlightTimeline'),$('timelineMarkers')]){
   host.replaceChildren();
+  const width=host.clientWidth||300,lanes=[];
   for(const entry of all){
    const marker=document.createElement('button');marker.type='button';marker.className='timeline-marker';
-   marker.style.left=(entry.minute/match.durationMinutes*100)+'%';
+   const x=Math.max(16,Math.min(width-16,entry.minute/match.durationMinutes*width));
+   let lane=lanes.findIndex(last=>x-last>=36);
+   if(lane<0){lane=lanes.length;lanes.push(-Infinity);}
+   lanes[lane]=x;marker.style.left=(x/width*100)+'%';marker.style.top=(lane*36)+'px';
    marker.textContent=entry.kind==='goal'?'⚽':'◎';
    marker.title=(Math.floor(entry.minute)+1)+'′ · '+entry.title+' · View replay';
    marker.setAttribute('aria-label',marker.title);marker.dataset.highlightId=entry.id;
    marker.onclick=()=>replayMoment(entry.id);host.append(marker);
   }
+  host.style.height=Math.max(38,lanes.length*36)+'px';
  }
 }
 function cameraFit(canvas,field,ball){
