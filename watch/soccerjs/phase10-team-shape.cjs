@@ -114,9 +114,9 @@ function position(f,field,id,seconds,shape,baseline){
  // Blend the whole block at turnovers; do not reset formation slots.
  const recovery=shape.defense[side];
  const danger=ease((22-ballProgress*field.width)/16);
- const depth=role==='DEF'?-.075:role==='MID'?.08:.24;
+ const depth=role==='DEF'?-.09:role==='MID'?-.035:.20;
  const ceiling=role==='DEF'?.28:role==='MID'?.43:.55;
- const floor=role==='DEF'?.065:role==='MID'?.17:.32;
+ const floor=role==='DEF'?.055:role==='MID'?.12:.30;
  const defensiveProgress=clamp(ballProgress+depth,floor,ceiling);
  progress=lerp(progress,defensiveProgress,recovery*(.65+.25*danger));
  progress=clamp(progress,.06,.955);
@@ -157,7 +157,8 @@ function press(f,field,seconds,visual,shape,actors,ball){
   // incoming defenders accelerate over 1.1 s, avoiding instant swaps.
   if(shape.turnover&&shape.age<1.1)
    nearGoal*=ease(shape.age/1.1);
-  intensity=Math.max(intensity,nearGoal*.99);
+  const handoff=shape.turnover&&shape.age<1.1?ease(shape.age/1.1):1;
+  intensity=Math.max(intensity,.50*ease((22-goalDistance)/2)*handoff+nearGoal*.49);
  }
  if(shape.nextTurnover){
   const timeLeft=shape.nextTurnover.time-seconds;

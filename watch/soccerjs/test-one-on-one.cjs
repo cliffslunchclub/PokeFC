@@ -25,7 +25,12 @@ for(const side of [0,1]){
  assert.equal(O.opportunity(frame,field),null,'Do not shoot an unreceived pass');
  frame.ownerIndex=owner;frame.ball.z=2;
  assert.equal(O.opportunity(frame,field),null,'No ground kick of a high ball');
- frame.ball.z=.23;frame.ball.x=side===0?80:26;
+ frame.ball.z=.23;frame.ball.x=side===0?83:23;
+ frame.actors[owner].x=frame.ball.x;
+ assert(O.opportunity(frame,field),'23 m controlled one-on-one outside box must shoot');
+ frame.ball.y=50;frame.actors[owner].y=50;
+ assert.equal(O.opportunity(frame,field),null,'Wide position beyond radial 25 m must not shoot');
+ frame.ball.y=34;frame.actors[owner].y=34;frame.ball.x=side===0?80:26;
  assert.equal(O.opportunity(frame,field),null,'No penalty-area trigger outside the box');
 }
 const raw=s=>presentationFrame(f,s,field),shots=O.build(f,field,raw);

@@ -15,7 +15,7 @@ function opportunity(frame,field){
  const side=Math.floor(owner/11),goalX=side===0?field.width:0;
  const ball=frame.ball,depth=Math.abs(goalX-ball.x),forward=side===0?1:-1;
  if(distance(frame.actors[owner],ball)>1.8)return null;
- if(depth<.7||Math.hypot(depth,ball.y-field.height*.5)>SHOOTING_RANGE)return null;
+ if(depth<=0||Math.hypot(depth,ball.y-field.height*.5)>SHOOTING_RANGE)return null;
  const keeperId=(1-side)*11,keeper=frame.actors[keeperId];
  if((keeper.x-ball.x)*forward<-.5)return null;
  // A defender in the shooting lane, or already challenging the carrier,
@@ -24,8 +24,9 @@ function opportunity(frame,field){
   const p=frame.actors[id],along=(p.x-ball.x)*forward;
   if(distance(p,ball)<1.3)return null;
   if(along<-.2||along>depth)continue;
-  const laneY=mix(ball.y,field.height*.5,clamp(along/depth,0,1));
-  if(Math.abs(p.y-laneY)<1.8)return null;
+  const vx=goalX-ball.x,vy=field.height*.5-ball.y;
+  const u=((p.x-ball.x)*vx+(p.y-ball.y)*vy)/(vx*vx+vy*vy);
+  if(u>=0&&u<=1&&distance(p,{x:ball.x+vx*u,y:ball.y+vy*u})<1.8)return null;
  }
  return {shooter:owner,keeper:keeperId,side};
 }

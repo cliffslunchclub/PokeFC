@@ -11,7 +11,7 @@ assert(first&&tied.length>=2);
 const original=JSON.stringify(result),out=path.join(root,'pse-browser-artifacts');fs.mkdirSync(out,{recursive:true});
 const server=spawn('python3',['-m','http.server','8767','--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
 const origin='http://127.0.0.1:8767';
-const host='<!doctype html><html><body style="margin:0;background:#14213a;color:white"><label>Watch speed <select id="watchSpeed"><option>16</option></select></label><div id="stage" style="height:85vh"></div><script src="/watch/soccerjs/watch-bridge.js"></script><script>window.records=0;window.ready=false;window.session=FXI_PHASE10_WATCH.mountInline({preview:'+JSON.stringify(preview)+',result:'+JSON.stringify(result)+',container:document.getElementById("stage"),viewerUrl:"/watch/soccerjs/dist/index.html?embedded=1&inline=1",autoRecordOnSimToEnd:true,onRecord:()=>window.records++,onReady:()=>window.ready=true});</script></body></html>';
+const host='<!doctype html><html><body style="margin:0;background:#14213a;color:white"><style>iframe{width:100%;height:100%;border:0}</style><label>Watch speed <select id="watchSpeed"><option>16</option></select></label><div id="stage" style="height:85vh"></div><script src="/watch/soccerjs/watch-bridge.js"></script><script>window.records=0;window.ready=false;window.session=FXI_PHASE10_WATCH.mountInline({preview:'+JSON.stringify(preview)+',result:'+JSON.stringify(result)+',container:document.getElementById("stage"),viewerUrl:"/watch/soccerjs/dist/index.html?embedded=1&inline=1",autoRecordOnSimToEnd:true,onRecord:()=>window.records++,onReady:()=>window.ready=true});</script></body></html>';
 (async()=>{let browser;try{
  for(let n=0;n<40;n++){try{if((await fetch(origin+'/play/')).ok)break}catch(_){}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.PFC_CHROME_BIN?{executablePath:process.env.PFC_CHROME_BIN}:{})});
@@ -39,6 +39,10 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
    await frame.locator('#highlightNoticePlay').click();assert.equal((await snap()).replay.kind,'save');
    await frame.locator('#highlightReplayReturn').click();assert.equal((await snap()).minute,first.minute);assert((await snap()).savePaused);
    assert.equal((await snap()).saveAutoCountdown,false);
+   if(speed===16){
+    const card=await frame.locator('.goal-prompt-card').boundingBox(),pitch=await frame.locator('.pitchwrap').boundingBox();
+    assert(card.y>=pitch.y&&card.y+card.height<=pitch.y+pitch.height,'Entire save alert must fit the pitch');
+   }
    if(speed===16)await frame.locator('.pitchwrap').screenshot({path:path.join(out,'official-save-alert-'+device+'.png')});
   }
   // Toggling in the alert persists and synchronizes to the host checkbox.

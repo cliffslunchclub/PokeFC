@@ -69,7 +69,7 @@ async function serve(){
    await page.locator('#highlightClose').click();
    const from=Math.max(0,firstGoal.minute-.001);
    await page.locator('#scrub').evaluate((el,v)=>{
-    el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.step='any';el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
    },from);
    await page.locator('#speed').selectOption('16');
    await page.locator('#play').click();
@@ -122,6 +122,7 @@ async function serve(){
    // center-circle kickoff, never gliding backwards across the field.
    // The range control quantizes input by its step; seek the two adjacent
    // selectable moments around the goal-to-kickoff boundary.
+   await page.locator('#scrub').evaluate(el=>el.step='.05');
    const scrubStep=Number(await page.locator('#scrub').getAttribute('step'))||.05;
    const cutMinute=firstGoal.minute+.22;
    const holdMinute=Math.floor((cutMinute-1e-7)/scrubStep)*scrubStep;

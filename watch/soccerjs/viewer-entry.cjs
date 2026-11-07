@@ -14,7 +14,7 @@ const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
-let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,kickIndex=0,kickElapsed=0;
+let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,trackedRenderAt=null,kickIndex=0,kickElapsed=0;
 let zoomFactor=1; // Reset by each fresh Watch iframe, retained across camera modes.
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
@@ -137,7 +137,7 @@ function showHighlightNotice(entry,allowCountdown=true){
  lastSent=-2;render(minute);
 }
 function clearMotionTracking(){
- smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;trackedPhase=null;
+ smoothedFocus=null;trackedActors=null;trackedBall=null;trackedMinute=null;trackedPhase=null;trackedRenderAt=null;
 }
 function setHighlightDrawer(open){
  highlightDrawerOpen=!!open;
@@ -262,6 +262,7 @@ function cameraFit(canvas,field,ball){
 // instantaneously teleport when a new illustrative action is chosen.
 // All tracking is presentation-only; official score/events stay untouched.
 function smoothMotion(script,t){
+ const now=performance.now(),realElapsed=trackedRenderAt===null?0:Math.max(0,(now-trackedRenderAt)/1000);trackedRenderAt=now;
  // A goal-to-kickoff transition is a broadcast camera cut, never ball travel.
  // Discard positional and camera smoothing for the FIRST kickoff frame only.
  const kickoffCut=script.sceneCut==='post-goal-kickoff'&&trackedPhase!=='illustrative-kickoff';
@@ -271,7 +272,8 @@ function smoothMotion(script,t){
   trackedBall={x:script.ball.x,y:script.ball.y,z:script.ball.z};
   trackedMinute=t;trackedPhase=script.action;return script;
  }
- const seconds=Math.max(0,(t-trackedMinute)*60);
+ const seconds=Math.max(0,(t-trackedMinute)*60,
+  pendingGoal&&!replaySession?realElapsed*speed:0);
  // Apply the same travel-speed rules after a pass as before it.
  // Only active counterpressers get a short 5 m/s burst; neither their
  // position nor that of a recent passer can jump to a new tactical target.
@@ -529,8 +531,14 @@ function step(now){
  if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
  // This is a fixed 800 ms real-time hold, not a change to match time.
- if(pendingGoal&&!replaySession&&now>=pendingGoal.showAt){
-  const {entry}=pendingGoal;pendingGoal=null;showHighlightNotice(entry);
+ if(pendingGoal&&!replaySession){
+  render(minute);
+  const source=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
+  const visible=window.__PFC_SNAPSHOT__,entry=pendingGoal.entry;
+  const close=Math.hypot(visible.ball.x-source.ball.x,visible.ball.y-source.ball.y)<.15;
+  const keeper=entry.kind==='save'?visible.actorWorldPositions[source.saveSequence?.keeper]:null;
+  const secured=entry.kind!=='save'||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
+  if(now>=pendingGoal.showAt&&close&&secured){pendingGoal=null;showHighlightNotice(entry)}
  }
  if(replaySession){
   if(replayLast!==null){
@@ -572,8 +580,7 @@ function step(now){
     liveSaveEvent=entry.kind==='save'?entry.event:null;
     incidentQueue=catalog(match,minute,kickIndex).filter(e=>e.kind==='save'&&e.minute===minute&&!promptedGoals.has(e.id));
     render(minute);
-    if(entry.kind==='save')showHighlightNotice(entry);
-    else pendingGoal={entry,showAt:now+800};
+    pendingGoal={entry,showAt:now+(entry.kind==='save'?0:800)};
    }else render(minute);
   }else render(minute);
  }

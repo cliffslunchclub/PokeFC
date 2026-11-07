@@ -199,11 +199,27 @@ function rawMotionFrame(fixture,t,field,options=false){
  const event=goals.find(g=>t<=g.minute+.22&&
   seconds>=GoalSequence.forGoal(fixture,field,g,sec=>rawMotionFrame(fixture,sec/60,field,true)).start);
  if(event){
-  const sequence=GoalSequence.forGoal(fixture,field,event,sec=>rawMotionFrame(fixture,sec/60,field,true));
+  let sequence=GoalSequence.forGoal(fixture,field,event,sec=>rawMotionFrame(fixture,sec/60,field,true));
+  const previous=goals.filter(g=>g!==event&&g.minute<event.minute).at(-1);
+  const entryTime=Math.max(sequence.start,previous?(previous.minute+.22)*60:0);
+  const director=sec=>rawMotionFrame(fixture,sec/60,field,true);
+  let entry=director(entryTime);
+  if(previous&&entryTime===(previous.minute+.22)*60)entry=rawMotionFrame(fixture,(entryTime-.000001)/60,field);
+  else entry=Kickoff.apply(fixture,field,entryTime,entry,director,sec=>rawMotionFrame(fixture,sec/60,field));
+  const changed=entry.kickoff||entry.officialEvent||entryTime>sequence.start;
+  if(changed)sequence={...sequence,start:entryTime,active:Math.max(entryTime+.1,sequence.active),openingRun:entry};
   const {side,scorer:scorerId,support,finish,net,wing}=sequence;
   const normal=rawMotionFrame(fixture,t,field,true);
   for(let i=0;i<actors.length;i++)Object.assign(actors[i],normal.actors[i]);
   const pose=GoalSequence.sample(sequence,plan,seconds);
+  if(changed&&seconds<sequence.active){
+   const u=limit((seconds-sequence.start)/Math.max(.001,sequence.active-sequence.start),0,1);
+   pose.ball={x:lerp(entry.ball.x,sequence.from.x,u),y:lerp(entry.ball.y,sequence.from.y,u),z:lerp(entry.ball.z,.23,u)};
+   for(let i=0;i<actors.length;i++){
+    actors[i].x=lerp(entry.actors[i].x,actors[i].x,u);actors[i].y=lerp(entry.actors[i].y,actors[i].y,u);
+   }
+   pose.owner=-1;
+  }
   ball=pose.ball;
   let ownerIndex=pose.owner;
   const u=limit((seconds-sequence.start)/Math.max(.001,sequence.shotStart-sequence.start),0,1);
