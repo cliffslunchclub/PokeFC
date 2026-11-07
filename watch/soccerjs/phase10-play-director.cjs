@@ -15,7 +15,7 @@ function hash(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charC
 const seed=f=>String(f.visualSeed||f.seed||'pfc');
 const sideOf=id=>Math.floor(id/11);
 const offset=id=>id<11?.72:-.72;
-const point=(field,x,y)=>({x:clamp(x,1,field.width-1),y:clamp(y,1,field.height-1)});
+const point=(field,x,y)=>({x:clamp(x,4,field.width-4),y:clamp(y,4,field.height-4)});
 const progress=(side,x,field)=>(side===0?x:field.width-x)/field.width;
 function base(id,field){
  const side=sideOf(id),i=id%11,h=field.height;
@@ -97,27 +97,9 @@ function makePlan(f,field){
   const delta=percent>.87&&run>0?-Math.min(5,run*.6):run;
   return point(field,ball.x+(side===0?delta:-delta),ball.y+dy);
  }
- // A low pass can bank from a nearby board. One mirrored segment guarantees
- // a real directional rebound at the exact wall contact; never cross an
- // unprotected goal opening or fabricate a PSE goal.
- function chooseWall(from,to,time,pattern,arc,salt){
-  if(arc>1.2)return null; // high crosses clear the rink-height boards
-  const chance=pattern==='weave'?6:pattern==='cross'?48:pattern==='switch'?35:
-   pattern==='one-two'?24:pattern==='through'?24:29;
-  if(dice('wall-bank:'+salt,100)>=chance)return null;
-  const axes=[['y','min'],['y','max'],['x','min'],['x','max']];
-  const strength=(3+dice('wall-softness:'+salt,41)/10)/100;
-  const candidates=axes.map(([axis,edge])=>
-   Wall.candidate(from,to,field,axis,edge,strength))
-   .filter(w=>w&&w.originalPathLength<Math.min(45,time*10.8+7) &&
-    w.originalPathLength>Math.hypot(to.x-from.x,to.y-from.y)+1.4);
-  if(!candidates.length)return null;
-  candidates.sort((a,b)=>(a.originalPathLength+(hash(seed(f)+':wall:'+salt+':'+a.axis+a.edge)%700)/100)-
-   (b.originalPathLength+(hash(seed(f)+':wall:'+salt+':'+b.axis+b.edge)%700)/100));
-  return candidates[0];
- }
  function append(mode,duration,end,recipient,pattern,arc=0,forcedWall=null){
   if(seconds>=total)return;
+  if(mode==='pass')end={x:clamp(end.x,6,field.width-6),y:clamp(end.y,6,field.height-6)};
   // All passes, including give-and-go returns, must validate their receiver
   // at release. Fallback is a controlled dribble, never a whistle or reset.
   if(mode==='pass'&&recipient!=null){
@@ -144,8 +126,9 @@ function makePlan(f,field){
     ball.y+dy*limit/distance)}
   }
   const start=seconds,from={...ball},aim=point(field,end.x,end.y),next=recipient??owner;
-  const wall=forcedWall||(mode==='pass'?
-   chooseWall(from,aim,length,pattern,arc,actions.length):null);
+  // Never select boards as a tactical target. Physics can still handle
+  // accidental contacts; planned open-play paths use direct destinations.
+  const wall=forcedWall;
   // Softened wall banks land where their slowed ball actually stops, not
   // at the pre-collision full-strength destination.
   const to=wall?wall.exit:aim;
@@ -158,60 +141,12 @@ function makePlan(f,field){
  }
  const carry=(time,forward,dy,kind)=>append('carry',time,destination(forward,dy,time),owner,kind);
  function pass(time,target,kind,arc=0,prefer=kind){
+  target={x:clamp(target.x,6,field.width-6),y:clamp(target.y,6,field.height-6)};
   const id=receiver(f,field,owner,target,prefer,count+':'+actions.length,ball.x,releasePosition);
   if(id==null){
    // A dribble is preferable to a speculative illegal pass.
    carry(time,Math.min(3,time*1.3),0,kind);
   }else append('pass',time,target,id,kind,arc);
- }
- function looseRebound(kind){
-  // Occasional genuine loose balls: an overrun dribble/cross hits a board,
-  // returns inward and gets collected without a whistle or invented shot.
-  if(seconds>=total-2.1||dice('loose-chance',100)>=27)return;
-  const side=sideOf(owner),forward=side===0?1:-1;
-  const options=[
-   {axis:'y',edge:'min',gap:ball.y-Wall.RADIUS,
-    to:point(field,ball.x+forward*3.5,ball.y+5.5)},
-   {axis:'y',edge:'max',gap:field.height-Wall.RADIUS-ball.y,
-    to:point(field,ball.x+forward*3.5,ball.y-5.5)},
-   {axis:'x',edge:'min',gap:ball.x-Wall.RADIUS,
-    to:point(field,ball.x+5.5,ball.y+1.5)},
-   {axis:'x',edge:'max',gap:field.width-Wall.RADIUS-ball.x,
-    to:point(field,ball.x-5.5,ball.y-1.5)}
-  ];
-  const duration=2.6+dice('loose-duration',23)/10;
-  const strength=(3+dice('loose-softness',41)/10)/100;
-  const choices=options.filter(c=>c.gap<13.5).map(c=>({
-   ...c,wall:Wall.candidate(ball,c.to,field,c.axis,c.edge,strength)
-  })).filter(c=>c.wall&&c.wall.originalPathLength<duration*9.3+5);
-  if(!choices.length)return;
-  choices.sort((a,b)=>a.gap-b.gap||a.axis.localeCompare(b.axis));
-  const choice=choices[0];
-  let collector=owner;
-  const reboundTarget=choice.wall.exit;
-  // An opposing keeper can only claim a scripted loose ball inside their
-  // own last 10m and within a realistic 5m/s collection window. The next
-  // sequence must then be a keeper distribution, never a goalkeeper dribble.
-  const keeperSide=1-side,keeperId=keeperSide*11;
-  const keeperBase=base(keeperId,field);
-  const keeperGoal=keeperSide===0?0:field.width;
-  const keeperReach=Math.hypot(keeperBase.x-reboundTarget.x,
-   keeperBase.y-reboundTarget.y);
-  const keeperDanger=Math.hypot(keeperGoal-reboundTarget.x,
-   field.height*.5-reboundTarget.y);
-  if(keeperDanger<=10&&keeperReach<=Math.min(8,5*duration-.45)){
-   collector=keeperId;
-  }else if(dice('loose-receiver',100)<55){
-   const otherSide=dice('loose-steal',100)<20?1-side:side;
-   const nearby=Array.from({length:10},(_,i)=>otherSide*11+i+1)
-    .map(id=>({id,dist:Math.hypot(base(id,field).x-reboundTarget.x,
-     base(id,field).y-reboundTarget.y)}))
-    .sort((a,b)=>a.dist-b.dist||a.id-b.id);
-   // The pickup Pokémon must be able to reach the rebound; otherwise
-   // the original dribbler recovers it at the bank.
-   if(nearby[0]?.dist<34)collector=nearby[0].id;
-  }
-  append('rebound',duration,reboundTarget,collector,kind,0,choice.wall);
  }
  function choose(){
   // These are relative weights; all plays remain possible in every tactic.
@@ -235,14 +170,24 @@ function makePlan(f,field){
   const started=seconds,initial=owner,side=sideOf(owner);
   const sign=dice('side',2)?1:-1;
   const lane=sign*(3+dice('lane',60)/10);
-  if(owner%11===0){
-   // Keeper collections are already visual possession boundaries. Resume
-   // immediately with a normal distribution, preserving PSE match authority.
-   const to=point(field,ball.x+(side===0?10:-10),
-    clamp(ball.y+sign*3,4,field.height-4));
-   pass(1.6+dice('keeper-release',16)/10,to,'keeper-distribution',.28,'one-two');
+  // Maximum safety priority throughout our defensive third, for every
+  // recovering player. The first touch is a direct upfield kick, not a carry,
+  // short pass, backwards recycle or deliberate board contact.
+  const ownDepth=side===0?ball.x:field.width-ball.x;
+  if(ownDepth<=field.width/3||owner%11===0){
+   const forward=side===0?1:-1;
+   const x=clamp(ball.x+forward*52,12,field.width-12);
+   const opponents=Array.from({length:11},(_,i)=>base((1-side)*11+i,field));
+   const lanes=[.35,.5,.65].map(v=>({x,y:field.height*v}));
+   lanes.sort((a,b)=>{
+    const space=p=>Math.min(...opponents.map(o=>Math.hypot(o.x-p.x,o.y-p.y)));
+    return space(b)-space(a)||Math.abs(a.y-field.height/2)-Math.abs(b.y-field.height/2);
+   });
+   const to=point(field,lanes[0].x,lanes[0].y);
+   const flight=Math.max(1.5,Math.hypot(to.x-ball.x,to.y-ball.y)*1.5/26);
+   pass(flight,to,'defensive-clearance',6,'through');
    sequences.push({index:count,start:started,end:seconds,
-    kind:'keeper-distribution',firstOwner:initial});
+    kind:'defensive-clearance',firstOwner:initial});
    return;
   }
   if(kind==='dribble'){
@@ -296,7 +241,7 @@ function makePlan(f,field){
   }
   // Low rebounds and spontaneous pickups occur in ordinary play too.
   // The next attacking pattern starts from whoever collects this ball.
-  looseRebound(kind);
+  // No manufactured board contacts or deliberate wall recoveries.
   // The standing challenge is illustrative, not a PSE tackle or foul.
   const turnover=count%6===5||(count>0&&dice('turnover',100)<6);
   if(turnover&&seconds<total){
@@ -384,7 +329,7 @@ function sample(f,field,seconds){
   contact=u>.96?'collected-loose-ball':
    ball.contact==='approaching-wall'?'loose-wall-approach':'loose-wall-rebound';
  }else{
-  action=stage.wall?'illustrative-bank-pass':
+  action=stage.pattern==='defensive-clearance'?'illustrative-upfield-clearance':stage.wall?'illustrative-bank-pass':
    stage.pattern==='one-two'?'illustrative-give-and-go':
    stage.pattern==='cross'?'illustrative-cross':
    stage.pattern==='through'?'illustrative-through-ball':'illustrative-pass';

@@ -45,16 +45,10 @@ const attempts=OneOnOne.build(fixture,{width:106,height:68},
  sec=>presentationFrame(fixture,sec,{width:106,height:68}));
 const outsideGoal=stage=>!fixture.events.some(e=>e.type==='goal'&&
  stage.start<e.minute*60+18&&stage.end>e.minute*60-43);
-const bank=stagePlan.actions.find(stage=>stage.mode==='pass'&&stage.wall&&
- stage.start>120&&stage.end<85*60&&stage.wall.impactU>.2&&
- stage.wall.impactU<.8&&outsideGoal(stage)&&
- !motionFrame(fixture,(stage.start+stage.duration*stage.wall.impactU)/60,{width:106,height:68}).oneOnOne);
-const pickup=stagePlan.actions.find(stage=>stage.mode==='rebound'&&
- stage.wall&&stage.start>120&&stage.end<85*60&&outsideGoal(stage)&&
- !motionFrame(fixture,(stage.start+stage.duration*.975)/60,{width:106,height:68}).oneOnOne);
-const attempt=attempts.find(a=>a.start>60&&outsideGoal(a));
-assert(attempt,'Need a non-scoring actual one-on-one attempt');
-assert(bank&&pickup,'Need native browser bank and loose-ball recovery examples');
+assert(stagePlan.actions.every(s=>!s.wall&&s.mode!=='rebound'),'No intentional board play');
+const clearance=stagePlan.actions.find(stage=>stage.pattern==='defensive-clearance'&&stage.start>120&&stage.end<85*60&&outsideGoal(stage)&&!motionFrame(fixture,(stage.start+.05)/60,{width:106,height:68}).saveSequence);
+const attempt=attempts.find(a=>a.outcome==='block'&&a.start>60&&outsideGoal(a));
+assert(attempt&&clearance,'Need a loose block and defensive clearance');
 const fixturePath=path.join(root,'watch/soccerjs/dist/fixture.json');
 fs.writeFileSync(fixturePath,JSON.stringify(fixture));
 const screenshots=path.join(root,'pse-browser-artifacts');
@@ -126,10 +120,15 @@ async function serve(){
     assert.equal(shot.carrier,-1);assert.equal(shot.oneOnOne.shooter,attempt.shooter);
     await seekExact(attempt.impactSeconds+.0001);
     const blocked=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
-    assert.equal(blocked.animation,'illustrative-one-on-one-miss');
+    assert.equal(blocked.animation,'illustrative-keeper-block');
     assert.equal(blocked.officialEventType,null);
     const keeper=blocked.actorWorldPositions[attempt.keeper];
-    assert(Math.abs(blocked.ball.y-34)>6.8,'Illustrative miss must clear goal mouth');
+    assert(Math.hypot(blocked.ball.x-keeper[0],blocked.ball.y-keeper[1])<.1,'Block contacts keeper');
+    await seekExact(attempt.clearAt+.01);
+    const cleared=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+    assert.equal(cleared.animation,'illustrative-upfield-clearance');
+    assert.equal(cleared.officialEventType,null);
+    assert.equal(cleared.carrier,-1);
     assert.deepEqual(blocked.score,bridge.scoreAt(fixture,blocked.minute));
     await page.locator('.pitchwrap').screenshot({path:path.join(screenshots,
      'immediate-shot-block-'+view+'-'+device+'.png')});
@@ -152,31 +151,13 @@ async function serve(){
     await page.locator('.pitchwrap').screenshot({path:path.join(screenshots,'goal-clearance-keeper-'+view+'-'+device+'.png')});
    }
    await page.locator('#projection').selectOption('orthographic');
-   const at=bank.start+bank.duration*bank.wall.impactU;
-   await seekExact(at);
-   const impact=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
-   assert.equal(impact.animation,'illustrative-bank-pass');
-   assert.equal(impact.carrier,-1,'Ball cannot be carried during bank pass');
-   assert.equal(impact.wallContact?.axis,bank.wall.axis,'Wrong board contact axis');
-   assert.equal(impact.wallContact?.edge,bank.wall.edge,'Wrong board contacted');
-   assert(Math.hypot(impact.ball.x-bank.wall.hit.x,
-    impact.ball.y-bank.wall.hit.y)<.025,
-    'Native renderer never reached physical wall contact');
-   assert.deepEqual(impact.score,bridge.scoreAt(fixture,impact.minute));
-   await page.screenshot({path:path.join(screenshots,'pfc-wall-bank-'+device+'.png')});
-   await seekExact(at+.075);
-   const bounce=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
-   assert.equal(bounce.animation,'illustrative-bank-pass');
-   assert.equal(bounce.ballContact,'bank-rebound');
-   await seekExact(pickup.start+pickup.duration*.975);
-   const gathered=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
-   assert.equal(gathered.animation,pickup.receiver%11===0?
-    'illustrative-keeper-collection':'illustrative-wall-pickup',
-    'Rebound collector must match the scripted receiver, including GK');
-   assert.equal(gathered.ballContact,'collected-loose-ball');
-   assert(gathered.carrier>=0,'Loose ball was not recovered by a Pokémon');
-   assert.equal(gathered.wallContact?.axis,pickup.wall.axis);
-   assert.deepEqual(gathered.score,bridge.scoreAt(fixture,gathered.minute));
+   await seekExact(clearance.start+.05);
+   const kick=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+   assert.equal(kick.animation,'illustrative-upfield-clearance');
+   assert.equal(kick.wallContact,null);
+   assert.equal(kick.carrier,-1);
+   assert.deepEqual(kick.score,bridge.scoreAt(fixture,kick.minute));
+   await page.screenshot({path:path.join(screenshots,'pfc-direct-clearance-'+device+'.png')});
    const firstGoal=fixture.events.find(e=>e.type==='goal'&&e.minute>3&&e.minute<86);
    await page.locator('#speed').selectOption('4');
    await seekExact(firstGoal.minute*60+.001); // Range serialization can round the exact instant backward.
@@ -212,7 +193,7 @@ async function serve(){
    }
    assert.deepEqual(errors,[],'Browser JS error '+device+': '+errors.join('; '));
    console.log('PASS enclosed PokéFC Chromium '+device+
-    ' four-board physical banks, loose-ball pickup, six boards, no whistles, stable goal replay');
+    ' direct upfield clearances, loose keeper blocks, six boards, no whistles, stable goal replay');
    // The production game uses the *embedded* iframe, not the standalone
    // Watch page. Check its actual positioned overlay and zoom controls.
    await page.goto(url+'?embedded=1&inline=1&v=20',

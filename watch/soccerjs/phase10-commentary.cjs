@@ -78,7 +78,11 @@ function illustrationLine(f,a,i,field){
  const key=PREFIX+'visual:'+String(f.visualSeed||f.seed||'pfc')+':'+i;
  let lines=[];
  if(a.mode==='pass'){
-  if(a.pattern==='weave')lines=[
+  if(a.pattern==='defensive-clearance')lines=[
+   who+' clears strongly upfield!',
+   who+' gets it away from danger—straight upfield!'
+  ];
+  else if(a.pattern==='weave')lines=[
    who+' angles the ball across to '+to+'—lovely movement!',
    'Quick passing! '+who+' finds '+to+' on the other side.',
    who+' and '+to+' combine in a neat passing triangle.'

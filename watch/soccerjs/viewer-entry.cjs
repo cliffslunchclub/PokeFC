@@ -469,6 +469,7 @@ function render(t,options={}){
   'illustrative-cross':'Cross or cutback',
   'illustrative-through-ball':'Through ball',
   'illustrative-bank-pass':'Bank pass off the boards',
+  'illustrative-upfield-clearance':'Strong clearance upfield',
   'illustrative-wall-rebound':'Loose ball off the wall',
   'illustrative-wall-pickup':'Rebound recovered',
   'illustrative-keeper-collection':'Goalkeeper collects loose ball',

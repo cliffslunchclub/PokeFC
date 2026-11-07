@@ -21,7 +21,8 @@ for(let i=1;i<visuals.length;i++)
 assert(visuals.some(x=>/through ball|through|run/.test(x.text.toLowerCase())));
 assert(visuals.some(x=>/across|triangle|other side/.test(x.text.toLowerCase())));
 assert(visuals.some(x=>/challenge|contest|pressure/.test(x.text.toLowerCase())));
-assert(visuals.some(x=>/wall|boards/.test(x.text.toLowerCase())));
+assert(!visuals.some(x=>/wall|boards/.test(x.text.toLowerCase())),'No deliberate board-play commentary');
+assert(visuals.some(x=>/clears strongly|away from danger/.test(x.text.toLowerCase())));
 for(const e of fixture.events){
  const second=e.minute*60;
  const before=Commentary.visible(feed,second-.0002);
