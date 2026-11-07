@@ -43,14 +43,16 @@ function continueMatch(){
 function queuedStep(now){
  const q=queuedPresentation;if(!q)return false;
  if(q.paused){q.last=now;return true;}
- const delta=q.last===null?0:Math.min(2,Math.max(0,(now-q.last)/1000))*speed;q.last=now;
+ const realDelta=q.last===null?0:Math.max(0,(now-q.last)/1000);q.last=now;
+ if(realDelta>2){q.paused=true;lastSent=-2;render(minute);return true;}
+ const delta=realDelta*speed;
  const field=Utils.getFieldBounds();
  if(q.phase==='transition'){
   q.elapsed+=delta;const u=Math.min(1,q.elapsed/q.duration);
   const move=(a,b)=>({...b,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z||0,b.z||0,u)});
   const frame={...q.to,ball:move(q.from.ball,q.to.ball),actors:q.from.actors.map((a,i)=>move(a,q.to.actors[i])),
    action:'illustrative-save-buildup',officialEvent:null,ownerIndex:-1};
-  render(minute,{sceneFrame:frame,sceneSeconds:q.clock+q.elapsed});
+  q.frame=frame;render(minute,{sceneFrame:frame,sceneSeconds:q.clock+q.elapsed});
   if(u>=1)queuedPresentation={phase:'save',seconds:q.start,end:q.end,entry:q.entry,last:now};
  }else{
   q.seconds=Math.min(q.end,q.seconds+delta);render(minute,{sceneSeconds:q.seconds});
@@ -64,7 +66,7 @@ function queuedStep(now){
     const start=Math.max(0,target.saveSequence.start),to=motionFrame(match,start/60,field,{saveEvent:entry.event});
     const duration=Math.max(.5,Math.hypot(from.ball.x-to.ball.x,from.ball.y-to.ball.y)/14,
      ...from.actors.map((a,i)=>Math.hypot(a.x-to.actors[i].x,a.y-to.actors[i].y)/4));
-    queuedPresentation={phase:'transition',clock:q.end,elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
+    queuedPresentation={phase:'transition',frame:from,clock:q.end,elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
    }
   }
  }
@@ -389,6 +391,10 @@ function renderCommentary(t,script,isReplay){
 }
 function render(t,options={}){
  const isReplay=options.replay===true;
+ if(queuedPresentation&&!isReplay&&!Number.isFinite(options.sceneSeconds)){
+  const q=queuedPresentation;options={...options,sceneSeconds:q.phase==='transition'?q.clock+q.elapsed:q.seconds,
+   sceneFrame:q.phase==='transition'?q.frame:options.sceneFrame};
+ }
  const sceneMinute=Number.isFinite(options.sceneSeconds)?options.sceneSeconds/60:t;
  const saveEvent=isReplay&&replaySession?.entry.kind==='save'?replaySession.entry.event:liveSaveEvent;
  if($('fullscreenPlayback')){
@@ -764,7 +770,7 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
-    if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
+    if(queuedPresentation){speed=Math.max(1,Math.min(16,Number(msg.speed)||speed));queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));

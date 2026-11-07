@@ -80,6 +80,9 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   await frame.locator('#highlightNoticeDismiss').click();
   await frame.waitForFunction(()=>!!window.__PFC_SNAPSHOT__.queuedSavePresentation);
   assert.equal((await snap()).minute,tied[0].minute);
+  await page.evaluate(()=>window.session.pause());const frozen=await snap();
+  await page.waitForTimeout(350);assert.deepEqual((await snap()).ball,frozen.ball,'Queued presentation must pause without seeking or moving');
+  await page.evaluate(()=>window.session.play(16));
   await frame.waitForFunction(keeper=>window.__PFC_SNAPSHOT__.savePaused&&window.__PFC_SNAPSHOT__.saveSequence.keeper!==keeper,before.saveSequence.keeper,{timeout:30000});
   assert.equal((await snap()).minute,tied[0].minute);
   // Both timestamp-identical saves have stable replay entries.
