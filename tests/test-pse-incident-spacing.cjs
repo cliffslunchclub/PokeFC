@@ -14,7 +14,7 @@ function check(events){
  for(let i=1;i<selected.length;i++)assert(selected[i].minute-selected[i-1].minute>=3-1e-9,'Global three-minute gap');
  for(const e of selected)assert.equal(e.minuteLabel,String(Math.floor(e.minute)+1));
 }
-let count=0,extra=0,conflicts=0;
+let count=0,extra=0,capped=0;
 for(let seed=0;seed<1000;seed++){
  const options={seed:'spacing-'+seed},old=legacy.simulate(preview,options),result=qs.simulate(preview,options);
  assert(!result.events.length||result.events[0].minute>=.5,'Allow a reachable kickoff and first approach');
@@ -25,13 +25,12 @@ for(let seed=0;seed<1000;seed++){
  const identity=e=>{const {minute,minuteLabel,...rest}=e;return JSON.stringify(rest)};
  assert.deepEqual(result.events.map(identity),Array.from(old.events,identity),'Only timestamps may change');
  assert.deepEqual(result,qs.simulate(preview,options));
- let knockout;
- try{knockout=KO.resolve(preview,result,options);}catch(e){
-  assert.equal(e.code,'PSE_EVENT_SPACING_CAPACITY');conflicts++;continue;
- }
+ const knockout=KO.resolve(preview,result,options);
+ if(knockout.extraTime)capped+=knockout.extraTime.incidentSpacing.cappedShots;
  check(knockout.match.events);
  if(knockout.extraTime)extra++;
 }
+assert(capped>=3,'Exercise previously over-capacity extra times');
 for(const a of ['goal','save'])for(const b of ['goal','save']){
  const events=[{type:a,minute:44.9},{type:b,minute:45.1}];
  qs.spaceEvents(events);check(events);
@@ -41,4 +40,4 @@ qs.spaceEvents(linked);check(linked);assert.equal(linked[0].minute,linked[1].min
 const impossible=Array.from({length:31},()=>({type:'save',minute:10})),before=JSON.stringify(impossible);
 assert.throws(()=>qs.spaceEvents(impossible),e=>e.code==='PSE_EVENT_SPACING_CAPACITY');
 assert.equal(JSON.stringify(impossible),before,'Capacity conflicts must not partially mutate the ledger');
-console.log('PASS 1000 seeds, '+count+' incidents, '+extra+' extra times, '+conflicts+' flagged capacity conflicts: all gap pairs, preserved outcomes/statistics/RNG, deterministic timestamps and atomic conflict flag');
+console.log('PASS 1000 seeds, '+count+' incidents, '+extra+' extra times, '+capped+' capped attempts, zero capacity conflicts: all gap pairs, preserved outcomes/statistics/RNG, deterministic timestamps and atomic conflict flag');
