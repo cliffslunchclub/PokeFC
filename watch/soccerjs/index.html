@@ -22,9 +22,10 @@
 <button id="highlightToggle" class="highlight-toggle" type="button" aria-expanded="false" aria-controls="highlightDrawer">⚽ HIGHLIGHTS <span id="highlightCount">0</span></button>
 <div id="highlightNotice" class="highlight-notice" role="dialog" aria-modal="true" aria-labelledby="highlightNoticeTitle" hidden>
  <div class="goal-prompt-card">
-  <small class="goal-prompt-eyebrow">● OFFICIAL PSE GOAL</small>
+  <small id="highlightNoticeEyebrow" class="goal-prompt-eyebrow">● OFFICIAL PSE GOAL</small>
   <strong id="highlightNoticeTitle">GOAL!</strong>
-  <p>Ball in the net. Match paused. Watch the illustrative buildup again or continue at the selected speed.</p>
+  <p id="highlightNoticeMessage">Ball in the net. Match paused. Watch the illustrative buildup again or continue at the selected speed.</p>
+  <label id="saveAutoAlertLabel" class="save-auto-control" hidden><span><input id="saveAutoAlert" type="checkbox"> Auto-continue after goalkeeper saves</span><small>Resume play automatically 3 seconds after a goalkeeper save.</small></label>
   <div class="goal-prompt-actions">
    <button id="highlightNoticePlay" type="button">↺ VIEW REPLAY</button>
    <button id="highlightNoticeDismiss" type="button" aria-label="Continue match after goal">▶ CONTINUE</button>
@@ -36,11 +37,12 @@
  <div class="highlight-filters" role="group" aria-label="Filter highlights">
   <button type="button" class="active" data-highlight-filter="all" aria-pressed="true">ALL</button>
   <button type="button" data-highlight-filter="goal" aria-pressed="false">GOALS</button>
+  <button type="button" data-highlight-filter="save" aria-pressed="false">SAVES</button>
   <button type="button" data-highlight-filter="set" aria-pressed="false">SHOOTOUTS</button>
  </div>
  <div id="highlightTimeline" class="highlight-timeline-markers" aria-label="Available highlight timeline"></div>
  <div id="highlightList" class="highlight-list" aria-live="polite"><p class="highlight-empty">Highlights appear as official incidents happen.</p></div>
- <p class="highlight-footnote">Only recorded PSE goals and knockout shootout kicks appear here. Animation is illustrative.</p>
+ <p class="highlight-footnote">Only recorded PSE goals, goalkeeper saves and knockout shootout kicks appear here. Animation is illustrative.</p>
 </section>
 <section id="highlightReplay" class="highlight-replay" role="group" aria-label="Instant replay" hidden>
  <div class="highlight-replay-top"><strong>● REPLAY</strong><span id="highlightReplayTitle">GOAL</span></div>
@@ -73,6 +75,7 @@
 <button id="shootoutAdvance" type="button">NEXT PENALTY</button></div></div>
 <div class="controls"><button id="play" disabled class="primary">▶ Play</button><button id="playFive" disabled>▶ Next 5′</button><button id="pause" disabled>Ⅱ Pause</button><button id="restart" disabled>↺ Replay</button><button id="nextGoal" disabled>⚽ Next goal</button><button id="nextKick" type="button" hidden disabled>◎ Next penalty</button><button id="skip" disabled>⏭ Final result</button>
 <label>Speed <select id="speed"><option value="1" selected>1× · Real time</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option><option value="16">16×</option></select></label>
+<label class="save-auto-control"><span><input id="saveAutoControl" type="checkbox"> Auto-continue after goalkeeper saves</span><small>Resume play automatically 3 seconds after a goalkeeper save.</small></label>
 <label>View <select id="projection" aria-label="Soccer-JS projection"><option value="orthographic" selected>Broadcast</option><option value="isometric">2.5D Isometric</option><option value="topdown">Top-down</option></select></label>
 <label class="sprite-toggle"><input id="showNumbers" type="checkbox" checked> Jersey numbers</label>
 <label>Camera <select id="camera" aria-label="Camera framing"><option value="follow" selected>Follow ball</option><option value="wide">Wide pitch</option></select></label></div>

@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const O=require('./phase10-one-on-one.cjs');
-const {motionFrame,rawMotionFrame}=require('./phase10-motion.cjs');
+const {motionFrame,rawMotionFrame,presentationFrame}=require('./phase10-motion.cjs');
 const f=require('./fixture.json'),field={width:106,height:68};
 const original=JSON.stringify(f),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function chance(side){
@@ -28,7 +28,7 @@ for(const side of [0,1]){
  frame.ball.z=.23;frame.ball.x=side===0?80:26;
  assert.equal(O.opportunity(frame,field),null,'No penalty-area trigger outside the box');
 }
-const raw=s=>rawMotionFrame(f,s/60,field),shots=O.build(f,field,raw);
+const raw=s=>presentationFrame(f,s,field),shots=O.build(f,field,raw);
 assert(shots.length>10,'Expected seeded actual one-on-one opportunities');
 assert(shots.some(s=>s.side===0)&&shots.some(s=>s.side===1));
 let maxSeam=0,maxSpeed=0;
@@ -41,9 +41,9 @@ for(const shot of shots){
  assert.equal(launch.actors[shot.shooter].frame,3);
  assert(dist(launch.ball,entry.ball)<1e-7,'Shot must start from the actual carried ball');
  const hit=motionFrame(f,shot.impactSeconds/60,field);
- assert.equal(hit.action,'illustrative-keeper-block');
- assert(dist(hit.ball,hit.actors[shot.keeper])<.5,'Visible block must contact the actual keeper');
- assert.equal(hit.actors[shot.keeper].frame,8);
+ assert.equal(hit.action,'illustrative-one-on-one-miss');
+ assert(Math.abs(hit.ball.y-field.height/2)>field.height*.1,'Miss must clear actual goal mouth');
+ assert.equal(shot.outcome,'miss');
  for(const seam of [shot.start,shot.impactSeconds,shot.end]){
   const a=motionFrame(f,(seam-.00001)/60,field),b=motionFrame(f,(seam+.00001)/60,field);
   maxSeam=Math.max(maxSeam,dist(a.ball,b.ball));
@@ -73,7 +73,7 @@ for(const goal of f.events.filter(e=>e.type==='goal')){
 const t=(shots[0].start+.25)/60;
 assert.deepEqual(motionFrame(f,t,field),motionFrame(JSON.parse(original),t,field));
 const overtime={...JSON.parse(original),durationMinutes:120};
-assert(O.build(overtime,field,s=>rawMotionFrame(overtime,s/60,field)).some(s=>s.start>5400),
+assert(O.build(overtime,field,s=>presentationFrame(overtime,s,field)).some(s=>s.start>5400),
  'Immediate shooting must continue in extra time');
 assert.equal(JSON.stringify(f),original,'Official PSE shots, saves, score or box stats changed');
 console.log('PASS immediate one-on-ones: '+shots.length+' actual-position shots, keeper contact, '+

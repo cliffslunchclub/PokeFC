@@ -42,7 +42,9 @@ function preparedTurns(plan){
  const out=[];
  for(const turn of plan.turnovers||[]){
   const previous=out.at(-1);
-  out.push({turn,before:previous?weightAfter(previous,turn.time-previous.turn.time):[1,0]});
+  const age=previous?turn.time-previous.turn.time:0;
+  const defense=previous?previous.defense.map((v,side)=>lerp(v,side===previous.turn.oldSide?1:0,ease(age/3))):[0,1];
+  out.push({turn,defense,before:previous?weightAfter(previous,age):[1,0]});
  }
  weightCache.set(plan,out);return out;
 }
@@ -65,7 +67,8 @@ function status(f,field,seconds,visual){
  const age=latest?seconds-latest.turn.time:Infinity;
  const attack=weightAfter(latest,age);
  const phase=age<4?'counterpress':age<10?'recover':'settled';
- return {ball:visual.ball,active,attack,
+ const defense=latest?latest.defense.map((v,side)=>lerp(v,side===latest.turn.oldSide?1:0,ease(age/3))):[0,1];
+ return {ball:visual.ball,active,attack,defense,
   turnover:latest?.turn||null,nextTurnover:next?.turn||null,age,phase,
   pattern:visual.sequenceType,
   profiles:[styleFor(f.home.tactic),styleFor(f.away.tactic)]};
@@ -107,13 +110,18 @@ function position(f,field,id,seconds,shape,baseline){
    if(active<.01)progress=Math.min(progress,.465);
   }
  }
- // Defensive side also moves toward the ball; no static anchored backline.
- const closing=(1-shape.attack[side])*ease((.7-ballProgress)/.58);
- if(role==='DEF')progress-=closing*.025;
- if(role==='MID')progress-=closing*.035;
+ // Recover in layers behind the three pressers, including the forwards.
+ // Blend the whole block at turnovers; do not reset formation slots.
+ const recovery=shape.defense[side];
+ const danger=ease((22-ballProgress*field.width)/16);
+ const depth=role==='DEF'?-.075:role==='MID'?.08:.24;
+ const ceiling=role==='DEF'?.28:role==='MID'?.43:.55;
+ const floor=role==='DEF'?.065:role==='MID'?.17:.32;
+ const defensiveProgress=clamp(ballProgress+depth,floor,ceiling);
+ progress=lerp(progress,defensiveProgress,recovery*(.65+.25*danger));
  progress=clamp(progress,.06,.955);
- const lanePull=(shape.ball.y-field.height*.5)*.10*
-  (role==='MID'?.75:role==='FWD'?.55:.35);
+ const lanePull=(shape.ball.y-field.height*.5)*(.10+recovery*.22)*
+  (role==='MID'?.85:role==='FWD'?.70:.55);
  const y=clamp(baseline.y+lanePull,1,field.height-1);
  return {x:clamp(side===0?progress*field.width:(1-progress)*field.width,
   1,field.width-1),y};
@@ -141,8 +149,8 @@ function press(f,field,seconds,visual,shape,actors,ball){
  // pressure does NOT fade when the Play Director moves to another pass.
  const defending=1-shape.active;
  const goalX=defending===0?0:field.width;
- const goalDistance=Math.hypot(ball.x-goalX,ball.y-field.height*.5);
- let nearGoal=ease((16-goalDistance)/5);
+ const goalDistance=Math.abs(ball.x-goalX);
+ let nearGoal=ease((22-goalDistance)/16);
  if(nearGoal>0){
   side=defending;
   // Actual turnovers (not passes) still ease to zero at the handoff:

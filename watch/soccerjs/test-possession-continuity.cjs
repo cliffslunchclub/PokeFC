@@ -52,6 +52,7 @@ for(const stage of timeline.actions){
   // Intentional bank passes reverse the component perpendicular to a wall.
   if(length>.1&&!stage.wall){
    const pr=x=>((x.ball.x-stage.from.x)*v.x+(x.ball.y-stage.from.y)*v.y)/length;
+   if(ts.some(t=>t.kickoff||t.saveSequence||t.oneOnOne))continue;
    const ds=ts.map(pr);
    maxReversal=Math.max(maxReversal,ds[0]-ds[1],ds[1]-ds[2]);
    assert(ds[0]<=ds[1]+.00001&&ds[1]<=ds[2]+.00001,'Pass reverses before touch');

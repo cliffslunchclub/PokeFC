@@ -217,7 +217,7 @@ function renderGoalReplayActions(result){
  };
 }
 function openGoalReplay(id){
- if(!/^(goal|pk)-\d+$/.test(String(id))||!preview||!currentResult)return;
+ if(!/^(goal|save|pk)-\d+$/.test(String(id))||!preview||!currentResult)return;
  const modal=$('goalReplayModal'),stage=$('goalReplayStage'),status=$('goalReplayStatus');
  if(!modal||!stage)return;
  // The original Watch may still own the renderer even after it recorded.

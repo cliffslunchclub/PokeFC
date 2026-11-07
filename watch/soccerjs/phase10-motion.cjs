@@ -12,6 +12,8 @@ const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const Onside=require('./phase10-onside-movement.cjs');
 const OneOnOne=require('./phase10-one-on-one.cjs');
 const GoalSequence=require('./phase10-goal-sequence.cjs');
+const Kickoff=require('./phase10-kickoff.cjs');
+const Saves=require('./phase10-save-sequence.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -237,50 +239,6 @@ function rawMotionFrame(fixture,t,field,options=false){
    label:t>=event.minute?'GOAL! '+teams[side].lineup[scorerId%11].name:'',
    buildup:pose.phase,officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
  }
- // After an official PSE goal, pause on the ball in the net, then use
- // a clearly labelled, discrete kickoff camera CUT to midfield. Never tween
- // the ball backward from the goal to a random illustrative possession.
- // Kickoff itself is illustrative; it changes no PSE event or match statistic.
- if(!ignoreGoal){
-  let scored=null;
-  for(const g of goals)if(t>g.minute+.22&&(!scored||g.minute>scored.minute))scored=g;
-  if(scored){
-   const start=(scored.minute+.22)*60,finish=PlayDirector.nextBoundary(fixture,field,start+4);
-   if(seconds<finish){
-    const nextSide=scored.team===teams[0].id?1:0;
-    const kicker=nextSide*11+6;
-    const center={x:field.width*.5,y:field.height*.5,z:.23};
-    const phase=limit((seconds-start)/(finish-start),0,1);
-    // Finish on an existing controlled position at a deterministic cycle
-    // boundary. The kickoff pass lands without a second visual jump.
-    const landingFrame=rawMotionFrame(fixture,finish/60,field,true);
-    const landing=landingFrame.ball;
-    const release=ease((phase-.22)/.78);
-    const recover=ease((phase-.24)/.76);
-    // Faster possession can change the scripted team shape at the exact
-    // restart boundary. Have every player finish the kickoff by matching
-    // their next live-play position, not just the kicker. That avoids a
-    // sudden post-goal 8m defensive reposition when normal play resumes.
-    for(let i=0;i<actors.length;i++){
-     actors[i].x=lerp(actors[i].x,landingFrame.actors[i].x,recover);
-     actors[i].y=lerp(actors[i].y,landingFrame.actors[i].y,recover);
-    }
-    const actor=actors[kicker];
-    actor.x=lerp(center.x-(nextSide===0?.72:-.72),actor.x,recover);
-    actor.y=lerp(center.y-.32,actor.y,recover);
-    actor.frame=phase>.20&&phase<.40?3:0;
-    const controlled=phase<=.22;
-    ball=controlled?center:{
-     x:lerp(center.x,landing.x,release),
-     y:lerp(center.y,landing.y,release),
-     z:.23+.40*Math.sin(Math.PI*release)};
-    return {actors,ball,action:'illustrative-kickoff',ownerIndex:controlled?kicker:-1,
-     contact:controlled?'kickoff-setup':'kickoff-pass',sceneCut:'post-goal-kickoff',
-     label:phase<.35?'KICKOFF · '+teams[nextSide].name:'',
-     officialEvent:null,illustrative:true};
-   }
-  }
- }
  // Variable-length play sequences are visual only. Never alter PSE events.
  ball=visual.ball;
  const step=visual.stage;
@@ -334,11 +292,17 @@ function rawMotionFrame(fixture,t,field,options=false){
   wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds};
 
 }
-function motionFrame(fixture,t,field,options=false){
- const frame=rawMotionFrame(fixture,t,field,options);
- // Internal continuity diagnostics can still request the director alone.
- if(options===true)return frame;
- return OneOnOne.apply(fixture,field,t*60,frame,
-  sec=>rawMotionFrame(fixture,sec/60,field));
+function presentationFrame(fixture,seconds,field,options=false){
+ const normal=sec=>rawMotionFrame(fixture,sec/60,field,true);
+ let frame=rawMotionFrame(fixture,seconds/60,field,options);
+ frame=Kickoff.apply(fixture,field,seconds,frame,normal,sec=>rawMotionFrame(fixture,sec/60,field));
+ return Saves.apply(fixture,field,seconds,frame,sec=>Kickoff.apply(fixture,field,sec,
+  rawMotionFrame(fixture,sec/60,field),normal),fixture.events.length,options?.saveEvent||null);
 }
-module.exports={motionFrame,rawMotionFrame,base,hash,shotSummary,playbackRate};
+function motionFrame(fixture,t,field,options=false){
+ if(options===true)return rawMotionFrame(fixture,t,field,true);
+ const frame=presentationFrame(fixture,t*60,field,options);
+ return OneOnOne.apply(fixture,field,t*60,frame,
+  sec=>presentationFrame(fixture,sec,field,options));
+}
+module.exports={motionFrame,rawMotionFrame,presentationFrame,base,hash,shotSummary,playbackRate};

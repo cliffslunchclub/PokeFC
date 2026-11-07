@@ -90,9 +90,8 @@ for(const event of fixture.events.filter(e=>e.type==='goal')){
   }else{
    assert.equal(left.action,'official-goal','Goal must finish in the net');
    assert.equal(right.action,'illustrative-kickoff','Goal must cut to a kickoff');
-   assert.equal(right.sceneCut,'post-goal-kickoff');
-   assert(distance(right.ball,{x:field.width/2,y:field.height/2})<.03,
-    'Kickoff restarts at midfield');
+   assert.equal(right.sceneCut,null);
+   assert(distance(left.ball,right.ball)<.03,'Ball travels continuously back to midfield');
   }
  }
 }

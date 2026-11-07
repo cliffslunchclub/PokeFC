@@ -1196,7 +1196,7 @@ if(st.phase==='result'||st.phase==='finished'){
  }
  app.querySelectorAll('[data-match-replay]').forEach(button=>button.onclick=()=>{
   const round=Number(button.dataset.matchReplay),id=String(button.dataset.replayId||'');
-  if(!Number.isInteger(round)||round<1||round>6||!/^(goal|pk)-\d+$/.test(id))return;
+  if(!Number.isInteger(round)||round<1||round>6||!/^(goal|save|pk)-\d+$/.test(id))return;
   const match=(st.history||[]).find(m=>m.round===round&&m.replay?.version===1);
   const replay=match?.replay,bridge=window.FXI_PHASE10_WATCH;
   const status=document.getElementById('challengeReplayStatus');
