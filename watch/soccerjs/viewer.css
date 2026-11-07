@@ -245,3 +245,22 @@ html.pfc-watch-fullscreen .watch-commentary{bottom:74px}
  html.pfc-watch-fullscreen .watch-commentary{bottom:62px}
  .watch-commentary-history:not([hidden]){max-height:40vh;font-size:11px}
 }
+
+/* Available PSE highlights share replay actions with the match timeline. */
+.timeline-track{flex:1;min-width:0}.timeline-track input{width:100%;margin:0}
+.highlight-timeline-markers{position:relative;height:38px;margin:4px 14px 8px;border-top:3px solid #676970}
+.timeline-marker{position:absolute;top:0;transform:translateX(-50%);min-width:32px;min-height:32px;padding:3px;border:1px solid #ff7777;border-radius:6px;background:#24262d;color:#fff;cursor:pointer}
+.timeline-marker:focus-visible{outline:3px solid #fff;z-index:2}
+.pfc-event-content button{display:block;margin-top:6px;min-height:40px;padding:6px 10px}
+@media(max-width:580px){
+ .highlight-head{padding:6px 8px;min-height:32px}
+ .highlight-head strong{display:block;font-size:11px;letter-spacing:.04em}
+ .highlight-head button{min-height:32px;min-width:32px;padding:4px}
+ .highlight-filters{padding:4px 8px;gap:4px}
+ .highlight-filters button{min-height:28px;padding:4px;font-size:10px}
+ #highlightTimeline{display:none}
+ .highlight-footnote{display:none}
+ .highlight-entry{padding:5px 0}
+ .highlight-entry button{min-height:40px;padding:5px;font-size:10px}
+ .highlight-drawer:not([hidden]){max-height:calc(100% - 12px)}
+}

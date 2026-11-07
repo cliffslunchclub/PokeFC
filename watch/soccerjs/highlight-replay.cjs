@@ -43,9 +43,9 @@ function clipFor(fixture,entry){
  if(!entry||typeof entry.id!=='string')return null;
  const duration=durationOf(fixture);
  if(entry.kind==='goal'){
-  const start=clamp(entry.minute-.7,0,duration);
-  const end=clamp(entry.minute+.22,0,duration);
-  return {id:entry.id,kind:'goal',start,end,durationSeconds:6,minute:entry.minute};
+  const start=clamp(entry.minute-8/60,0,duration);
+  const end=clamp(entry.minute+1/60,0,duration);
+  return {id:entry.id,kind:'goal',start,end,durationSeconds:(end-start)*60,minute:entry.minute};
  }
  if(entry.kind==='set'&&entry.setPiece==='shootout'){
   return {id:entry.id,kind:'shootout',start:duration,end:duration,

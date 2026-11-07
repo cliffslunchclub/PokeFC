@@ -60,7 +60,8 @@ for(const goal of [h,a]){
  const start=motionFrame(synthetic,goal.minute-.7,field);
  assert(dist(entry.actors[side*11+idx],start.actors[side*11+idx])<.10,
   'Official non-forward scorer teleported at goal buildup entrance');
- const build=motionFrame(synthetic,goal.minute-.13,field);
+ const timing=motionFrame(synthetic,goal.minute,field);
+ const build=motionFrame(synthetic,timing.goalShotStart/60-.00001,field);
  assert(attackingProgress(build.actors[side*11+idx],side)>.67,
   'Scoring defender/midfielder did not arrive in attacking third');
  const goalFrame=motionFrame(synthetic,goal.minute,field);

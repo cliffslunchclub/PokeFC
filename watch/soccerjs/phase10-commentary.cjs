@@ -201,4 +201,19 @@ function latest(feed,seconds,kickIndex){
 function history(feed,seconds,kickIndex=0,max=120){
  return visible(feed,seconds,kickIndex).slice(-max).reverse();
 }
-module.exports={build,visible,latest,history,officialLine,illustrationLine,shootoutLine};
+function teamSummary(f,field,seconds,frame,previous=null){
+ const plan=planFor(f,field),stage=require('./phase10-play-director.cjs').stageAt(plan,seconds);
+ const side=frame.oneOnOne?Math.floor(frame.oneOnOne.shooter/11):
+  Number.isInteger(frame.attackingSide)?frame.attackingSide:
+  frame.ownerIndex>=0?Math.floor(frame.ownerIndex/11):Math.floor(stage.owner/11);
+ const progress=(side===0?frame.ball.x:field.width-frame.ball.x)/field.width;
+ const zone=progress<.45?0:progress<.55?1:progress<.75?2:progress<.87?3:4;
+ if(previous&&previous.side===side&&previous.zone===zone)return previous;
+ const team=side===0?'Red team':'White team';
+ const phrases=['builds from the back.','crosses midfield.','on the attack.',
+  'moves into the final third.','in prime scoring position.'];
+ return {id:PREFIX+'summary:'+side+':'+zone+':'+Math.floor(seconds*10),side,zone,
+  kind:'visual',type:'summary',seconds,minute:Math.floor(seconds/60),
+  text:team+' '+(previous&&previous.side!==side?'wins possession.':phrases[zone])};
+}
+module.exports={build,visible,latest,history,officialLine,illustrationLine,shootoutLine,teamSummary};

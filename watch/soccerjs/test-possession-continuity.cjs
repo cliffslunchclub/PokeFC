@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
-const {motionFrame}=require('./phase10-motion.cjs');
+const {motionFrame,rawMotionFrame}=require('./phase10-motion.cjs');
 const {planFor}=require('./phase10-play-director.cjs');
 const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'fixture.json'),'utf8'));
 const original=JSON.stringify(fixture),field={width:106,height:68};
@@ -79,8 +79,9 @@ assert(maxReversal<.0001,'Flight reverses direction');
 for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const toward=goal.team===fixture.home.id?1:-1;
  let prev=null;
- for(let t=goal.minute-.7;t<=goal.minute;t+=.01){
-  const next=motionFrame(fixture,t,field);
+ const timing=rawMotionFrame(fixture,goal.minute,field);
+ for(let t=timing.goalBallStart/60;t<=goal.minute;t+=.001){
+  const next=rawMotionFrame(fixture,t,field);
   if(prev)assert((next.ball.x-prev.ball.x)*toward>-.08,
    'Goal buildup whips backwards before the official shot');
   prev=next;

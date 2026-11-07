@@ -60,7 +60,7 @@ for(const shot of shots){
 }
 assert(maxSpeed<=28,'Shot/rebound outran renderer locomotion cap: '+maxSpeed);
 for(const goal of f.events.filter(e=>e.type==='goal')){
- const start=Math.max(0,goal.minute-.7),shotAt=start+(goal.minute-start)*.88;
+ const shotAt=rawMotionFrame(f,goal.minute,field).goalShotStart/60;
  const side=goal.team===f.home.id?0:1;
  const team=side===0?f.home:f.away;
  const scorer=side*11+team.lineup.findIndex(p=>String(p.id)===String(goal.player));

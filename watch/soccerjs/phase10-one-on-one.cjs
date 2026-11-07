@@ -33,11 +33,11 @@ function build(f,field,rawFrame){
  const previous=cache.get(f);
  if(previous&&previous.width===field.width&&previous.height===field.height)return previous.shots;
  const plan=Director.planFor(f,field),shots=[];
- const goals=f.events.filter(e=>e.type==='goal').map(g=>({
-  start:Math.max(0,g.minute-.7)*60,shot:(Math.max(0,g.minute-.7)+
-   (g.minute-Math.max(0,g.minute-.7))*.88)*60,
-  end:(g.minute+.22)*60
- }));
+ const goals=f.events.filter(e=>e.type==='goal').map(g=>{
+  const frame=rawFrame(Math.max(0,g.minute*60-.0001));
+  return {start:frame.goalSequenceStart??Math.max(0,g.minute-.7)*60,
+   shot:frame.goalShotStart??g.minute*60-.8,end:(g.minute+.22)*60};
+ });
  let available=0;
  for(let tick=0;tick*STEP<plan.duration;tick++){
   const sec=tick*STEP;

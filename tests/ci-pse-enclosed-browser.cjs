@@ -22,11 +22,12 @@ for(let n=0;n<100;n++){
  const next=qs.simulate(preview,{seed:'ENCLOSED-BROWSER-'+n});
  const candidate=bridge.snapshot(preview,next),field={width:106,height:68};
  for(const goal of candidate.events.filter(e=>e.type==='goal'&&e.minute>3&&e.minute<86)){
-  const attack=goal.team===candidate.home.id?0:1,start=(goal.minute-.7)*60;
-  const initial=sample(candidate,field,start);
+  const attack=goal.team===candidate.home.id?0:1;
+  const timing=rawMotionFrame(candidate,goal.minute,field);
+  const initial=sample(candidate,field,timing.goalBallStart);
   const depth=attack===0?106-initial.ball.x:initial.ball.x;
-  if(depth>13||Math.abs(initial.ball.y-34)>5||Math.floor(initial.stage.owner/11)!==attack)continue;
-  const sec=start+42*.82,frame=motionFrame(candidate,sec/60,field);
+  if(depth>13||Math.abs(initial.ball.y-34)>5)continue;
+  const sec=timing.goalShotStart-.05,frame=motionFrame(candidate,sec/60,field);
   const keeper=frame.actors[(1-attack)*11];
   if(frame.goalkeeperRushSide===1-attack&&Math.hypot(keeper.x-frame.ball.x,keeper.y-frame.ball.y)<2){
    result=next;keeperSceneSeconds=sec;break;
@@ -107,6 +108,16 @@ async function serve(){
     el.step='any';el.value=String(sec/60);
     el.dispatchEvent(new Event('input',{bubbles:true}));
    },seconds);
+   const summarySecond=Array.from({length:10},(_,i)=>15+i*15).find(sec=>
+    !fixture.events.some(e=>e.type==='goal'&&Math.abs(e.minute*60-sec)<20))??0;
+   await seekExact(summarySecond);
+   await page.locator('#speed').selectOption('4');
+   assert.match(await page.locator('#commentaryLine').textContent(),/Red team|White team/,
+    '4x must use team-level commentary');
+   await page.locator('#speed').selectOption('2');
+   assert(!/Red team|White team/.test(await page.locator('#commentaryLine').textContent()),
+    '2x must restore detailed commentary immediately');
+   await page.locator('#speed').selectOption('1');
    for(const view of ['orthographic','isometric','topdown']){
     await page.locator('#projection').selectOption(view);
     await seekExact(attempt.start+.03);
@@ -168,6 +179,12 @@ async function serve(){
    assert.equal(gathered.wallContact?.axis,pickup.wall.axis);
    assert.deepEqual(gathered.score,bridge.scoreAt(fixture,gathered.minute));
    const firstGoal=fixture.events.find(e=>e.type==='goal'&&e.minute>3&&e.minute<86);
+   await page.locator('#speed').selectOption('4');
+   await seekExact(firstGoal.minute*60+.001); // Range serialization can round the exact instant backward.
+   assert.equal((await page.evaluate(()=>window.__PFC_SNAPSHOT__)).officialEventType,'goal');
+   assert.match(await page.locator('#commentaryLine').textContent(),/GO+AL|NET/,
+    'Official goal announcement must override team summaries at 4x');
+   await page.locator('#speed').selectOption('1');
    await page.locator('#scrub').evaluate((el,v)=>{
     el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
    },Math.ceil((firstGoal.minute+.03)/step)*step);
@@ -179,7 +196,11 @@ async function serve(){
    assert((await page.locator('#highlightList .highlight-entry').count())>0,
     'Official goal replay missing');
    await page.screenshot({path:path.join(screenshots,'enclosed-no-whistles-'+device+'.png')});
-   await page.locator('#highlightList .highlight-entry button').first().click();
+   assert((await page.locator('#highlightTimeline [data-highlight-id]').count())>0,
+    'Known goals must appear as timeline markers');
+   await page.locator('#highlightDrawer').screenshot({path:path.join(screenshots,'timeline-replays-'+device+'.png')});
+   if(device==='mobile')await page.locator('#highlightList .highlight-entry button').first().click();
+   else await page.locator('#highlightTimeline [data-highlight-id="goal-0"]').click();
    const replay=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(replay.replay?.kind,'goal');
    await page.locator('#highlightReplayReturn').click();
@@ -195,7 +216,7 @@ async function serve(){
     ' four-board physical banks, loose-ball pickup, six boards, no whistles, stable goal replay');
    // The production game uses the *embedded* iframe, not the standalone
    // Watch page. Check its actual positioned overlay and zoom controls.
-   await page.goto(url+'?embedded=1&inline=1&v=19',
+   await page.goto(url+'?embedded=1&inline=1&v=20',
     {waitUntil:'domcontentloaded',timeout:30000});
    await page.waitForFunction(()=>
     document.documentElement.classList.contains('pfc-inline'),

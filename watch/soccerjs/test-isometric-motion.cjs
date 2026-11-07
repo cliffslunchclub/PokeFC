@@ -28,9 +28,10 @@ assert(['illustrative-pass','illustrative-give-and-go','illustrative-cross',
  'illustrative-through-ball','illustrative-bank-pass'].some(action=>types.has(action)),
  'No real passing animation (including a valid wall bank) in five-minute clip');
 for(const goal of fixture.events){
- const before=motionFrame(fixture,goal.minute-.08,field);
+ const timing=motionFrame(fixture,goal.minute,field);
+ const before=motionFrame(fixture,(timing.goalShotStart-.00001)/60,field);
  const at=motionFrame(fixture,goal.minute,field);
- assert(before.action==='illustrative-shot'||before.action==='illustrative-goal-buildup');
+ assert(before.action==='illustrative-shot'||before.action==='illustrative-goal-buildup'||before.oneOnOne);
  assert.equal(at.action,'official-goal');
  assert.equal(at.officialEvent.player,goal.player,'Official player changed in animation');
  assert.equal(at.officialEvent.team,goal.team);
