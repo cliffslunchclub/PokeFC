@@ -8,7 +8,7 @@ function scenes(f,field,normal,official=normal){
  const old=cache.get(f);if(old?.width===field.width&&old.height===field.height)return old.items;
  const starts=[{start:0,side:0,initial:true},...([45,...(f.durationMinutes===120?[90,105]:[])]).map((m,i)=>({start:m*60,side:(i+1)%2}))];
  for(const g of f.events.filter(e=>e.type==='goal'))starts.push({start:(g.minute+.22)*60,side:g.team===f.home.id?1:0,goal:g});
- const items=starts.sort((a,b)=>a.start-b.start).map(s=>{
+ const items=starts.filter(s=>s.start<(f.durationMinutes||90)*60).sort((a,b)=>a.start-b.start).map(s=>{
   const opening=s.goal?official(s.start-.000001):normal(s.start),center={x:field.width/2,y:field.height/2,z:.23};
   if(s.goal)opening.ball={x:s.goal.team===f.home.id?field.width+.9:-.9,y:field.height/2+(require('./phase10-play-director.cjs').hash(s.goal.player+':'+s.goal.minute)%2?1:-1)*2.15,z:.23};
   const kicker=s.side*11+6,receiver=s.side*11+7,direction=s.side===0?1:-1;
@@ -29,6 +29,7 @@ function scenes(f,field,normal,official=normal){
    const needed=Math.max(dist(receive,landing.ball)/12,...setup.map((a,j)=>dist(a,landing.actors[j])/4));
    if(end-arrival>=needed)break;end=arrival+needed+.2;
   }
+  end=Math.min(end,(f.durationMinutes||90)*60);landing=normal(end);
   return {...s,opening,setup,center,kicker,receiver,transit,kick,arrival,receive,end,landing};
  });
  cache.set(f,{width:field.width,height:field.height,items});return items;

@@ -29,6 +29,7 @@ function setSaveAuto(value){
  for(const id of ['saveAutoControl','saveAutoAlert'])if($(id))$(id).checked=autoContinueSaves;
  saveAutoDeadline=autoContinueSaves&&replayNotice?.startsWith('save-')&&!replaySession?performance.now()+3000:null;
  send({type:'save-preference',enabled:autoContinueSaves});
+ if(match&&sim){lastSent=-2;render(minute)}
 }
 function continueMatch(){
  if(incidentQueue.length&&liveSaveEvent){
@@ -145,7 +146,7 @@ function setHighlightDrawer(open){
  if(open){clearHighlightNotice();renderHighlightCatalog(true);}
 }
 function replayMoment(id){
- if(!match||replaySession)return false;
+ if(!match||replaySession||queuedPresentation)return false;
  const entry=resolveHighlight(match,String(id),minute,kickIndex);
  const clip=clipFor(match,entry);
  if(!clip)return false;
@@ -477,7 +478,7 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice,watchPlaying:!!playing,watchSpeed:speed});
+   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -511,7 +512,7 @@ function render(t,options={}){
    x:goal.lineX,min:goal.yMin,max:goal.yMax
   })),
   boardGeometry:Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal}),
-  goalPaused:!!replayNotice,savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
+  goalPaused:!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
   queuedSavePresentation:queuedPresentation?.phase||null,queuedSaveCount:incidentQueue.length,
   autoContinueSaves,saveAutoCountdown:saveAutoDeadline!==null,kickoff:script.kickoff||null,saveSequence:script.saveSequence||null,
   replay:isReplay?{id:replaySession.entry.id,

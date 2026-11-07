@@ -1204,7 +1204,7 @@ if(st.phase==='result'||st.phase==='finished'){
   if(!replay||!bridge?.mountInline||!replayModal||!stage)return;
   goalReplaySession?.destroy?.();goalReplaySession=null;
   stage.textContent='';
-  if(status)status.textContent='Loading recorded '+(id.startsWith('pk-')?'penalty':'goal')+' replay…';
+  if(status)status.textContent='Loading recorded '+(id.startsWith('pk-')?'penalty':id.startsWith('save-')?'goalkeeper save':'goal')+' replay…';
   openDialog(replayModal);
   let requested=false,readySession=null;
   const start=session=>{

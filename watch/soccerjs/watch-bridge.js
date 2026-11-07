@@ -375,7 +375,7 @@
     if(typeof onProgress==='function')onProgress({
      minute,score:official,finished,handedOff,recorded,
      durationMinutes:duration,kickIndex,shootout:fixture.shootout||null,
-     pausedForGoal:e.data.pausedForGoal===true,
+     pausedForGoal:e.data.pausedForGoal===true,pausedForSave:e.data.pausedForSave===true,
      watchPlaying:typeof e.data.watchPlaying==='boolean'?e.data.watchPlaying:null,
      watchSpeed:[1,2,4,8,16].includes(Number(e.data.watchSpeed))?Number(e.data.watchSpeed):null
     });

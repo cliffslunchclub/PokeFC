@@ -67,7 +67,7 @@ async function serve(){
    assert.equal(await page.locator('#highlightList .highlight-entry').count(),0,
     'Highlight drawer cannot reveal future PSE events');
    await page.locator('#highlightClose').click();
-   const from=Math.max(0,firstGoal.minute-.12);
+   const from=Math.max(0,firstGoal.minute-.001);
    await page.locator('#scrub').evaluate((el,v)=>{
     el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
    },from);
@@ -136,13 +136,13 @@ async function serve(){
    },restartMinute);
    const restarted=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(restarted.animation,'illustrative-kickoff','Missing kickoff broadcast cut on '+device);
-   assert(['kickoff-setup','kickoff-pass'].includes(restarted.ballContact),
+   assert(['kickoff-reposition','kickoff-setup','kickoff-pass','kickoff-recovery'].includes(restarted.ballContact),
     'Kickoff must have a valid setup/pass phase on '+device);
    if(restarted.ballContact==='kickoff-setup')
     assert(restarted.carrier>=0,'Kickoff setup needs a controlling Pokémon on '+device);
    else assert.equal(restarted.carrier,-1,'Kickoff pass cannot claim midflight possession');
-   assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)>15,
-    'A reset cut should not pretend the scored ball travels backwards to midfield');
+   assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)<
+    (restartMinute-holdMinute)*60*14+.1,'Restart ball must travel continuously');
    assert.deepEqual(restarted.score,bridge.scoreAt(fixture,restartMinute),
     'Kickoff visual must never change the official PSE score');
    await page.screenshot({path:path.join(screenshotDir,'pse-kickoff-'+device+'.png')});
