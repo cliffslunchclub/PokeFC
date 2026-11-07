@@ -37,9 +37,12 @@ for(const start of [0,2700,5400,6300]){
  for(const a of frame.actors)assert(a.side===0?a.x<=53:a.x>=53);
 }
 for(const goal of fixture.events.filter(e=>e.type==='goal')){
- const s=presentationFrame(fixture,(goal.minute+.22)*60,field).kickoff;
- if(!s)continue;
+ const s=presentationFrame(fixture,(goal.minute+.22)*60+1e-5,field).kickoff;
+ assert(s,'Post-goal restart must exist after the scoring scene ends');
  assert.equal(Math.floor(s.kicker/11),goal.team===fixture.home.id?1:0);
+ const ready=presentationFrame(fixture,s.ready,field);
+ assert.equal(ready.contact,'kickoff-setup');
+ assert.equal(ready.actors.filter(a=>Math.hypot(a.x-53,a.y-34)<9.15).length,2);
 }
 assert.equal(JSON.stringify(fixture),before);
 console.log('PASS kickoff intro: real 2s hold + 2s ramp at 1/4/16x and 30/60/144fps, pause/speed/seek, own halves and two teammates in circle in all periods');

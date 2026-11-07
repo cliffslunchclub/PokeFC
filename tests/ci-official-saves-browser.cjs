@@ -64,7 +64,7 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   // Render both teams' kickoff setup after half-time and after a goal.
   const goal=fixture.events.find(e=>e.type==='goal');
   for(const start of [2700,...(goal?[(goal.minute+.22)*60]:[])]){
-   const k=presentationFrame(fixture,start,field).kickoff;assert(k);
+   const k=presentationFrame(fixture,start+1e-5,field).kickoff;assert(k);
    await seek(k.ready/60);const ready=await snap();
    assert.equal(ready.ballContact,'kickoff-setup');
    for(const [id,p] of ready.actorWorldPositions.entries()){
@@ -170,6 +170,17 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
  assert.equal(end.officialEventType,'goal');assert(end.ball.x>106||end.ball.x<0,'Goal alert must wait for ball to reach net');
  assert.equal(await frame.locator('#highlightNoticeTitle').textContent(),"GOAL! · "+Math.floor(closeGoal.minute+1)+"′ · "+preview.home.lineup.find(p=>p.id===closeGoal.player).name);
  assert.equal(await page.evaluate(()=>window.records),0);
+ const clusterFixture=bridge.snapshot(preview,clustered);
+ const restart=presentationFrame(clusterFixture,(closeGoal.minute+.22)*60+1e-5,field).kickoff;
+ assert(restart);
+ await page.evaluate(t=>window.session.seek(t),restart.ready/60);
+ await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__.minute-t)<1e-7,restart.ready/60);
+ const ready=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+ assert.equal(ready.ballContact,'kickoff-setup');
+ const circle=ready.actorWorldPositions.map((p,i)=>({p,i})).filter(({p})=>Math.hypot(p[0]-53,p[1]-34)<9.15);
+ assert.deepEqual(circle.map(a=>a.i),[restart.kicker,restart.receiver]);
+ assert.equal(Math.floor(restart.kicker/11),closeGoal.team===clusterFixture.home.id?1:0);
+ await frame.locator('.pitchwrap').screenshot({path:path.join(out,'post-goal-two-player-kickoff-mobile.png')});
  console.log('PASS tightly clustered official save→goal: held presentation clock, secured save, natural punt transition and goal alert only after ball reaches net');
  await page.close();
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}})().catch(e=>{console.error(e);process.exitCode=1});
