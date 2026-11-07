@@ -7,6 +7,8 @@ const base=require('../watch/soccerjs/fixture.json'),root=path.resolve(__dirname
 const preview={home:base.home,away:base.away},result=qs.simulate(preview,{seed:'official-saves-1'});
 const fixture=bridge.snapshot(preview,result),first=fixture.events.find(e=>e.type==='save');
 const incidents=fixture.events.filter(e=>e.type==='save'||e.type==='goal');
+const {presentationFrame}=require('../watch/soccerjs/phase10-motion.cjs');
+const field={width:106,height:68};
 assert(first);
 for(let i=1;i<incidents.length;i++)assert(incidents[i].minute-incidents[i-1].minute>=3-1e-9);
 const original=JSON.stringify(result),out=path.join(root,'pse-browser-artifacts');fs.mkdirSync(out,{recursive:true});
@@ -18,6 +20,19 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
  browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.PFC_CHROME_BIN?{executablePath:process.env.PFC_CHROME_BIN}:{})});
  for(const [device,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}]]){
   const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{
+   const proto=CanvasRenderingContext2D.prototype;
+   for(const name of ['clearRect','stroke','drawImage']){
+    const original=proto[name];proto[name]=function(...args){
+     if(this.canvas.id==='pitch'){
+      if(name==='clearRect')window.__paintOrder=[];
+      if(name==='stroke'&&this.strokeStyle==='#e53935'&&this.lineWidth===3)window.__paintOrder?.push('wall');
+      if(name==='drawImage'&&args[0]?.src?.includes('/sprites/pokemon/'))window.__paintOrder?.push('pokemon');
+     }
+     return original.apply(this,args);
+    };
+   }
+  });
   await page.route('**/save-host-test',r=>r.fulfill({contentType:'text/html',body:host}));
   await page.goto(origin+'/save-host-test');await page.waitForFunction(()=>window.ready,null,{timeout:120000});
   let frame=page.frames().find(f=>f.url().includes('dist/index.html'));
@@ -27,6 +42,53 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   assert.equal(await page.locator('.pfc-save-auto-control input').isChecked(),false);
   // Match start is a stationary two-player centre kick with both halves set.
   assert.equal((await snap()).ballContact,'kickoff-setup');
+  for(const speed of [1,4,16]){
+   await seek(0);await page.evaluate(speed=>window.session.play(speed),speed);
+   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=1,null,{timeout:10000});
+   await page.evaluate(()=>window.session.pause());
+   const held=await snap();assert.equal(held.minute,0);assert.equal(held.ballContact,'kickoff-setup');
+   assert(held.kickoffIntro.elapsed<2,'Setup must hold for two real seconds at every speed');
+   const circle=held.actorWorldPositions.map((p,i)=>({p,i})).filter(({p})=>Math.hypot(p[0]-53,p[1]-34)<9.15);
+   assert.deepEqual(circle.map(a=>a.i),[held.kickoff.kicker,held.kickoff.receiver]);
+   if(speed===1)await frame.locator('.pitchwrap').screenshot({path:path.join(out,'two-player-kickoff-'+device+'.png')});
+   await page.waitForTimeout(250);assert.equal((await snap()).kickoffIntro.elapsed,held.kickoffIntro.elapsed);
+   await page.evaluate(speed=>window.session.play(speed),speed);
+   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=3,null,{timeout:10000});
+   const ramp=await snap();
+   assert(ramp.kickoffIntro.elapsed<4);assert(ramp.minute>0);
+   const expected=speed*(ramp.kickoffIntro.elapsed-2)**2/4;
+   assert(Math.abs(ramp.minute*60-expected)<.01,'Live clock follows continuous acceleration');
+   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=4,null,{timeout:10000});
+   await page.evaluate(()=>window.session.pause());
+  }
+  // Render both teams' kickoff setup after half-time and after a goal.
+  const goal=fixture.events.find(e=>e.type==='goal');
+  for(const start of [2700,...(goal?[(goal.minute+.22)*60]:[])]){
+   const k=presentationFrame(fixture,start+1e-5,field).kickoff;assert(k);
+   await seek(k.ready/60);const ready=await snap();
+   assert.equal(ready.ballContact,'kickoff-setup');
+   for(const [id,p] of ready.actorWorldPositions.entries()){
+    assert(id<11?p[0]<=53:p[0]>=53);
+    if(Math.floor(id/11)!==Math.floor(k.kicker/11))assert(Math.hypot(p[0]-53,p[1]-34)>=9.15);
+   }
+  }
+  // At an actual border scene, all six rails paint before all 22 sprites.
+  let border=60,best=Infinity;
+  for(let sec=30;sec<240;sec+=3)for(const a of presentationFrame(fixture,sec,field).actors){
+   const edge=Math.min(a.x,106-a.x,a.y,68-a.y);if(edge<best){best=edge;border=sec;}
+  }
+  for(const view of ['orthographic','isometric','topdown']){
+   await seek(border/60);await page.evaluate(view=>window.session.setProjection(view),view);
+   await frame.waitForFunction(view=>window.__PFC_SNAPSHOT__.projection===view,view);
+   const order=await frame.evaluate(()=>window.__paintOrder);
+   assert.equal(order.filter(x=>x==='wall').length,6);
+   assert.equal(order.filter(x=>x==='pokemon').length,22);
+   assert(order.lastIndexOf('wall')<order.indexOf('pokemon'),'Walls must never paint across a sprite');
+   const positions=(await snap()).actorWorldPositions;
+   assert(positions.every(p=>p[0]>=.9&&p[0]<=105.1&&p[1]>=.9&&p[1]<=67.1));
+   await frame.locator('.pitchwrap').screenshot({path:path.join(out,'border-layering-'+device+'-'+view+'.png')});
+  }
+  await page.evaluate(()=>window.session.setProjection('orthographic'));
   for(const speed of [1,4,16]){
    await seek(first.minute-.03/60);await page.evaluate(speed=>window.session.play(speed),speed);
    await frame.locator('#highlightNotice').waitFor({state:'visible',timeout:15000});
@@ -108,6 +170,17 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
  assert.equal(end.officialEventType,'goal');assert(end.ball.x>106||end.ball.x<0,'Goal alert must wait for ball to reach net');
  assert.equal(await frame.locator('#highlightNoticeTitle').textContent(),"GOAL! · "+Math.floor(closeGoal.minute+1)+"′ · "+preview.home.lineup.find(p=>p.id===closeGoal.player).name);
  assert.equal(await page.evaluate(()=>window.records),0);
+ const clusterFixture=bridge.snapshot(preview,clustered);
+ const restart=presentationFrame(clusterFixture,(closeGoal.minute+.22)*60+1e-5,field).kickoff;
+ assert(restart);
+ await page.evaluate(t=>window.session.seek(t),restart.ready/60);
+ await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__.minute-t)<1e-7,restart.ready/60);
+ const ready=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+ assert.equal(ready.ballContact,'kickoff-setup');
+ const circle=ready.actorWorldPositions.map((p,i)=>({p,i})).filter(({p})=>Math.hypot(p[0]-53,p[1]-34)<9.15);
+ assert.deepEqual(circle.map(a=>a.i),[restart.kicker,restart.receiver]);
+ assert.equal(Math.floor(restart.kicker/11),closeGoal.team===clusterFixture.home.id?1:0);
+ await frame.locator('.pitchwrap').screenshot({path:path.join(out,'post-goal-two-player-kickoff-mobile.png')});
  console.log('PASS tightly clustered official save→goal: held presentation clock, secured save, natural punt transition and goal alert only after ball reaches net');
  await page.close();
 }finally{if(browser)await browser.close();server.kill('SIGTERM')}})().catch(e=>{console.error(e);process.exitCode=1});
