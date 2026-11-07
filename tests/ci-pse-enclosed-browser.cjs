@@ -180,7 +180,8 @@ async function serve(){
    assert.deepEqual(gathered.score,bridge.scoreAt(fixture,gathered.minute));
    const firstGoal=fixture.events.find(e=>e.type==='goal'&&e.minute>3&&e.minute<86);
    await page.locator('#speed').selectOption('4');
-   await seekExact(firstGoal.minute*60);
+   await seekExact(firstGoal.minute*60+.001); // Range serialization can round the exact instant backward.
+   assert.equal((await page.evaluate(()=>window.__PFC_SNAPSHOT__)).officialEventType,'goal');
    assert.match(await page.locator('#commentaryLine').textContent(),/GOAL|NET/,
     'Official goal announcement must override team summaries at 4x');
    await page.locator('#speed').selectOption('1');
