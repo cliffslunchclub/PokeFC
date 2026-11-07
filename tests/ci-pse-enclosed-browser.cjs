@@ -114,7 +114,7 @@ async function serve(){
     const keeper=scene.actorWorldPositions[side*11];
     assert(Math.hypot(keeper[0]-scene.ball.x,keeper[1]-scene.ball.y)<2,
      'Rendered keeper did not close the one-on-one in '+view);
-    await page.screenshot({path:path.join(screenshots,'goal-clearance-keeper-'+view+'-'+device+'.png')});
+    await page.locator('.pitchwrap').screenshot({path:path.join(screenshots,'goal-clearance-keeper-'+view+'-'+device+'.png')});
    }
    await page.locator('#projection').selectOption('orthographic');
    const at=bank.start+bank.duration*bank.wall.impactU;
