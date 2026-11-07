@@ -11,6 +11,8 @@ function speedFor(script,index){
  // Keepers alone can charge or retreat at a bounded five metres/second;
  // ordinary players retain the existing with/without-ball limits.
  if(index%11===0)return SHORT_SPRINT;
+ if(script?.oneOnOne?.outcome==='block'&&script.oneOnOne.clearer===index&&
+  ['loose-deflection','loose-ball'].includes(script.contact))return SHORT_SPRINT;
  if(script?.ownerIndex===index)return BALL_CARRY;
  if(script?.pressPhase==='counterpress'&&
    Array.isArray(script.pressingPlayers)&&script.pressingPlayers.includes(index))

@@ -78,15 +78,15 @@ function build(f,field,rawFrame){
   const hit=sec+Math.max(.18,distance(from,block)/24);
   const loose={x:clamp(block.x+(chance.side===0?-3:3),1,field.width-1),
    y:clamp(block.y+(wing*1.5),1,field.height-1),z:.23};
-  const spilled=hit+.6,defending=1-chance.side,atHit=rawFrame(hit);
+  const spilled=hit+.3,defending=1-chance.side,atHit=rawFrame(hit);
   const candidates=atHit.actors.map((p,id)=>({id,d:distance(p,loose)}))
    .filter(p=>Math.floor(p.id/11)===defending&&p.id!==chance.keeper&&p.d<=8)
    .sort((a,b)=>a.d-b.d||a.id-b.id);
   const clearer=candidates[0]?.id??chance.keeper;
   const recoveryFrom=clearer===chance.keeper?block:atHit.actors[clearer];
-  const clearAt=spilled+Math.max(.2,distance(recoveryFrom,loose)/4);
-  const clearTo={x:clamp(loose.x+(defending===0?42:-42),8,field.width-8),y:field.height*.5,z:.23};
-  const clearArrival=clearAt+distance(loose,clearTo)/22;
+  const clearAt=spilled+Math.max(.08,distance(recoveryFrom,loose)/5);
+  const clearTo={x:clamp(loose.x+(defending===0?52:-52),8,field.width-8),y:field.height*.5,z:.23};
+  const clearArrival=clearAt+distance(loose,clearTo)/26;
   const finish=clearArrival+15;
   const hazards=f.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>{
    const at=rawFrame(e.minute*60);return {start:at.saveSequence?.start??at.goalSequenceStart??e.minute*60-40,end:e.minute*60+65};
