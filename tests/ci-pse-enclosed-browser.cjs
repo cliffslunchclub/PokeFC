@@ -108,7 +108,9 @@ async function serve(){
     el.step='any';el.value=String(sec/60);
     el.dispatchEvent(new Event('input',{bubbles:true}));
    },seconds);
-   await seekExact(60);
+   const summarySecond=Array.from({length:10},(_,i)=>15+i*15).find(sec=>
+    !fixture.events.some(e=>e.type==='goal'&&Math.abs(e.minute*60-sec)<20))??0;
+   await seekExact(summarySecond);
    await page.locator('#speed').selectOption('4');
    assert.match(await page.locator('#commentaryLine').textContent(),/Red team|White team/,
     '4x must use team-level commentary');
@@ -177,6 +179,11 @@ async function serve(){
    assert.equal(gathered.wallContact?.axis,pickup.wall.axis);
    assert.deepEqual(gathered.score,bridge.scoreAt(fixture,gathered.minute));
    const firstGoal=fixture.events.find(e=>e.type==='goal'&&e.minute>3&&e.minute<86);
+   await page.locator('#speed').selectOption('4');
+   await seekExact(firstGoal.minute*60);
+   assert.match(await page.locator('#commentaryLine').textContent(),/GOAL|NET/,
+    'Official goal announcement must override team summaries at 4x');
+   await page.locator('#speed').selectOption('1');
    await page.locator('#scrub').evaluate((el,v)=>{
     el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
    },Math.ceil((firstGoal.minute+.03)/step)*step);
