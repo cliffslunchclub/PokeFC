@@ -10,6 +10,7 @@ const TeamShape=require('./phase10-team-shape.cjs');
 const Wall=require('./phase10-wall-physics.cjs');
 const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const Onside=require('./phase10-onside-movement.cjs');
+const OneOnOne=require('./phase10-one-on-one.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -134,7 +135,7 @@ function supportingPose(fixture,owner,field,seconds,wave=waveAt(fixture,field,se
  const advanced=lerp(progress,Math.max(progress,target),pressure*amount);
  return {x:limit(origin(side,advanced,field),1,field.width-1),y:original.y};
 }
-function motionFrame(fixture,t,field,options=false){
+function rawMotionFrame(fixture,t,field,options=false){
  const ignoreGoal=options===true;
  const kickIndex=options&&typeof options==='object'&&Number.isInteger(options.kickIndex)?options.kickIndex:0;
  if(!fixture||!fixture.home||!fixture.away||!Array.isArray(fixture.events))
@@ -203,7 +204,7 @@ function motionFrame(fixture,t,field,options=false){
   // Anchor the first touch to the *existing* ball and player positions.
   // Earlier goal animation placed three players at preset coordinates and
   // dragged the ball to those spots, causing the visible backward whip.
-  const opening=motionFrame(fixture,initial,field,true);
+  const opening=rawMotionFrame(fixture,initial,field,true);
   const p0=opening.ball;
   let support=assist>=0?side*11+assist:-1;
   if(support===scorerId||support<0){
@@ -230,25 +231,23 @@ function motionFrame(fixture,t,field,options=false){
   const net={x:(side===0?field.width+.9:-.9),
    y:field.height*.5+wing*2.15,z:.23};
   const p1={x:lerp(p0.x,finish.x,.30),y:lerp(p0.y,finish.y,.30)};
-  const p2={x:lerp(p0.x,finish.x,.74),
-   y:limit(lerp(p0.y,finish.y,.72)+wing*3,field.height*.13,field.height*.87)};
   const lob=(hash(String(event.player)+':through:'+String(event.minute))%4===0);
   function goalBallAt(second){
    const progress=limit((second/60-initial)/span,0,1);
    if(progress<.34){const v=ease(progress/.34);
     return {x:lerp(p0.x,p1.x,v),y:lerp(p0.y,p1.y,v),z:.23};}
-   if(progress<.70){const v=ease((progress-.34)/.36);
-    return {x:lerp(p1.x,p2.x,v),y:lerp(p1.y,p2.y,v),
+   // Deliver the final ball directly to the shooting touch. There is no
+   // controlled .70–.88 dribble with only the keeper left to beat.
+   if(progress<.88){const v=ease((progress-.34)/.54);
+    return {x:lerp(p1.x,finish.x,v),y:lerp(p1.y,finish.y,v),
      z:.23+(lob?3:.48)*Math.sin(Math.PI*v)};}
-   if(progress<.88){const v=ease((progress-.70)/.18);
-    return {x:lerp(p2.x,finish.x,v),y:lerp(p2.y,finish.y,v),z:.23};}
    const v=ease((progress-.88)/.12);
    return {x:lerp(finish.x,net.x,v),y:lerp(finish.y,net.y,v),
     z:.23+1.3*Math.sin(v*Math.PI)};
   }
   ball=goalBallAt(seconds);
-  const phase=u<.34?'run':u<.70?(lob?'lofted-through':'through'):u<.88?'run':'shot';
-  let ownerIndex=u<.34?support:u>=.70&&u<.88?scorerId:-1;
+  const phase=u<.34?'run':u<.88?(lob?'lofted-through':'through'):'shot';
+  let ownerIndex=u<.34?support:-1;
   // Two attackers arrive at the ball along continuous paths. They never
   // teleport into their shooting poses at a goal-scene boundary.
   const starter=actors[support],startActor=opening.actors[support];
@@ -256,10 +255,9 @@ function motionFrame(fixture,t,field,options=false){
   starter.x=lerp(startActor.x,p1.x-attack*.6,settle);
   starter.y=lerp(startActor.y,p1.y-.3,settle);
   const finisher=actors[scorerId],startScorer=opening.actors[scorerId];
-  const arrival=ease(u/.70);
-  const follow=u>.70&&u<.88?ball:finish;
-  finisher.x=lerp(startScorer.x,u>=.70?follow.x-attack*.55:p2.x-attack*.55,arrival);
-  finisher.y=lerp(startScorer.y,u>=.70?follow.y-.3:p2.y-.3,arrival);
+  const arrival=ease(u/.88);
+  finisher.x=lerp(startScorer.x,finish.x-attack*.55,arrival);
+  finisher.y=lerp(startScorer.y,finish.y-.3,arrival);
   const keeper=actors[(1-side)*11];
   const keeperPosition=Keeper.sceneAt(field,event,seconds,{
    start:initial*60,end:event.minute*60,shot:(initial+span*.88)*60,
@@ -318,7 +316,7 @@ function motionFrame(fixture,t,field,options=false){
     const phase=limit((seconds-start)/(finish-start),0,1);
     // Finish on an existing controlled position at a deterministic cycle
     // boundary. The kickoff pass lands without a second visual jump.
-    const landingFrame=motionFrame(fixture,finish/60,field,true);
+    const landingFrame=rawMotionFrame(fixture,finish/60,field,true);
     const landing=landingFrame.ball;
     const release=ease((phase-.22)/.78);
     const recover=ease((phase-.24)/.76);
@@ -399,4 +397,11 @@ function motionFrame(fixture,t,field,options=false){
   wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds};
 
 }
-module.exports={motionFrame,base,hash,shotSummary,playbackRate};
+function motionFrame(fixture,t,field,options=false){
+ const frame=rawMotionFrame(fixture,t,field,options);
+ // Internal continuity diagnostics can still request the director alone.
+ if(options===true)return frame;
+ return OneOnOne.apply(fixture,field,t*60,frame,
+  sec=>rawMotionFrame(fixture,sec/60,field));
+}
+module.exports={motionFrame,rawMotionFrame,base,hash,shotSummary,playbackRate};

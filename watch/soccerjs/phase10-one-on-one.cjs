@@ -1,0 +1,113 @@
+'use strict';
+// Immediate Watch-only attempts. PSE owns every official shot/save/goal.
+// Build from the actual composed actor positions, including defensive press
+// and goalkeeper rush. Never infer a chance from nominal formation slots.
+const Director=require('./phase10-play-director.cjs');
+const STEP=.1,BOX_DEPTH=16.5,BOX_HALF_WIDTH=20.16;
+const cache=new WeakMap();
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ease=v=>{v=clamp(v,0,1);return v*v*(3-2*v)};
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const mix=(a,b,u)=>a+(b-a)*u;
+function opportunity(frame,field){
+ const owner=frame.ownerIndex;
+ if(!Number.isInteger(owner)||owner<0||owner%11===0||frame.ball.z>1.1)return null;
+ const side=Math.floor(owner/11),goalX=side===0?field.width:0;
+ const ball=frame.ball,depth=Math.abs(goalX-ball.x),forward=side===0?1:-1;
+ if(distance(frame.actors[owner],ball)>1.8)return null;
+ if(depth<.7||depth>BOX_DEPTH||Math.abs(ball.y-field.height*.5)>BOX_HALF_WIDTH)return null;
+ const keeperId=(1-side)*11,keeper=frame.actors[keeperId];
+ if((keeper.x-ball.x)*forward<-.5)return null;
+ // A defender in the shooting lane, or already challenging the carrier,
+ // means this is not a clean one-on-one.
+ for(let id=(1-side)*11+1;id<(1-side)*11+11;id++){
+  const p=frame.actors[id],along=(p.x-ball.x)*forward;
+  if(distance(p,ball)<1.3)return null;
+  if(along<-.2||along>depth)continue;
+  const laneY=mix(ball.y,field.height*.5,clamp(along/depth,0,1));
+  if(Math.abs(p.y-laneY)<1.8)return null;
+ }
+ return {shooter:owner,keeper:keeperId,side};
+}
+function build(f,field,rawFrame){
+ const previous=cache.get(f);
+ if(previous&&previous.width===field.width&&previous.height===field.height)return previous.shots;
+ const plan=Director.planFor(f,field),shots=[];
+ const goals=f.events.filter(e=>e.type==='goal').map(g=>({
+  start:Math.max(0,g.minute-.7)*60,shot:(Math.max(0,g.minute-.7)+
+   (g.minute-Math.max(0,g.minute-.7))*.88)*60,
+  end:(g.minute+.22)*60
+ }));
+ let available=0;
+ for(let tick=0;tick*STEP<plan.duration;tick++){
+  const sec=tick*STEP;
+  if(sec<available-1e-8)continue;
+  const goal=goals.find(g=>sec>=g.start&&sec<=g.end);
+  // Preserve the scheduled PSE scoring kick and post-goal hold exactly.
+  if(goal&&sec>=goal.shot)continue;
+  const stage=Director.stageAt(plan,sec);
+  if(!goal){
+   if(stage.mode!=='carry')continue;
+   const ball=Director.ballAt(stage,sec),side=Math.floor(stage.owner/11);
+   if((side===0?field.width-ball.x:ball.x)>BOX_DEPTH||
+    Math.abs(ball.y-field.height*.5)>BOX_HALF_WIDTH)continue;
+  }
+  const frame=rawFrame(sec);
+  if(frame.officialEvent||frame.sceneCut||frame.action.startsWith('official-'))continue;
+  const chance=opportunity(frame,field);if(!chance)continue;
+  // A quick kick, followed by a visible goalkeeper deflection and loose
+  // recovery into the existing play. Nothing here can enter the net.
+  const from={...frame.ball},keeper=frame.actors[chance.keeper];
+  let flight=Math.max(.18,distance(from,keeper)*1.5/24);
+  const nextGoal=goals.find(g=>g.shot>sec);
+  const end=Math.min(sec+3.5,nextGoal?.shot??plan.duration,plan.duration);
+  if(end-sec<flight+.65)continue;
+  let impact;
+  for(let attempt=0;attempt<10;attempt++){
+   const contactKeeper=rawFrame(Math.min(plan.duration,sec+flight)).actors[chance.keeper];
+   impact={x:clamp(contactKeeper.x+(chance.side===0?-.25:.25),.5,field.width-.5),
+    y:contactKeeper.y+.15,z:.23};
+   const required=Math.max(.18,distance(from,impact)*1.5/24);
+   if(required<=flight+1e-7)break;
+   flight=required+.0001;
+  }
+  if(end-sec<flight+.65)continue;
+  const impactSeconds=sec+flight;
+  const landing=rawFrame(end);
+  if(landing.ball.x<.34||landing.ball.x>field.width-.34||
+   landing.ball.y<.34||landing.ball.y>field.height-.34||
+   distance(impact,landing.ball)*1.5/(end-impactSeconds)>24)continue;
+  shots.push({...chance,start:sec,impactSeconds,end,from,impact,to:{...landing.ball},
+   outcome:'keeper-block'});
+  // Do not chain another shot before the blocked ball has been recovered.
+  available=end+.1;
+ }
+ cache.set(f,{width:field.width,height:field.height,shots});return shots;
+}
+function apply(f,field,seconds,frame,rawFrame){
+ if(frame.officialEvent||frame.sceneCut||frame.action.startsWith('official-')||
+  frame.action==='illustrative-shot')return frame;
+ const shots=build(f,field,rawFrame);
+ let lo=0,hi=shots.length;
+ while(lo<hi){const mid=(lo+hi)>>1;if(shots[mid].start<=seconds+1e-8)lo=mid+1;else hi=mid;}
+ const shot=shots[lo-1];if(!shot||seconds>=shot.end-1e-8)return frame;
+ const flight=seconds<shot.impactSeconds-1e-8;
+ const u=flight?(seconds-shot.start)/(shot.impactSeconds-shot.start):
+  (seconds-shot.impactSeconds)/(shot.end-shot.impactSeconds);
+ const start=flight?shot.from:shot.impact,end=flight?shot.impact:shot.to,v=ease(u);
+ const ball={x:mix(start.x,end.x,v),y:mix(start.y,end.y,v),
+  z:mix(start.z??.23,end.z??.23,v)+Math.sin(Math.PI*v)*(flight?.35:.55)};
+ const actors=frame.actors.map(p=>({...p}));
+ if(seconds-shot.start<.3)actors[shot.shooter].frame=3;
+ if(seconds>=shot.impactSeconds-.12&&seconds<=shot.impactSeconds+.35)
+  actors[shot.keeper].frame=8;
+ return {...frame,actors,ball,ownerIndex:-1,
+  action:flight?'illustrative-one-on-one-shot':'illustrative-keeper-block',
+  contact:flight?'one-on-one-shot':'keeper-deflection',
+  label:'',officialEvent:null,illustrative:true,
+  oneOnOne:{shooter:shot.shooter,keeper:shot.keeper,start:shot.start,
+   impactSeconds:shot.impactSeconds,end:shot.end,outcome:shot.outcome},
+  passStart:null,passArrival:null,passOrigin:null,passTarget:null,
+  wall:null,wallImpactSeconds:null};
+}
+module.exports={opportunity,build,apply,STEP,BOX_DEPTH,BOX_HALF_WIDTH};

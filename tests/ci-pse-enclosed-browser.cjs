@@ -5,6 +5,8 @@ const {spawn}=require('node:child_process'),{chromium}=require('playwright');
 const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
 const {planFor,sample}=require('../watch/soccerjs/phase10-play-director.cjs');
 const {motionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
+const OneOnOne=require('../watch/soccerjs/phase10-one-on-one.cjs');
+const {rawMotionFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const root=path.resolve(__dirname,'..');
 const roles=['GK','DEF','DEF','DEF','DEF','MID','MID','MID','FWD','FWD','FWD'];
 function team(id,offset){
@@ -38,13 +40,19 @@ const fixture=bridge.snapshot(preview,result);
 assert.equal(fixture.setPieceRules,undefined);
 assert.equal(fixture.durationMinutes,90);
 const stagePlan=planFor(fixture,{width:106,height:68});
+const attempts=OneOnOne.build(fixture,{width:106,height:68},
+ sec=>rawMotionFrame(fixture,sec/60,{width:106,height:68}));
 const outsideGoal=stage=>!fixture.events.some(e=>e.type==='goal'&&
  stage.start<e.minute*60+18&&stage.end>e.minute*60-43);
 const bank=stagePlan.actions.find(stage=>stage.mode==='pass'&&stage.wall&&
  stage.start>120&&stage.end<85*60&&stage.wall.impactU>.2&&
- stage.wall.impactU<.8&&outsideGoal(stage));
+ stage.wall.impactU<.8&&outsideGoal(stage)&&
+ !motionFrame(fixture,(stage.start+stage.duration*stage.wall.impactU)/60,{width:106,height:68}).oneOnOne);
 const pickup=stagePlan.actions.find(stage=>stage.mode==='rebound'&&
- stage.wall&&stage.start>120&&stage.end<85*60&&outsideGoal(stage));
+ stage.wall&&stage.start>120&&stage.end<85*60&&outsideGoal(stage)&&
+ !motionFrame(fixture,(stage.start+stage.duration*.975)/60,{width:106,height:68}).oneOnOne);
+const attempt=attempts.find(a=>a.start>60&&outsideGoal(a));
+assert(attempt,'Need a non-scoring actual one-on-one attempt');
 assert(bank&&pickup,'Need native browser bank and loose-ball recovery examples');
 const fixturePath=path.join(root,'watch/soccerjs/dist/fixture.json');
 fs.writeFileSync(fixturePath,JSON.stringify(fixture));
@@ -99,6 +107,23 @@ async function serve(){
     el.step='any';el.value=String(sec/60);
     el.dispatchEvent(new Event('input',{bubbles:true}));
    },seconds);
+   for(const view of ['orthographic','isometric','topdown']){
+    await page.locator('#projection').selectOption(view);
+    await seekExact(attempt.start+.03);
+    const shot=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+    assert.equal(shot.animation,'illustrative-one-on-one-shot');
+    assert.equal(shot.carrier,-1);assert.equal(shot.oneOnOne.shooter,attempt.shooter);
+    await seekExact(attempt.impactSeconds+.0001);
+    const blocked=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
+    assert.equal(blocked.animation,'illustrative-keeper-block');
+    assert.equal(blocked.officialEventType,null);
+    const keeper=blocked.actorWorldPositions[attempt.keeper];
+    assert(Math.hypot(blocked.ball.x-keeper[0],blocked.ball.y-keeper[1])<.55,
+     'Keeper block did not visibly contact the ball');
+    assert.deepEqual(blocked.score,bridge.scoreAt(fixture,blocked.minute));
+    await page.locator('.pitchwrap').screenshot({path:path.join(screenshots,
+     'immediate-shot-block-'+view+'-'+device+'.png')});
+   }
    await seekExact(keeperSceneSeconds);
    for(const view of ['orthographic','isometric','topdown']){
     await page.locator('#projection').selectOption(view);
@@ -170,7 +195,7 @@ async function serve(){
     ' four-board physical banks, loose-ball pickup, six boards, no whistles, stable goal replay');
    // The production game uses the *embedded* iframe, not the standalone
    // Watch page. Check its actual positioned overlay and zoom controls.
-   await page.goto(url+'?embedded=1&inline=1&v=18',
+   await page.goto(url+'?embedded=1&inline=1&v=19',
     {waitUntil:'domcontentloaded',timeout:30000});
    await page.waitForFunction(()=>
     document.documentElement.classList.contains('pfc-inline'),

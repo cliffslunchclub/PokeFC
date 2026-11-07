@@ -253,15 +253,24 @@ function renderCommentary(t,script,isReplay){
  commentarySeenAt=seconds;commentaryLastKick=kickIndex;
  commentaryLastReplay=isReplay;
  const urgent=!!script.officialEvent&&script.officialEvent.type==='goal';
+ const attempt=script.oneOnOne;
  const hold=speed>=8?4800:speed>=4?4000:speed>=2?3300:2600;
  // High-speed Watch summarizes play instead of rapidly flashing captions.
- if(!jump&&!modeChange&&!kickChange&&!urgent&&commentaryShown&&
+ if(!jump&&!modeChange&&!kickChange&&!urgent&&!attempt&&commentaryShown&&
     now-commentaryChangedAt<hold){
   if(commentaryHistoryOpen)renderCommentaryHistory(seconds);
   return;
  }
  const all=Commentary.visible(commentaryFeed,seconds,kickIndex);
  let selected=all.at(-1)||null;
+ if(attempt){
+  const blocked=seconds>=attempt.impactSeconds;
+  const id=blocked?attempt.keeper:attempt.shooter;
+  const team=id<11?match.home:match.away;
+  const name=team.lineup[id%11].name||'Pokémon';
+  selected={id:'visual-one-on-one:'+attempt.start+':'+blocked,kind:'illustrative',
+   minute:Math.floor(t),text:blocked?name+' blocks it—loose ball!':name+' shoots immediately!'};
+ }
  // Keep the official goal line visible through the PSE-confirmed goal scene.
  if(urgent){
   selected=all.slice().reverse().find(entry=>entry.kind==='official'&&
@@ -360,6 +369,8 @@ function render(t,options={}){
   'illustrative-keeper-collection':'Goalkeeper collects loose ball',
 
   'illustrative-goal-buildup':'Goal buildup','illustrative-shot':'Shooting animation',
+  'illustrative-one-on-one-shot':'Immediate one-on-one shot',
+  'illustrative-keeper-block':'Keeper block · illustrative',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
   'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
   'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
@@ -391,6 +402,7 @@ function render(t,options={}){
    impactSeconds:script.wallImpactSeconds
   }:null,
   carrier:ballCarrier,ballContact:script.contact||'continuous-play',
+  oneOnOne:script.oneOnOne||null,
   officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
   soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
   cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,

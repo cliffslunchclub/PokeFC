@@ -34,6 +34,10 @@ for(const stage of timeline.actions){
  const frame=motionFrame(fixture,at/60,field);
  if(['official-goal','illustrative-goal-buildup','illustrative-shot',
   'illustrative-kickoff'].includes(frame.action))continue;
+ if(frame.oneOnOne){
+  assert.equal(frame.ownerIndex,-1,'A fired/blocked shot cannot remain a dribble');
+  continue; // Its shot/deflection seams are covered by test-one-on-one.cjs.
+ }
  if(stage.mode==='carry'){
   assert.equal(frame.ownerIndex,stage.owner,'Dribbler ownership changed mid-carry');
   maxContact=Math.max(maxContact,dist(frame.ball,frame.actors[stage.owner]));
