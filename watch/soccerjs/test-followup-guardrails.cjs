@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
-const {motionFrame,presentationFrame}=require('./phase10-motion.cjs');
+const {motionFrame,presentationFrame,rawMotionFrame}=require('./phase10-motion.cjs');
+const Q=require('../../assets/js/quick-sim.js'),Bridge=require('./watch-bridge.js');
 const Onside=require('./phase10-onside-movement.cjs'),Bounds=require('./phase10-player-boundaries.cjs');
 const O=require('./phase10-one-on-one.cjs'),f=require('./fixture.json'),field={width:106,height:68};
 const before=JSON.stringify(f),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -33,6 +34,15 @@ for(const shot of shots)for(const at of [shot.start,shot.impactSeconds,shot.spil
  const a=motionFrame(f,(at-1e-6)/60,field),b=motionFrame(f,(at+1e-6)/60,field);
  const seam=Math.max(dist(a.ball,b.ball),...a.actors.map((p,i)=>dist(p,b.actors[i])));
  maxSeam=Math.max(maxSeam,seam);assert(seam<.03,'Block actor/ball transition jumped at '+at+': '+seam);
+}
+// Regression: seed 296 formerly placed a goal three seconds after kickoff.
+for(const seed of [0,1,2,3,20,80,120,200,296,400,499]){
+ const preview={home:f.home,away:f.away};
+ const fixture=Bridge.snapshot(preview,Q.simulate(preview,{seed:'scene-smoke-'+seed}));
+ for(const goal of fixture.events.filter(e=>e.type==='goal')){
+  const frame=rawMotionFrame(fixture,goal.minute,field);
+  assert.equal(frame.officialEvent,goal,'Every early goal must have a reachable scene');
+ }
 }
 assert.equal(JSON.stringify(f),before);
 console.log('PASS follow-up guardrails: '+points+' bounded positions, '+shots.length+' loose blocks, both clearance paths, '+maxSeam.toFixed(6)+'m seams; onside render/seek/4x rules and immutable ledger');

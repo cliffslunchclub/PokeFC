@@ -17,6 +17,7 @@ function check(events){
 let count=0,extra=0,conflicts=0;
 for(let seed=0;seed<1000;seed++){
  const options={seed:'spacing-'+seed},old=legacy.simulate(preview,options),result=qs.simulate(preview,options);
+ assert(!result.events.length||result.events[0].minute>=.5,'Allow a reachable kickoff and first approach');
  check(result.events);count+=incidents(result.events).length;
  assert.equal(JSON.stringify(result.score),JSON.stringify(old.score));
  assert.equal(JSON.stringify(result.stats),JSON.stringify(old.stats));

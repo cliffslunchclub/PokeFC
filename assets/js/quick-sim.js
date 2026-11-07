@@ -55,8 +55,9 @@
    const bounds=selected.map(e=>{
     const p=keepPeriods?periods.find(([a,b])=>e.minute>=a&&e.minute<b):[periods[0][0],periods.at(-1)[1]];
     if(!p)throw Error('PSE incident outside scheduled periods');
-    return [p[0]+.05,p[1]-.05];
+    return [p[0]+.5,p[1]-.05];
    });
+   // Reserve a 30-second opening for a reachable kickoff/approach.
    // Reserve room backwards before placing events forwards. A busy later
    // half must be allowed to pull earlier incidents away from its boundary.
    for(let i=bounds.length-2;i>=0;i--)bounds[i][1]=Math.min(bounds[i][1],bounds[i+1][1]-3);
