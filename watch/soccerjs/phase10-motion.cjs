@@ -11,6 +11,7 @@ const Wall=require('./phase10-wall-physics.cjs');
 const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const Onside=require('./phase10-onside-movement.cjs');
 const OneOnOne=require('./phase10-one-on-one.cjs');
+const GoalSequence=require('./phase10-goal-sequence.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -193,112 +194,48 @@ function rawMotionFrame(fixture,t,field,options=false){
    officialEvent:complete?kick:null,illustrative:!complete};
  }
  const goals=ignoreGoal?[]:fixture.events.filter(e=>e.type==='goal');
- const event=goals.find(g=>t>=g.minute-.7&&t<=g.minute+.22);
+ const event=goals.find(g=>t<=g.minute+.22&&
+  seconds>=GoalSequence.forGoal(fixture,field,g,sec=>rawMotionFrame(fixture,sec/60,field,true)).start);
  if(event){
-  const side=event.team===teams[0].id?0:1,roster=teams[side];
-  const scorer=roster.lineup.findIndex(p=>String(p.id)===String(event.player));
-  if(scorer<0)throw Error('Goal scorer absent');
-  const assist=event.assist==null?-1:roster.lineup.findIndex(p=>String(p.id)===String(event.assist));
-  const scorerId=side*11+scorer,initial=Math.max(0,event.minute-.7);
-  const span=Math.max(.001,event.minute-initial),u=limit((t-initial)/span,0,1);
-  // Anchor the first touch to the *existing* ball and player positions.
-  // Earlier goal animation placed three players at preset coordinates and
-  // dragged the ball to those spots, causing the visible backward whip.
-  const opening=rawMotionFrame(fixture,initial,field,true);
-  const p0=opening.ball;
-  let support=assist>=0?side*11+assist:-1;
-  if(support===scorerId||support<0){
-   let nearest=Infinity;
-   for(let i=1;i<11;i++){
-    const id=side*11+i;
-    if(id===scorerId)continue;
-    const d=Math.hypot(opening.actors[id].x-p0.x,opening.actors[id].y-p0.y);
-    if(d<nearest){nearest=d;support=id;}
-   }
+  const sequence=GoalSequence.forGoal(fixture,field,event,sec=>rawMotionFrame(fixture,sec/60,field,true));
+  const {side,scorer:scorerId,support,finish,net,wing}=sequence;
+  const normal=rawMotionFrame(fixture,t,field,true);
+  for(let i=0;i<actors.length;i++)Object.assign(actors[i],normal.actors[i]);
+  const pose=GoalSequence.sample(sequence,plan,seconds);
+  ball=pose.ball;
+  let ownerIndex=pose.owner;
+  const u=limit((seconds-sequence.start)/Math.max(.001,sequence.shotStart-sequence.start),0,1);
+  const finisher=actors[scorerId],startScorer=sequence.openingRun.actors[scorerId];
+  finisher.x=lerp(startScorer.x,finish.x-(side===0?.55:-.55),u);
+  finisher.y=lerp(startScorer.y,finish.y-.3,u);
+  if(seconds>=sequence.active){
+   const starter=actors[support],startActor=sequence.opening.actors[support];
+   const receive=limit((seconds-sequence.active)/Math.max(.001,sequence.passStart-sequence.active),0,1);
+   starter.x=lerp(startActor.x,sequence.passFrom.x-(side===0?.6:-.6),receive);
+   starter.y=lerp(startActor.y,sequence.passFrom.y-.3,receive);
+   const keeper=actors[(1-side)*11];
+   Object.assign(keeper,Keeper.sceneAt(field,event,seconds,{
+    start:sequence.active,end:sequence.end,shot:sequence.shotStart,side:1-side,
+    opening:sequence.opening.actors[(1-side)*11],
+    ballAt:sec=>GoalSequence.sample(sequence,plan,sec).ball,
+    diveY:field.height*.5-wing*2.2
+   }));
+   if(seconds>=sequence.shotStart){finisher.frame=3;keeper.frame=8;}
   }
-  const attack=side===0?1:-1;
-  // Late receiving touches may already be inside the box. Keep every
-  // part of the buildup moving toward the goal, never retreat to 83%.
-  const firstProgress=(side===0?p0.x:field.width-p0.x)/field.width;
-  // The shooter must reach a legal point INSIDE the end board before the
-  // PSE-confirmed shot. Only the subsequent shot may cross the open goal.
-  const lastInBounds=1-(Wall.RADIUS+.025)/field.width;
-  const finishProgress=Math.min(lastInBounds,Math.max(.83,firstProgress+.025));
-  const finish={x:origin(side,finishProgress,field),y:field.height*.50};
-  const wing=(hash(String(event.player)+':'+String(event.minute))%2?1:-1);
-  // Goal line is the end of the field, not 98.5% of its length.
-  // Finish with the ball visibly BEHIND the keeper and the line.
-  const net={x:(side===0?field.width+.9:-.9),
-   y:field.height*.5+wing*2.15,z:.23};
-  const p1={x:lerp(p0.x,finish.x,.30),y:lerp(p0.y,finish.y,.30)};
-  const lob=(hash(String(event.player)+':through:'+String(event.minute))%4===0);
-  function goalBallAt(second){
-   const progress=limit((second/60-initial)/span,0,1);
-   if(progress<.34){const v=ease(progress/.34);
-    return {x:lerp(p0.x,p1.x,v),y:lerp(p0.y,p1.y,v),z:.23};}
-   // Deliver the final ball directly to the shooting touch. There is no
-   // controlled .70–.88 dribble with only the keeper left to beat.
-   if(progress<.88){const v=ease((progress-.34)/.54);
-    return {x:lerp(p1.x,finish.x,v),y:lerp(p1.y,finish.y,v),
-     z:.23+(lob?3:.48)*Math.sin(Math.PI*v)};}
-   const v=ease((progress-.88)/.12);
-   return {x:lerp(finish.x,net.x,v),y:lerp(finish.y,net.y,v),
-    z:.23+1.3*Math.sin(v*Math.PI)};
-  }
-  ball=goalBallAt(seconds);
-  const phase=u<.34?'run':u<.88?(lob?'lofted-through':'through'):'shot';
-  let ownerIndex=u<.34?support:-1;
-  // Two attackers arrive at the ball along continuous paths. They never
-  // teleport into their shooting poses at a goal-scene boundary.
-  const starter=actors[support],startActor=opening.actors[support];
-  const settle=ease(u/.32);
-  starter.x=lerp(startActor.x,p1.x-attack*.6,settle);
-  starter.y=lerp(startActor.y,p1.y-.3,settle);
-  const finisher=actors[scorerId],startScorer=opening.actors[scorerId];
-  const arrival=ease(u/.88);
-  finisher.x=lerp(startScorer.x,finish.x-attack*.55,arrival);
-  finisher.y=lerp(startScorer.y,finish.y-.3,arrival);
-  const keeper=actors[(1-side)*11];
-  const keeperPosition=Keeper.sceneAt(field,event,seconds,{
-   start:initial*60,end:event.minute*60,shot:(initial+span*.88)*60,
-   side:1-side,opening:opening.actors[(1-side)*11],ballAt:goalBallAt,
-   diveY:field.height*.5-wing*2.2
-  });
-  keeper.x=keeperPosition.x;keeper.y=keeperPosition.y;
-  // The attack moves together before the official scorer takes the shot.
-  // An official defender scorer makes a late run from deeper cover; others
-  // follow without all abandoning their defensive positions.
-  const build=ease((u-.14)/.56);
-  for(let i=1;i<11;i++){
-   const id=side*11+i;
-   if(id===scorerId||id===support)continue;
-   const role=roleOf(roster.lineup[i],i);
-   if(role==='forward')continue;
-   const p=actors[id],position=side===0?p.x/field.width:1-p.x/field.width;
-   const target=role==='midfielder'?.69:.47;
-   p.x=origin(side,lerp(position,Math.max(position,target),
-    build*(role==='midfielder'?.65:.30)),field);
-  }
-  // Keep the entire 22-player frame continuous at the goal-scene entry.
-  const enter=ease(u/.03);
-  for(let i=0;i<actors.length;i++){
-   actors[i].x=lerp(opening.actors[i].x,actors[i].x,enter);
-   actors[i].y=lerp(opening.actors[i].y,actors[i].y,enter);
-  }
-  if(u>=.88){finisher.frame=3;keeper.frame=8;}
-  if(t>=event.minute){ball=net;ownerIndex=-1;keeper.frame=8;finisher.frame=3;}
-  // Hold supporting attackers and the scorer onside until the through
-  // ball leaves the foot. Then permit the scorer's receiving run.
-  Onside.apply(actors,field,ball,side,{
-   carrier:ownerIndex,runner:scorerId,run:(u-.34)/.36,
-   strength:enter
-  });
-  return {actors,ball,ownerIndex,contact:phase,
-   goalkeeperRushSide:u<.88&&Keeper.target(1-side,field,
+  Onside.apply(actors,field,ball,side,{carrier:ownerIndex,runner:scorerId,
+   run:(seconds-sequence.passStart)/Math.max(.001,sequence.shotStart-sequence.passStart),
+   strength:ease((seconds-sequence.start)/.2)});
+  if(t>=event.minute){ball=net;ownerIndex=-1;}
+  const shooting=seconds>=sequence.shotStart;
+  return {actors,ball,ownerIndex,contact:pose.phase,attackingSide:side,
+   goalSequenceStart:sequence.start,goalShotStart:sequence.shotStart,
+   goalPassStart:sequence.passStart,goalBallStart:sequence.active,
+   goalkeeperRushSide:seconds>=sequence.active&&!shooting&&Keeper.target(1-side,field,
     {mode:'carry',owner:side*11+6},ball).urgent?1-side:null,
-   action:t>=event.minute?'official-goal':u>=.88?'illustrative-shot':'illustrative-goal-buildup',
-   label:t>=event.minute?'GOAL! '+roster.lineup[scorer].name:'',
-   buildup:phase,officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
+   action:t>=event.minute?'official-goal':shooting?'illustrative-shot':
+    pose.phase==='ordinary'?normal.action:'illustrative-goal-buildup',
+   label:t>=event.minute?'GOAL! '+teams[side].lineup[scorerId%11].name:'',
+   buildup:pose.phase,officialEvent:t>=event.minute?event:null,illustrative:t<event.minute};
  }
  // After an official PSE goal, pause on the ball in the net, then use
  // a clearly labelled, discrete kickoff camera CUT to midfield. Never tween

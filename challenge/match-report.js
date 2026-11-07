@@ -13,7 +13,7 @@
   const teams=[fixture?.home||{},fixture?.away||{}];
   const names=teams.map(t=>new Map((t.lineup||[]).map(p=>[safe(p.id),safe(p.name)||'Unknown Pokémon'])));
   const resolve=(side,id)=>id==null?null:names[side]?.get(safe(id))||null;
-  const all=[];
+  const all=[];let goalIndex=0;
   for(const [index,e] of (Array.isArray(events)?events:[]).entries()){
    if(!TYPES.has(e?.type))continue;
    const period=['half-time','second-half','full-time'].includes(e.type);
@@ -24,7 +24,7 @@
    if(!validLabel(minuteLabel))minuteLabel=inRange(minute)?String(Math.floor(minute)+(period?0:1)):'?';
    const rawCard=typeof e.card==='string'?e.card:typeof e.card?.type==='string'?e.card.type:'';
    const card=/red/i.test(rawCard)?'red':/yellow/i.test(rawCard)?'yellow':null;
-   all.push({type:e.type,side,minute:inRange(minute)?scalar(minute):null,minuteLabel,
+   all.push({...(e.type==='goal'?{replayId:'goal-'+goalIndex++}:{}),type:e.type,side,minute:inRange(minute)?scalar(minute):null,minuteLabel,
     player:side==null?null:resolve(side,e.player),
     assist:side==null?null:resolve(side,e.assist),
     shooter:side==null?null:resolve(1-side,e.shooter),
@@ -54,7 +54,8 @@
     '<span class="pfc-event-icon" aria-hidden="true">'+symbols[type]+'</span>'+
     '<span class="pfc-event-content"><strong>'+escape(heading)+'</strong>'+
      (detail?'<span>'+escape(detail)+'</span>':'')+
-     '<small>'+(side==='home'?'YOUR XI':side==='away'?'OPPONENT':'MATCH')+'</small></span></li>';
+     '<small>'+(side==='home'?'YOUR XI':side==='away'?'OPPONENT':'MATCH')+'</small>'+
+     (type==='goal'&&typeof opts.replayButton==='function'?opts.replayButton(e):'')+'</span></li>';
   }).join('')+'</ol>';
  }
  function renderGroupedTimeline(entries,opts={}){
@@ -67,10 +68,10 @@
   return '<div class="pfc-timeline-groups">'+
    '<details class="pfc-timeline-group pfc-timeline-goals" data-timeline-group="goals"'+(goalOpen?' open':'')+'>'+
    '<summary><span>⚽ GOALS</span><strong>'+goals.length+' RECORDED</strong></summary>'+
-   '<div class="pfc-timeline-group-body">'+renderTimeline(goals,{empty:goalEmpty})+'</div></details>'+
+   '<div class="pfc-timeline-group-body">'+renderTimeline(goals,{empty:goalEmpty,replayButton:opts.replayButton})+'</div></details>'+
    '<details class="pfc-timeline-group pfc-timeline-other" data-timeline-group="other"'+(otherOpen?' open':'')+'>'+
    '<summary><span>🧤 SAVES &amp; OTHER EVENTS</span><strong>'+other.length+' RECORDED</strong></summary>'+
-   '<div class="pfc-timeline-group-body">'+renderTimeline(other,{empty:otherEmpty})+'</div></details>'+
+   '<div class="pfc-timeline-group-body">'+renderTimeline(other,{empty:otherEmpty,replayButton:opts.replayButton})+'</div></details>'+
    '</div>';
  }
  function fromResult(result,fixture){

@@ -22,6 +22,7 @@ const promptedGoals=new Set();
 let commentaryFeed=null,commentaryShown=null,commentarySeenAt=null;
 let commentaryChangedAt=0,commentaryHistoryOpen=false,commentaryHistoryKey='';
 let commentaryLastKick=0,commentaryLastReplay=false;
+let fastCommentary=null,fastHistory=[],commentaryLastFast=false;
 const validViews=new Set(['isometric','orthographic','topdown']);
 const embedded=new URLSearchParams(location.search).get('embedded')==='1';
 const inlineView=embedded&&new URLSearchParams(location.search).get('inline')==='1';
@@ -144,10 +145,21 @@ function renderHighlightCatalog(force=false){
    'No official set-piece incidents recorded yet. They appear only when PSE includes them.':
    'Official highlights become available after each recorded incident.';
   list.append(empty);
- }else for(const entry of shown)list.append(highlightEntryElement(entry,'▶ REPLAY'));
+ }else for(const entry of shown)list.append(highlightEntryElement(entry,'▶ VIEW REPLAY'));
  if(!all.length){const empty=document.createElement('p');empty.className='highlight-empty';
   empty.textContent='No official highlights yet.';aside.append(empty);
- }else for(const entry of all)aside.append(highlightEntryElement(entry,'▶ REPLAY'));
+ }else for(const entry of all)aside.append(highlightEntryElement(entry,'▶ VIEW REPLAY'));
+ for(const host of [$('highlightTimeline'),$('timelineMarkers')]){
+  host.replaceChildren();
+  for(const entry of all){
+   const marker=document.createElement('button');marker.type='button';marker.className='timeline-marker';
+   marker.style.left=(entry.minute/match.durationMinutes*100)+'%';
+   marker.textContent=entry.kind==='goal'?'⚽':'◎';
+   marker.title=(Math.floor(entry.minute)+1)+'′ · '+entry.title+' · View replay';
+   marker.setAttribute('aria-label',marker.title);marker.dataset.highlightId=entry.id;
+   marker.onclick=()=>replayMoment(entry.id);host.append(marker);
+  }
+ }
 }
 function cameraFit(canvas,field,ball){
  const p=Settings.projectionMode;
@@ -227,7 +239,9 @@ function drawEnclosure(ctx,field){
 }
 function renderCommentaryHistory(seconds){
  if(!commentaryHistoryOpen||!commentaryFeed)return;
- const entries=Commentary.history(commentaryFeed,seconds,kickIndex,90);
+ const entries=speed>=4?[...fastHistory.filter(e=>e.seconds<=seconds),
+  ...Commentary.visible(commentaryFeed,seconds,kickIndex).filter(e=>e.kind==='official'&&e.type==='goal')]
+  .sort((a,b)=>b.seconds-a.seconds).slice(0,90):Commentary.history(commentaryFeed,seconds,kickIndex,90);
  const key=(entries[0]?.id||'')+'|'+entries.length+'|'+(entries.at(-1)?.id||'');
  if(key===commentaryHistoryKey)return;
  commentaryHistoryKey=key;
@@ -253,17 +267,26 @@ function renderCommentary(t,script,isReplay){
  commentarySeenAt=seconds;commentaryLastKick=kickIndex;
  commentaryLastReplay=isReplay;
  const urgent=!!script.officialEvent&&script.officialEvent.type==='goal';
+ const fastMode=speed>=4&&!isReplay;
+ if(fastMode!==commentaryLastFast){commentaryShown=null;fastCommentary=null;}
+ commentaryLastFast=fastMode;
+ if(jump||modeChange){fastCommentary=null;fastHistory=fastHistory.filter(e=>e.seconds<=seconds);}
+ if(fastMode){
+  const next=Commentary.teamSummary(match,Utils.getFieldBounds(),seconds,script,fastCommentary);
+  if(next!==fastCommentary){fastCommentary=next;fastHistory.push(next);fastHistory=fastHistory.slice(-300);}
+ }
  const attempt=script.oneOnOne;
  const hold=speed>=8?4800:speed>=4?4000:speed>=2?3300:2600;
  // High-speed Watch summarizes play instead of rapidly flashing captions.
- if(!jump&&!modeChange&&!kickChange&&!urgent&&!attempt&&commentaryShown&&
+ if(!jump&&!modeChange&&!kickChange&&!urgent&&!attempt&&!fastMode&&commentaryShown&&
     now-commentaryChangedAt<hold){
   if(commentaryHistoryOpen)renderCommentaryHistory(seconds);
   return;
  }
  const all=Commentary.visible(commentaryFeed,seconds,kickIndex);
  let selected=all.at(-1)||null;
- if(attempt){
+ if(fastMode)selected=fastCommentary;
+ if(attempt&&!fastMode){
   const blocked=seconds>=attempt.impactSeconds;
   const id=blocked?attempt.keeper:attempt.shooter;
   const team=id<11?match.home:match.away;
@@ -280,7 +303,7 @@ function renderCommentary(t,script,isReplay){
  if(!jump&&!modeChange&&was!==null&&seconds>=was){
   const newly=all.slice().reverse().find(entry=>entry.kind==='official'&&
    entry.seconds>was+1e-8&&entry.seconds<=seconds+1e-8);
-  if(newly)selected=newly;
+  if(newly&&(!fastMode||newly.type==='goal'))selected=newly;
  }
  if(selected&&(!commentaryShown||selected.id!==commentaryShown.id||
     jump||modeChange||kickChange)){

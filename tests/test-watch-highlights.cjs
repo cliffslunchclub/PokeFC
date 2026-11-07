@@ -37,7 +37,8 @@ assert.match(resolve(fixture,'goal-0',13,0).name,/<script>/,
 const goal=resolve(fixture,'goal-0',13,0),window=clipFor(fixture,goal);
 assert.equal(window.kind,'goal');
 assert(window.start<goal.minute&&window.end>goal.minute);
-assert.equal(window.durationSeconds,6);
+assert(Math.abs(window.durationSeconds-(window.end-window.start)*60)<1e-7);
+assert(window.durationSeconds<=9.000001);
 const goalFrame=motionFrame(fixture,goal.minute+.02,{width:106,height:68});
 assert.equal(goalFrame.officialEvent?.player,goal.event.player);
 const penalty=resolve(fixture,'pk-0',120,1),pclip=clipFor(fixture,penalty);

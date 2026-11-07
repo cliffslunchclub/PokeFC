@@ -73,7 +73,7 @@ button.primary{background:#c5eeb0!important;color:#142b24!important;font-weight:
 
 </div>
 <script src="../assets/js/national-species.js?v=1"></script><script src="../assets/js/calibration-profile.js"></script><script src="../assets/js/position-effectiveness.js?v=3"></script><script src="../assets/js/quick-sim.js?v=5"></script><script src="../assets/js/pse-knockout.js?v=2"></script><script src="./special-items-data.js?v=2"></script>
-<script src="../watch/soccerjs/watch-bridge.js?v=19"></script><script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=7"></script><script src="../play/opponents.js"></script><script>
+<script src="../watch/soccerjs/watch-bridge.js?v=20"></script><script src="./item-optimizer.js?v=1"></script><script src="./drag-drop.js?v=3"></script><script src="./performance.js?v=3"></script><script src="./leaderboard.js?v=1"></script><script src="./run-card.js?v=1"></script><script src="./slot-reels.js?v=4"></script><script src="./picker-window.js?v=3"></script><script src="./tiers.js?v=1"></script><script src="./match-report.js?v=8"></script><script src="../play/opponents.js"></script><script>
 (()=>{'use strict';
 const KEY='pokefc-challenge-alpha-1',S=window.FXI_SPECIES||[],BY=new Map(S.map(s=>[s.id,s]));
 const BOSSES=(window.PFC_PLAY_OPPONENTS||[]).filter(x=>x.tier!=='gym');
@@ -553,6 +553,8 @@ function matchReportHtml(match){
  const savedTimeline=Array.isArray(report?.timeline)&&report.timeline.length?report.timeline:
   goals.map(goal=>({...goal,type:'goal'})); // Legacy runs retain their real scorer ledger.
  const timelineHtml=MATCH_REPORT?.renderGroupedTimeline?.(savedTimeline,{
+  replayButton:e=>match.replay?.version===1&&e.replayId?
+   '<button type="button" data-match-replay="'+Number(match.round)+'" data-replay-id="'+esc(e.replayId)+'">▶ View replay</button>':'',
   goalsEmpty:'No goals recorded for this match.',
   otherEmpty:'No saves or other events recorded for this match.'
  })||'<ol class="match-goal-feed">'+goalFeed+'</ol>';

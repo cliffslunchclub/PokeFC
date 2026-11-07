@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b0d10"><title>PokéFC | Real Quick Sim → Soccer-JS</title>
-<link rel="stylesheet" href="./viewer.css?v=19"><script defer src="./viewer.bundle.js?v=19"></script></head>
+<link rel="stylesheet" href="./viewer.css?v=20"><script defer src="./viewer.bundle.js?v=20"></script></head>
 <body>
 <header><a href="/" aria-label="PokéFC home"><span class="mini-ball" aria-hidden="true"></span>POKÉ<span>FC</span></a><strong>PHASE 10 · REAL MATCH REPLAY</strong><small>PRIVATE STAGING BUILD</small></header>
 <main><section class="intro">
@@ -32,12 +32,13 @@
  </div>
 </div>
 <section id="highlightDrawer" class="highlight-drawer" aria-label="Official match highlights" hidden>
- <header class="highlight-head"><strong>⚽ MATCH HIGHLIGHTS</strong><button id="highlightClose" type="button" aria-label="Close highlights">✕</button></header>
+ <header class="highlight-head"><strong>⚽ MATCH TIMELINE</strong><button id="highlightClose" type="button" aria-label="Close highlights">✕</button></header>
  <div class="highlight-filters" role="group" aria-label="Filter highlights">
   <button type="button" class="active" data-highlight-filter="all" aria-pressed="true">ALL</button>
   <button type="button" data-highlight-filter="goal" aria-pressed="false">GOALS</button>
   <button type="button" data-highlight-filter="set" aria-pressed="false">SHOOTOUTS</button>
  </div>
+ <div id="highlightTimeline" class="highlight-timeline-markers" aria-label="Available highlight timeline"></div>
  <div id="highlightList" class="highlight-list" aria-live="polite"><p class="highlight-empty">Highlights appear as official incidents happen.</p></div>
  <p class="highlight-footnote">Only recorded PSE goals and knockout shootout kicks appear here. Animation is illustrative.</p>
 </section>
@@ -76,8 +77,8 @@
 <label class="sprite-toggle"><input id="showNumbers" type="checkbox" checked> Jersey numbers</label>
 <label>Camera <select id="camera" aria-label="Camera framing"><option value="follow" selected>Follow ball</option><option value="wide">Wide pitch</option></select></label></div>
 <div id="motionStatus" class="motion-status" role="status">Loading illustrated match sequence…</div>
-<div class="seek"><span>0'</span><input id="scrub" type="range" min="0" max="90" step=".05" value="0" disabled aria-label="Scrub match minute"><span id="seekEnd">90'</span><b id="played">0/90'</b></div>
+<div class="seek"><span>0'</span><div class="timeline-track"><input id="scrub" type="range" min="0" max="90" step=".05" value="0" disabled aria-label="Scrub match minute"><div id="timelineMarkers" class="highlight-timeline-markers" aria-label="Match highlight replay markers"></div></div><span id="seekEnd">90'</span><b id="played">0/90'</b></div>
 </section>
-<aside><section class="panel"><h2>MATCH HIGHLIGHTS</h2><div id="goals">Official highlights appear as the match progresses. Use Replay to review a moment.</div></section><section class="panel"><h2>QUICK SIM FINAL STATISTICS</h2><div id="stats">Loading...</div><p>These are final official match totals, not live running shot counts. PSE extra-time goals count toward the 120-minute match score, while shootout kicks have a separate tally. Goal and goalkeeper-save timestamps come from PSE; other animated shot paths remain illustrative. Soccer-JS cannot generate extra goals or scoring events.</p></section><section class="panel"><h2>WHAT THIS PROVES</h2><p>Quick Sim can supply match events to a browser replay that uses Soccer-JS's existing visual renderer. Watch the first five minutes with animated passes, dribbles and challenges. These are visual demonstrations, not verified possession data. Continuous match realism and full-match performance still need development.</p></section></aside></div>
+<aside><section class="panel"><h2>MATCH TIMELINE</h2><div id="goals">Official highlights appear as the match progresses. Use Replay to review a moment.</div></section><section class="panel"><h2>QUICK SIM FINAL STATISTICS</h2><div id="stats">Loading...</div><p>These are final official match totals, not live running shot counts. PSE extra-time goals count toward the 120-minute match score, while shootout kicks have a separate tally. Goal and goalkeeper-save timestamps come from PSE; other animated shot paths remain illustrative. Soccer-JS cannot generate extra goals or scoring events.</p></section><section class="panel"><h2>WHAT THIS PROVES</h2><p>Quick Sim can supply match events to a browser replay that uses Soccer-JS's existing visual renderer. Watch the first five minutes with animated passes, dribbles and challenges. These are visual demonstrations, not verified possession data. Continuous match realism and full-match performance still need development.</p></section></aside></div>
 <footer>PokéFC Phase 10 · Free public test · No login · No private source code published · Soccer-JS MIT license retained</footer></main>
 </body></html>

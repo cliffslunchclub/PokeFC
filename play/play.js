@@ -172,9 +172,16 @@ function renderLiveTimeline(events=liveEvents,origin='quick-sim',complete=false)
  const previous=Array.from(groups).reduce((states,node)=>(states[node.dataset.timelineGroup]=node.open,states),{});
  el.innerHTML=report?.renderGroupedTimeline?.(shown.slice().reverse(),{
   goalsOpen:previous.goals!==false,otherOpen:previous.other===true,
+  replayButton:e=>e.replayId?'<button type="button" class="play-goal-replay-button" data-timeline-replay="'+esc(e.replayId)+'">▶ View replay</button>':'',
   goalsEmpty:complete?'No goals were recorded for this match.':'No goals recorded yet.',
   otherEmpty:complete?'No other recorded events for this match.':'No saves or other events recorded yet.'
  })||'<p class="match-event-empty">The match timeline is unavailable.</p>';
+ el.onclick=e=>{
+  const id=e.target.closest?.('[data-timeline-replay]')?.dataset.timelineReplay;
+  if(!id)return;
+  if(soccerSession&&!complete)soccerSession.replayHighlight(id);
+  else openGoalReplay(id);
+ };
 }
 
 function closeGoalReplay(){
@@ -495,7 +502,7 @@ function loadSoccerBridge(){
  $('watch').textContent='▶ WATCH MATCH · 2.5D';
  $('engineStatus').textContent='Loading Soccer-JS 2.5D Watch. You can also use instant Quick Sim.';
  const script=document.createElement('script');
- script.src='../watch/soccerjs/watch-bridge.js?v=19';
+ script.src='../watch/soccerjs/watch-bridge.js?v=20';
  script.onload=()=>{
   SOCCERJS_READY=!!window.FXI_PHASE10_WATCH;
   updateXI();

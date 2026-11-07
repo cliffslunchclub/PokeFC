@@ -72,8 +72,11 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const side=goal.team===fixture.home.id?0:1;
  const roster=side===0?fixture.home:fixture.away;
  const scorer=side*11+roster.lineup.findIndex(p=>String(p.id)===String(goal.player));
- for(const u of [.05,.2,.339]){
-  const frame=motionFrame(fixture,goal.minute-.7+.7*u,field);
+ const timing=motionFrame(fixture,goal.minute,field);
+ for(const u of [.2,.5,.9]){
+  const seconds=timing.goalSequenceStart+.2+(timing.goalPassStart-timing.goalSequenceStart-.2)*u;
+  const frame=motionFrame(fixture,seconds/60,field);
+  if(frame.ownerIndex===scorer)continue;
   assert(depth(side,frame.actors[scorer].x)<=Onside.line(frame.actors,field,side,frame.ball)+1e-7,
    'Official scorer must wait onside until the goal-scene pass is released');
  }
