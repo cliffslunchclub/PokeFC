@@ -3,7 +3,7 @@
  * Phase 10C v0.1: deterministic ILLUSTRATIVE five-minute visual sequences.
  * Runs only on official Quick Sim fixture snapshots. Does not simulate goals,
  * player stats, tackles, substitutions, shot probability, or possession totals.
- * All events except official Quick Sim goal timestamps are animation inventions.
+ * Official goals and goalkeeper saves retain their Quick Sim timestamps; other movement is illustrative.
  */
 const PlayDirector=require('./phase10-play-director.cjs');
 const TeamShape=require('./phase10-team-shape.cjs');

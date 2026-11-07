@@ -49,11 +49,17 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   await frame.locator('#saveAutoAlert').check();await page.waitForFunction(()=>document.querySelector('.pfc-save-auto-control input').checked);
   await frame.locator('#highlightNoticePlay').click();await page.waitForTimeout(3200);
   assert.equal((await snap()).replay.kind,'save','Replay cannot be interrupted by automatic Continue');
-  await frame.locator('#highlightReplayReturn').click();await page.waitForTimeout(3200);
+  if(device==='desktop')await frame.waitForFunction(()=>!window.__PFC_SNAPSHOT__.replay&&window.__PFC_SNAPSHOT__.savePaused,null,{timeout:25000});
+  else await frame.locator('#highlightReplayReturn').click();
+  await page.waitForTimeout(3200);
   assert((await snap()).savePaused,'Returning from replay must not restart canceled countdown');
   await frame.locator('#highlightNoticeDismiss').click();
   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.animation==='illustrative-keeper-punt',null,{timeout:10000});
+  const punt=await snap();
+  await frame.waitForFunction(sec=>window.__PFC_SNAPSHOT__.minute*60>=sec,punt.saveSequence.arrival,{timeout:10000});
   await page.evaluate(()=>window.session.pause());
+  const received=await snap(),side=Math.floor(received.saveSequence.keeper/11);
+  assert(Math.min(...received.actorWorldPositions.slice(side*11+1,side*11+11).map(p=>Math.hypot(p[0]-received.ball.x,p[1]-received.ball.y)))<2.8,'Rendered long punt must reach an actual receiving player');
   // A new save gets a fresh real three-second countdown, at unchanged 16x.
   await seek(first.minute-.03/60);await page.evaluate(()=>window.session.play(16));
   await frame.locator('#highlightNotice').waitFor({state:'visible'});

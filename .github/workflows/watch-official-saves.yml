@@ -22,6 +22,7 @@ jobs:
           node-version: '22'
       - run: node watch/soccerjs/test-official-saves-restarts.cjs
       - run: node watch/soccerjs/test-one-on-one.cjs
+      - run: node watch/soccerjs/test-defensive-recovery.cjs
       - run: node tests/test-watch-highlights.cjs
       - run: node tests/test-pse-watch-events.cjs
       - run: node tests/test-quick-seed-compat.cjs

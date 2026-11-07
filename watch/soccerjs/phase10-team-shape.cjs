@@ -116,9 +116,9 @@ function position(f,field,id,seconds,shape,baseline){
  const danger=ease((22-ballProgress*field.width)/16);
  const depth=role==='DEF'?-.09:role==='MID'?-.035:.20;
  const ceiling=role==='DEF'?.28:role==='MID'?.43:.55;
- const floor=role==='DEF'?.055:role==='MID'?.12:.30;
+ const floor=role==='DEF'?.025:role==='MID'?.04:.30;
  const defensiveProgress=clamp(ballProgress+depth,floor,ceiling);
- progress=lerp(progress,defensiveProgress,recovery*(.65+.25*danger));
+ progress=lerp(progress,defensiveProgress,recovery*(.65+.35*ease((22-ballProgress*field.width)/8)));
  progress=clamp(progress,.06,.955);
  const lanePull=(shape.ball.y-field.height*.5)*(.10+recovery*.22)*
   (role==='MID'?.85:role==='FWD'?.70:.55);

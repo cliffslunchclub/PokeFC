@@ -34,7 +34,7 @@ function setSaveAuto(value){
 function continueMatch(){
  if(incidentQueue.length&&liveSaveEvent){
   const at=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
-  clearHighlightNotice();playing=false;last=null;
+  clearHighlightNotice();playing=false;last=null;lastSent=-2;
   queuedPresentation={phase:'restart',seconds:minute*60,end:at.saveSequence.finish,entry:null,last:null};
   return;
  }
@@ -42,6 +42,7 @@ function continueMatch(){
 }
 function queuedStep(now){
  const q=queuedPresentation;if(!q)return false;
+ if(q.paused){q.last=now;return true;}
  const delta=q.last===null?0:Math.min(2,Math.max(0,(now-q.last)/1000))*speed;q.last=now;
  const field=Utils.getFieldBounds();
  if(q.phase==='transition'){
@@ -49,7 +50,7 @@ function queuedStep(now){
   const move=(a,b)=>({...b,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z||0,b.z||0,u)});
   const frame={...q.to,ball:move(q.from.ball,q.to.ball),actors:q.from.actors.map((a,i)=>move(a,q.to.actors[i])),
    action:'illustrative-save-buildup',officialEvent:null,ownerIndex:-1};
-  render(minute,{sceneFrame:frame});
+  render(minute,{sceneFrame:frame,sceneSeconds:q.clock+q.elapsed});
   if(u>=1)queuedPresentation={phase:'save',seconds:q.start,end:q.end,entry:q.entry,last:now};
  }else{
   q.seconds=Math.min(q.end,q.seconds+delta);render(minute,{sceneSeconds:q.seconds});
@@ -63,7 +64,7 @@ function queuedStep(now){
     const start=Math.max(0,target.saveSequence.start),to=motionFrame(match,start/60,field,{saveEvent:entry.event});
     const duration=Math.max(.5,Math.hypot(from.ball.x-to.ball.x,from.ball.y-to.ball.y)/14,
      ...from.actors.map((a,i)=>Math.hypot(a.x-to.actors[i].x,a.y-to.actors[i].y)/4));
-    queuedPresentation={phase:'transition',elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
+    queuedPresentation={phase:'transition',clock:q.end,elapsed:0,duration,from,to,start,end:entry.minute*60,entry,last:now};
    }
   }
  }
@@ -391,15 +392,16 @@ function render(t,options={}){
  const sceneMinute=Number.isFinite(options.sceneSeconds)?options.sceneSeconds/60:t;
  const saveEvent=isReplay&&replaySession?.entry.kind==='save'?replaySession.entry.event:liveSaveEvent;
  if($('fullscreenPlayback')){
-  $('fullscreenPause').hidden=!playing;
-  $('fullscreenResume').hidden=!!playing;
+  const running=playing||queuedPresentation&&!queuedPresentation.paused;
+  $('fullscreenPause').hidden=!running;
+  $('fullscreenResume').hidden=!!running;
   $('fullscreenSpeed').value=String(speed);
  }
  const field=Utils.getFieldBounds(),s=scoreAt(t);
  if(!commentaryFeed)commentaryFeed=Commentary.build(match,field);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
- const script=options.sceneFrame?smoothMotion(options.sceneFrame,t):isReplay&&replaySession?.clip.kind==='shootout'?
+ const script=options.sceneFrame?smoothMotion(options.sceneFrame,sceneMinute):isReplay&&replaySession?.clip.kind==='shootout'?
   motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
   match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
    motionFrame(match,t,field,{kickIndex}):
@@ -481,7 +483,7 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing,watchSpeed:speed});
+   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -531,7 +533,8 @@ function step(now){
  if(queuedStep(now)){requestAnimationFrame(step);return;}
  if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
- // This is a fixed 800 ms real-time hold, not a change to match time.
+ // Goals retain a minimum 800 ms hold. Any remaining physical settling
+ // happens with the presentation clock held, at the selected movement speed.
  if(pendingGoal&&!replaySession){
   render(minute);
   const source=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
@@ -718,8 +721,9 @@ async function boot(){
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
-  $('fullscreenPause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
+  $('fullscreenPause').onclick=()=>{if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
+   if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
    if(replayNotice||pendingGoal)clearHighlightNotice();
    lastSent=-2;
    if(minute<match.durationMinutes){playing=true;last=null;}
@@ -760,6 +764,7 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
+    if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
     speed=Math.max(.25,Math.min(16,Number(msg.speed)||1));
@@ -768,6 +773,7 @@ async function boot(){
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
+    if(queuedPresentation)queuedPresentation.paused=true;
     playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){
     $('fullscreenPlayback').hidden=!msg.active;

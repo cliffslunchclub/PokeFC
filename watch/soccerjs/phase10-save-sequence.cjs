@@ -35,6 +35,7 @@ function sequence(f,field,event,normal){
   const recovery=Math.max(dist(target,landing.ball)/12,...landing.actors.map((a,id)=>dist(id===receiver?target:id===keeperId?catchPoint:atEnd.actors[id],a)/4));
   if(finish-arrival>=recovery)break;finish=arrival+recovery+.2;
  }
+ finish=Math.min(finish,(f.durationMinutes||90)*60);landing=normal(finish);
  stored={...data,release,arrival,recoveryEnd:finish,landing,target,receiver};cache.set(event,stored);return stored;
 }
 function buildupActors(s,seconds,normal){
