@@ -198,7 +198,9 @@ async function serve(){
    await page.screenshot({path:path.join(screenshots,'enclosed-no-whistles-'+device+'.png')});
    assert((await page.locator('#highlightTimeline [data-highlight-id]').count())>0,
     'Known goals must appear as timeline markers');
-   await page.locator('#highlightTimeline [data-highlight-id="goal-0"]').click();
+   await page.locator('#highlightDrawer').screenshot({path:path.join(screenshots,'timeline-replays-'+device+'.png')});
+   if(device==='mobile')await page.locator('#highlightList .highlight-entry button').first().click();
+   else await page.locator('#highlightTimeline [data-highlight-id="goal-0"]').click();
    const replay=await page.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(replay.replay?.kind,'goal');
    await page.locator('#highlightReplayReturn').click();
