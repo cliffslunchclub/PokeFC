@@ -29,6 +29,8 @@ for(const start of [0,2700,5400,6300]){
  const s=presentationFrame(extended,start,field).kickoff;
  const frame=presentationFrame(extended,s.ready,field),guarded=Onside.guard(frame,field);
  assert.equal(frame.contact,'kickoff-setup');
+ assert.equal(presentationFrame(extended,s.ready-1e-8,field).contact,'kickoff-setup',
+  'Tiny minute-to-second seek roundoff must show the two-player setup');
  assert.deepEqual(guarded.actors,frame.actors,'Open-play rules cannot move kickoff players');
  const side=Math.floor(s.kicker/11),center={x:53,y:34};
  const circle=frame.actors.map((a,i)=>({a,i})).filter(({a})=>Math.hypot(a.x-center.x,a.y-center.y)<9.15);
