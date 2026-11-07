@@ -5,6 +5,7 @@ on:
     paths:
       - "watch/soccerjs/**"
       - "tests/ci-pse-120-browser.cjs"
+      - "tests/ci-pse-enclosed-browser.cjs"
       - "scripts/build-siteground.sh"
       - "assets/js/position-effectiveness.js"
       - "assets/js/builder.js"

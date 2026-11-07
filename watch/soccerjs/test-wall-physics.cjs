@@ -79,11 +79,33 @@ for(const endX of [0,field.width]){
  assert.equal(pieces.length,2);
  const north=pieces.find(s=>s[0][1]===0);
  const south=pieces.find(s=>s[1][1]===field.height);
- assert.equal(north[1][1],field.height/2-Physics.GOAL_BOARD_OPEN_HALF_WIDTH);
- assert.equal(south[0][1],field.height/2+Physics.GOAL_BOARD_OPEN_HALF_WIDTH);
+ assert(Math.abs(north[1][1]-(field.height/2-Physics.GOAL_BOARD_OPEN_HALF_WIDTH))<1e-10);
+ assert(Math.abs(south[0][1]-(field.height/2+Physics.GOAL_BOARD_OPEN_HALF_WIDTH))<1e-10);
  assert(Physics.GOAL_BOARD_OPEN_HALF_WIDTH>Physics.GOAL_HALF_WIDTH,
   'Goal rails must visually clear the entire post and net geometry');
 }
+// Native Goal.createPair scales its 40/60 reference coordinates by pitch
+// height. Cover the wide strips the old 7.32m assumption left obstructed.
+for(const height of [54,68,80]){
+ const pitch={width:106,height};
+ const posts={min:height*.4,max:height*.6};
+ const rails=Physics.boardSegments(pitch);
+ for(const endX of [0,pitch.width]){
+  const end=rails.filter(s=>s[0][0]===endX&&s[1][0]===endX);
+  assert(end.every(s=>s[1][1]<posts.min||s[0][1]>posts.max),
+   'No rail may extend between the actual rendered posts');
+  for(const y of [posts.min+.1,posts.max-.1]){
+   assert.equal(Physics.candidate({x:endX===0?8:98,y},
+    {x:endX===0?24:82,y},pitch,'x',endX===0?'min':'max'),null,
+    'Outer goal-mouth strips must not reflect the ball');
+  }
+ }
+}
+// Renderer-supplied posts take precedence over fallback dimensions.
+const native={left:{yMin:25,yMax:43},right:{yMin:26,yMax:42}};
+const live=Physics.boardSegments(field,native);
+assert.equal(live[2][1][1],24.8);assert.equal(live[3][0][1],43.2);
+assert.equal(live[4][1][1],25.8);assert.equal(live[5][0][1],42.2);
 assert.equal(Physics.sampleWall({wall:null},4),null);
 assert.equal(Physics.boundary({x:-.5,y:30},field),false);
 assert.equal(Physics.boundary({x:54,y:69},field),false);

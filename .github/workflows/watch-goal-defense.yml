@@ -10,6 +10,7 @@ on:
       - 'watch/soccerjs/phase10-player-pace.cjs'
       - 'watch/soccerjs/viewer-entry.cjs'
       - 'watch/soccerjs/test-goal-defense.cjs'
+      - 'watch/soccerjs/test-goal-scene-keeper.cjs'
       - 'watch/soccerjs/test-wall-physics.cjs'
       - 'watch/soccerjs/test-enclosed-wall-play.cjs'
       - '.github/workflows/watch-goal-defense.yml'
@@ -35,6 +36,7 @@ jobs:
       - run: node --check watch/soccerjs/phase10-motion.cjs
       - run: node --check watch/soccerjs/viewer-entry.cjs
       - run: node watch/soccerjs/test-goal-defense.cjs
+      - run: node watch/soccerjs/test-goal-scene-keeper.cjs
       - run: node watch/soccerjs/test-wall-physics.cjs
       - run: node watch/soccerjs/test-enclosed-wall-play.cjs
       - run: node watch/soccerjs/test-three-defender-press.cjs

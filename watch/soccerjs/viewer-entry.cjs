@@ -213,7 +213,7 @@ function drawEnclosure(ctx,field){
  // Draw only six physical board segments. The goal-mouth opening shares
  // the exact post coordinates with wall collision physics; never connect
  // the end rails behind/through the Soccer-JS goal net.
- const sides=Wall.boardSegments(field);
+ const sides=Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal});
  for(const [[x1,y1],[x2,y2]] of sides){
   const a=Utils.toScreen(x1,y1,0),b=Utils.toScreen(x2,y2,0);
   const c=Utils.toScreen(x2,y2,.85),d=Utils.toScreen(x1,y1,.85);
@@ -403,6 +403,10 @@ function render(t,options={}){
   durationMinutes:match.durationMinutes,phase:t>=match.durationMinutes&&match.shootout?
    'shootout':t>=90&&match.durationMinutes===120?'extra-time':'regulation',
   kickIndex,totalKicks,enclosedPitch:true,boardSegments:6,
+  goalGeometry:[sim.pitch.leftGoal,sim.pitch.rightGoal].map(goal=>({
+   x:goal.lineX,min:goal.yMin,max:goal.yMax
+  })),
+  boardGeometry:Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal}),
   goalPaused:!!replayNotice,watchPlaying:playing,
   replay:isReplay?{id:replaySession.entry.id,
    kind:replaySession.clip.kind,progress:options.progress||0}:null};

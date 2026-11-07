@@ -16,11 +16,11 @@ for(const [name,value] of [['CSS',iframe.match(/viewer\.css\?v=(\d+)/)?.[1]],
  ['Quick Play bridge',play.match(/watch-bridge\.js\?v=(\d+)/)?.[1]],
  ['Challenge bridge',challenges.match(/watch-bridge\.js\?v=(\d+)/)?.[1]],
  ['Franchise bridge',franchisePage.match(/watch-bridge\.js\?v=(\d+)/)?.[1]]]){
- assert.equal(value,'17',name+' must load the same new viewer release');
+ assert.equal(value,'18',name+' must load the same new viewer release');
 }
-assert(playPage.includes('play.js?v=24'),
+assert(playPage.includes('play.js?v=25'),
  'Quick Play must refresh the parent script that loads Watch');
-assert(franchisePage.includes('soccerjs-franchise-viewer.js?v=15'),
+assert(franchisePage.includes('soccerjs-franchise-viewer.js?v=16'),
  'Franchise must refresh its iframe adapter');
 assert(iframe.includes('id="commentaryPanel"')&&iframe.includes('id="commentaryToggle"'));
 assert(iframe.includes('id="zoomIn"')&&iframe.includes('id="zoomOut"'));
