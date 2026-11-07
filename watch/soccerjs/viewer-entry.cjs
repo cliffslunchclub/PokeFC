@@ -9,6 +9,8 @@ const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
 const Commentary=require('./phase10-commentary.cjs');
 const Wall=require('./phase10-wall-physics.cjs');
+const Onside=require('./phase10-onside-movement.cjs');
+const Boundaries=require('./phase10-player-boundaries.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
@@ -281,10 +283,11 @@ function smoothMotion(script,t){
  // Apply the same travel-speed rules after a pass as before it.
  // Only active counterpressers get a short 5 m/s burst; neither their
  // position nor that of a recent passer can jump to a new tactical target.
- const actors=script.actors.map((p,i)=>({
+ let actors=script.actors.map((p,i)=>({
   ...p,...Pace.approach(trackedActors[i],p,seconds,Pace.speedFor(script,i))
  }));
  const ball=Pace.approach(trackedBall,script.ball,seconds,28);
+ actors=Boundaries.apply(Onside.guard({...script,actors,ball},Utils.getFieldBounds()),Utils.getFieldBounds()).actors;
  trackedActors=actors.map(p=>({x:p.x,y:p.y}));
  trackedBall={x:ball.x,y:ball.y,z:ball.z};
  trackedMinute=t;trackedPhase=script.action;

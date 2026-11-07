@@ -19,3 +19,4 @@ for(const defending of [0,1]){
  assert(r.ids.length===3&&r.ids.every(id=>Math.floor(id/11)===defending&&id%11!==0));
 }
 console.log('PASS coordinated recovery for both teams: 22 m wide-lane urgency, three outfield pressers, recovering forwards, central midfield shield and covering back line');
+

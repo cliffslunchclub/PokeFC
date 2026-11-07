@@ -14,6 +14,7 @@ const OneOnOne=require('./phase10-one-on-one.cjs');
 const GoalSequence=require('./phase10-goal-sequence.cjs');
 const Kickoff=require('./phase10-kickoff.cjs');
 const Saves=require('./phase10-save-sequence.cjs');
+const Boundaries=require('./phase10-player-boundaries.cjs');
 const limit=(n,a,b)=>Math.min(b,Math.max(a,n));
 const lerp=(a,b,u)=>a+(b-a)*limit(u,0,1);
 const ease=u=>{const t=limit(u,0,1);return t*t*(3-2*t)};
@@ -138,7 +139,7 @@ function supportingPose(fixture,owner,field,seconds,wave=waveAt(fixture,field,se
  const advanced=lerp(progress,Math.max(progress,target),pressure*amount);
  return {x:limit(origin(side,advanced,field),1,field.width-1),y:original.y};
 }
-function rawMotionFrame(fixture,t,field,options=false){
+function unboundedMotionFrame(fixture,t,field,options=false){
  const ignoreGoal=options===true;
  const kickIndex=options&&typeof options==='object'&&Number.isInteger(options.kickIndex)?options.kickIndex:0;
  if(!fixture||!fixture.home||!fixture.away||!Array.isArray(fixture.events))
@@ -226,11 +227,15 @@ function rawMotionFrame(fixture,t,field,options=false){
   const finisher=actors[scorerId],startScorer=sequence.openingRun.actors[scorerId];
   finisher.x=lerp(startScorer.x,finish.x-(side===0?.55:-.55),u);
   finisher.y=lerp(startScorer.y,finish.y-.3,u);
+  const starter=actors[support];
+  if(seconds<sequence.active){
+   const approach=ease((seconds-sequence.start)/Math.max(.001,sequence.active-sequence.start));
+   starter.x=lerp(sequence.openingRun.actors[support].x,sequence.from.x-(side===0?.72:-.72),approach);
+   starter.y=lerp(sequence.openingRun.actors[support].y,sequence.from.y-.32,approach);
+  }
   if(seconds>=sequence.active){
-   const starter=actors[support],startActor=sequence.opening.actors[support];
-   const receive=limit((seconds-sequence.active)/Math.max(.001,sequence.passStart-sequence.active),0,1);
-   starter.x=lerp(startActor.x,sequence.passFrom.x-(side===0?.6:-.6),receive);
-   starter.y=lerp(startActor.y,sequence.passFrom.y-.3,receive);
+   const carry=GoalSequence.sample(sequence,plan,Math.min(seconds,sequence.passStart)).ball;
+   starter.x=carry.x-(side===0?.72:-.72);starter.y=carry.y-.32;
    const keeper=actors[(1-side)*11];
    Object.assign(keeper,Keeper.sceneAt(field,event,seconds,{
     start:sequence.active,end:sequence.end,shot:sequence.shotStart,side:1-side,
@@ -246,6 +251,9 @@ function rawMotionFrame(fixture,t,field,options=false){
   if(t>=event.minute){ball=net;ownerIndex=-1;}
   const shooting=seconds>=sequence.shotStart;
   return {actors,ball,ownerIndex,contact:pose.phase,attackingSide:side,
+   onsideGuard:[{side,carrier:ownerIndex,runner:scorerId,
+    run:(seconds-sequence.passStart)/Math.max(.001,sequence.shotStart-sequence.passStart),
+    strength:ease((seconds-sequence.start)/.2)}],
    goalSequenceStart:sequence.start,goalShotStart:sequence.shotStart,
    goalPassStart:sequence.passStart,goalBallStart:sequence.active,
    goalkeeperRushSide:seconds>=sequence.active&&!shooting&&Keeper.target(1-side,field,
@@ -304,9 +312,16 @@ function rawMotionFrame(fixture,t,field,options=false){
   segmentStart:visual.segmentStart,segmentEnd:visual.segmentEnd,
   passStart:visual.passStart,passArrival:visual.passArrival,
   passOrigin:visual.passOrigin,passTarget:visual.passTarget,
+  onsideGuard:[defenderSide,attackerSide].map(side=>({side,carrier:visual.ownerIndex,
+   runner:step.mode!=='carry'?step.receiver:-1,
+   run:step.mode!=='carry'?(seconds-step.start)/Math.min(.6,step.duration):0,
+   strength:shape.attack[side]})),
   offsideBoundary,
   wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds};
 
+}
+function rawMotionFrame(fixture,t,field,options=false){
+ return Boundaries.apply(unboundedMotionFrame(fixture,t,field,options),field);
 }
 function presentationFrame(fixture,seconds,field,options=false){
  const normal=sec=>rawMotionFrame(fixture,sec/60,field,true);
@@ -318,7 +333,7 @@ function presentationFrame(fixture,seconds,field,options=false){
 function motionFrame(fixture,t,field,options=false){
  if(options===true)return rawMotionFrame(fixture,t,field,true);
  const frame=presentationFrame(fixture,t*60,field,options);
- return OneOnOne.apply(fixture,field,t*60,frame,
-  sec=>presentationFrame(fixture,sec,field,options));
+ return Boundaries.apply(OneOnOne.apply(fixture,field,t*60,frame,
+  sec=>presentationFrame(fixture,sec,field,options)),field);
 }
 module.exports={motionFrame,rawMotionFrame,presentationFrame,base,hash,shotSummary,playbackRate};

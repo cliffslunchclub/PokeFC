@@ -47,6 +47,43 @@
   const middle=t=>{const a=t.lineup.filter(x=>x.pos==='MID');return a.length?a.reduce((s,p)=>s+positionStrength(p)*eff(p),0)/a.length:45};
   return clamp(50+P.possessionHomeOffset+(middle(home)-middle(away))*P.possessionMidfieldSlope+(home.tactic==='possession'?P.possessionTacticBonus:0)-(away.tactic==='possession'?P.possessionTacticBonus:0),29,71);
  }
+ // Schedule the official ledger without consuming outcome RNG or dropping events.
+ // Prefer original periods and preserve event order; flag impossible ledgers.
+ function spaceEvents(events,periods=[[0,45],[45,90]],previous=-Infinity){
+  const selected=events.filter(e=>e.type==='goal'||e.type==='save').sort((a,b)=>a.minute-b.minute);
+  const schedule=keepPeriods=>{
+   const bounds=selected.map(e=>{
+    const p=keepPeriods?periods.find(([a,b])=>e.minute>=a&&e.minute<b):[periods[0][0],periods.at(-1)[1]];
+    if(!p)throw Error('PSE incident outside scheduled periods');
+    return [p[0]+.5,p[1]-.05];
+   });
+   // Reserve a 30-second opening for a reachable kickoff/approach.
+   // Reserve room backwards before placing events forwards. A busy later
+   // half must be allowed to pull earlier incidents away from its boundary.
+   for(let i=bounds.length-2;i>=0;i--)bounds[i][1]=Math.min(bounds[i][1],bounds[i+1][1]-3);
+   let last=previous;const placed=[];
+   for(let i=0;i<selected.length;i++){
+    const [low,high]=bounds[i],minute=Math.max(low,last+3,Math.min(selected[i].minute,high));
+    if(minute>high+1e-9)return null;
+    placed.push([selected[i],minute]);last=minute;
+   }
+   return placed;
+  };
+  // Keep original halves where possible; dense halves may spill into the
+  // adjacent half while retaining every outcome and chronological order.
+  const updates=schedule(true)||schedule(false);
+  if(!updates){
+   const error=Error('PSE event spacing capacity exceeded');
+   error.code='PSE_EVENT_SPACING_CAPACITY';error.incidents=selected.length;
+   error.periods=periods;throw error;
+  }
+  // Commit only after every period has passed the capacity check.
+  for(const [e,minute] of updates){
+   if(e.causedBy){const shot=events.find(p=>p.id===e.causedBy);if(shot){shot.minute=minute;shot.minuteLabel=String(Math.floor(minute)+1);}}
+   e.minute=minute;e.minuteLabel=String(Math.floor(minute)+1);
+  }
+  events.sort((a,b)=>a.minute-b.minute);return events;
+ }
  function simulate(preview,opts={}){
   if(!preview||!preview.home||!preview.away||preview.home.lineup?.length!==11||preview.away.lineup?.length!==11)throw Error('Quick Sim requires two valid starting XIs');
   const current=profile(),P=validParams(opts.parameters||current.parameters),next=randomizer(opts.seed||preview.seed||'FXI'),tackleNext=randomizer(String(opts.seed||preview.seed||'FXI')+':tackle-ledger-v1'),teams=[preview.home,preview.away];
@@ -115,7 +152,7 @@
    }
   }
   stats[0].possession=Math.round(poss[0]*10)/10;stats[1].possession=Math.round((100-stats[0].possession)*10)/10;
-  events.sort((a,b)=>a.minute-b.minute);
+  spaceEvents(events);
   for(let side=0;side<2;side++){
    if(stats[side].goals!==score[side])throw Error('Quick Sim score differs from goal events');
    if(events.filter(e=>e.type==='goal'&&String(e.team)===String(teams[side].id)).length!==score[side])throw Error('Quick Sim goal ledger invalid');
@@ -128,6 +165,6 @@
    calibration:current.status==='calibrated'?{referenceMatches:current.referenceMatches,engineCommit:current.engineCommit}:null,
    methodology:{shotStops:'Approximate saves in Quick Sim; not directly comparable to TacticMesh shotStops.',shotsOnTarget:'Estimated; genuine TacticMesh reports this as unavailable.'}};
  }
- root.FXI_QUICK={simulate,profile,DEFAULTS,validParams,randomizer,poisson,binomial,TACKLE_WIN_RATE};
- if(typeof module!=='undefined'&&module.exports)module.exports={simulate,profile,DEFAULTS,validParams,randomizer,poisson,binomial,TACKLE_WIN_RATE};
+ root.FXI_QUICK={simulate,profile,DEFAULTS,validParams,randomizer,poisson,binomial,TACKLE_WIN_RATE,spaceEvents};
+ if(typeof module!=='undefined'&&module.exports)module.exports={simulate,profile,DEFAULTS,validParams,randomizer,poisson,binomial,TACKLE_WIN_RATE,spaceEvents};
 })(typeof window!=='undefined'?window:globalThis);

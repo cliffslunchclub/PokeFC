@@ -36,6 +36,7 @@ for(const side of [0,1]){
 const raw=s=>presentationFrame(f,s,field),shots=O.build(f,field,raw);
 assert(shots.length>10,'Expected seeded actual one-on-one opportunities');
 assert(shots.some(s=>s.side===0)&&shots.some(s=>s.side===1));
+assert(shots.some(s=>s.outcome==='block'),'Require loose illustrative blocks');
 let maxSeam=0,maxSpeed=0;
 for(const shot of shots){
  const entry=raw(shot.start);
@@ -46,10 +47,21 @@ for(const shot of shots){
  assert.equal(launch.actors[shot.shooter].frame,3);
  assert(dist(launch.ball,entry.ball)<1e-7,'Shot must start from the actual carried ball');
  const hit=motionFrame(f,shot.impactSeconds/60,field);
- assert.equal(hit.action,'illustrative-one-on-one-miss');
- assert(Math.abs(hit.ball.y-field.height/2)>field.height*.1,'Miss must clear actual goal mouth');
- assert.equal(shot.outcome,'miss');
- for(const seam of [shot.start,shot.impactSeconds,shot.end]){
+ if(shot.outcome==='miss'){
+  assert.equal(hit.action,'illustrative-one-on-one-miss');
+  assert(Math.abs(hit.ball.y-field.height/2)>field.height*.1,'Miss must clear actual goal mouth');
+ }else{
+  assert.equal(hit.action,'illustrative-keeper-block');
+  assert(dist(hit.ball,hit.actors[shot.keeper])<.01,'Block touches actual keeper');
+  const loose=motionFrame(f,(shot.spilled+.001)/60,field);
+  assert.equal(loose.ownerIndex,-1);assert.equal(loose.officialEvent,null);
+  const clear=motionFrame(f,(shot.clearAt+.001)/60,field);
+  assert.equal(clear.action,'illustrative-upfield-clearance');
+  assert(dist(clear.ball,clear.actors[shot.clearer])<.1,'Clearance must begin at the clearer feet');
+  assert(Math.abs(shot.clearTo.x-shot.loose.x)>30,'Clear strongly upfield');
+ }
+
+ for(const seam of [shot.start,shot.impactSeconds,...(shot.outcome==='block'?[shot.spilled,shot.clearAt,shot.clearArrival]:[]),shot.end]){
   const a=motionFrame(f,(seam-.00001)/60,field),b=motionFrame(f,(seam+.00001)/60,field);
   maxSeam=Math.max(maxSeam,dist(a.ball,b.ball));
   assert(maxSeam<.01,'Shot, block or recovery teleported the ball');

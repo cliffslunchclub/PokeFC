@@ -61,6 +61,11 @@
    goals:0,assists:0,saves:0,shots:0,shotsOnTarget:0,tackleAttempts:0,tackles:0,minutes:30
   }])));
   const score=[0,0],events=[];let serial=0;
+  // One shared capacity across both teams, including the last regulation
+  // incident. Decide before creating outcomes or updating official totals.
+  const firstIncident=Math.max(90.5,(options.previousIncident??-Infinity)+3);
+  const incidentCapacity=Math.max(0,Math.floor((119.95-firstIncident+1e-9)/3)+1);
+  let incidentCount=0,cappedShots=0;
   const incident=(type,side,p,minute,rest={})=>{
    const e={id:'pse-et-'+String(++serial).padStart(5,'0'),minute,
     minuteLabel:String(Math.floor(minute)+1),type,team:teams[side].id,
@@ -75,16 +80,23 @@
    for(let k=0;k<shots;k++){
     const player=choose(rng,attackers,p=>(p.pos==='FWD'?2:p.pos==='MID'?1:.2)*skill(p,'finishing'));
     const at=90+m+rng()*.98;
-    const onTarget=rng()<clamp(.30+.003*skill(player,'finishing'),.1,.85);
+    const rolledOnTarget=rng()<clamp(.30+.003*skill(player,'finishing'),.1,.85);
     const quality=clamp(.09+.0019*(strength[side].attack-strength[1-side].defense)+rng()*.07,.025,.31);
-    const goal=onTarget&&rng()<clamp(quality/.60+.001*(skill(player,'finishing')-strength[1-side].keeper),.025,.85);
+    const rolledGoal=rolledOnTarget&&rng()<clamp(quality/.60+.001*(skill(player,'finishing')-strength[1-side].keeper),.025,.85);
+    // Consume the same draws even when the attempt must finish off target.
+    // Thus unaffected attempts, passing and tackling retain seeded outcomes.
+    const helper=rolledGoal&&rng()<qs.DEFAULTS.assistProbability?choose(rng,attackers.filter(p=>p.id!==player.id),
+     p=>skill(p,'shortPassing')+skill(p,'vision')):null;
+    const onTarget=rolledOnTarget&&incidentCount<incidentCapacity;
+    const goal=onTarget&&rolledGoal;
+    const spacingLimited=rolledOnTarget&&!onTarget;
+    if(onTarget)incidentCount++;
+    if(spacingLimited)cappedShots++;
     s.shots++;box[player.id].shots++;
     if(onTarget){s.shotsOnTarget++;box[player.id].shotsOnTarget++;}
-    const shot=incident('shot',side,player,at,{outcome:goal?'goal':onTarget?'saved':'off-target'});
+    const shot=incident('shot',side,player,at,{outcome:goal?'goal':onTarget?'saved':'off-target',...(spacingLimited?{spacingLimited:true}:{})});
     if(goal){
      s.goals++;score[side]++;box[player.id].goals++;
-     const helper=rng()<qs.DEFAULTS.assistProbability?choose(rng,attackers.filter(p=>p.id!==player.id),
-      p=>skill(p,'shortPassing')+skill(p,'vision')):null;
      if(helper)box[helper.id].assists++;
      incident('goal',side,player,at,{assist:helper?.id||null,causedBy:shot.id});
     }else if(onTarget){
@@ -102,14 +114,15 @@
     box[player.id].tackles+=wins;box[player.id].tackleAttempts+=attempts;
    }
   }
-  events.sort((a,b)=>a.minute-b.minute);
+  qs.spaceEvents(events,[[90,105],[105,120]],options.previousIncident??-Infinity);
   for(let side=0;side<2;side++){
    requireValid(stats[side].goals===score[side],'Extra-time score mismatch');
    requireValid(stats[side].shotsOnTarget===stats[side].goals+stats[1-side].saves,'Extra-time shots and saves mismatch');
    requireValid(events.filter(e=>e.type==='goal'&&String(e.team)===String(teams[side].id)).length===score[side],'Extra-time goal ledger mismatch');
   }
   return {origin:'quick-sim',ruleset:'pse-extra-time-v1',phase:'extra-time',durationMinutes:30,
-   home:teams[0].id,away:teams[1].id,score,events,box,stats};
+   home:teams[0].id,away:teams[1].id,score,events,box,stats,
+   incidentSpacing:{minimumMinutes:3,capacity:incidentCapacity,cappedShots}};
  }
  function shootout(preview,seed,options={}){
   validatePreview(preview);
@@ -176,7 +189,7 @@
   const old=JSON.stringify(regulation);
   let match=regulation,extra=null,kicks=null,winner,decidedBy='regulation';
   if(regulation.score[0]===regulation.score[1]){
-   extra=extraTime(preview,seed,{positionEffectiveness:regulation.positionEffectiveness});match=merge(regulation,extra);decidedBy='extra-time';
+   extra=extraTime(preview,seed,{positionEffectiveness:regulation.positionEffectiveness,previousIncident:Math.max(-Infinity,...regulation.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>e.minute))});match=merge(regulation,extra);decidedBy='extra-time';
    if(match.score[0]===match.score[1]){
     kicks=shootout(preview,seed,{positionEffectiveness:regulation.positionEffectiveness});decidedBy='shootout';
     winner=kicks.winner;
