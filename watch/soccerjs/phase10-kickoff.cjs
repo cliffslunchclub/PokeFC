@@ -22,7 +22,7 @@ function scenes(f,field,normal,official=normal){
    return {...a,x:clamp(x,1,field.width-1),y};
   });
   const transit=s.initial?0:Math.max(dist(opening.ball,center)/12,...setup.map((a,i)=>dist(a,opening.actors[i])/4));
-  const kick=s.start+transit+.7,arrival=kick+.5;
+  const ready=s.start+transit,kick=ready+.7,arrival=kick+.5;
   const receive={x:setup[receiver].x+direction*.72,y:setup[receiver].y+.32,z:.23};
   let end=arrival+12,landing;
   for(let i=0;i<5;i++){
@@ -31,7 +31,7 @@ function scenes(f,field,normal,official=normal){
    if(end-arrival>=needed)break;end=arrival+needed+.2;
   }
   end=Math.min(end,(f.durationMinutes||90)*60);landing=normal(end);
-  items.push({...s,opening,setup,center,kicker,receiver,transit,kick,arrival,receive,end,landing});
+  items.push({...s,opening,setup,center,kicker,receiver,transit,ready,kick,arrival,receive,end,landing});
  });
  cache.set(f,{width:field.width,height:field.height,items});return items;
 }
@@ -53,7 +53,23 @@ function apply(f,field,seconds,frame,normal,official=normal){
   contact='kickoff-recovery';
  }
  return {...frame,actors,ball,ownerIndex:owner,action:'illustrative-kickoff',contact,
-  sceneCut:null,officialEvent:null,kickoff:{start:s.start,kick:s.kick,arrival:s.arrival,end:s.end,kicker:s.kicker,receiver:s.receiver},
+  sceneCut:null,officialEvent:null,onsideGuard:null,
+  kickoff:{start:s.start,ready:s.ready,kick:s.kick,arrival:s.arrival,end:s.end,kicker:s.kicker,receiver:s.receiver},
   passStart:s.kick,passArrival:s.arrival,passOrigin:s.center,passTarget:s.receive};
 }
-module.exports={apply,scenes};
+// Live presentation only: two real seconds to see the setup, then two real
+// seconds of continuous acceleration into the selected Watch speed. Integrate
+// the ramp so frame rate and speed changes cannot jump the match clock.
+function advanceClock(seconds,elapsed,speed,items,state){
+ if(state&&state.elapsed<4){
+  const integral=t=>t<=2?0:t<4?(t-2)**2/4:t-3;
+  const next=state.elapsed+elapsed;
+  return {seconds:seconds+speed*(integral(next)-integral(state.elapsed)),
+   state:{ready:state.ready,elapsed:next}};
+ }
+ const ready=items.map(s=>s.ready).find(t=>t>=seconds-1e-7&&
+  t<=seconds+elapsed*speed+1e-7&&t!==state?.ready);
+ if(ready===undefined)return {seconds:seconds+elapsed*speed,state};
+ return advanceClock(ready,Math.max(0,elapsed-(ready-seconds)/speed),speed,items,{ready,elapsed:0});
+}
+module.exports={apply,scenes,advanceClock};

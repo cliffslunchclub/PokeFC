@@ -4,7 +4,8 @@ const {Settings}=require('./kernel/settings.js');
 const {Simulator}=require('./kernel/providers/simulator/simulator.js');
 const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
-const {motionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
+const {motionFrame,rawMotionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
+const Kickoff=require('./phase10-kickoff.cjs');
 const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
 const Commentary=require('./phase10-commentary.cjs');
@@ -24,6 +25,7 @@ const promptedGoals=new Set();
 const SAVE_AUTO_KEY='pokefc-auto-continue-saves';
 let autoContinueSaves=false,saveAutoDeadline=null;
 let liveSaveEvent=null,incidentQueue=[],queuedPresentation=null;
+let kickoffIntro=null;
 try{autoContinueSaves=localStorage.getItem(SAVE_AUTO_KEY)==='true'}catch(_){}
 function setSaveAuto(value){
  autoContinueSaves=!!value;
@@ -435,7 +437,6 @@ function render(t,options={}){
  ctx.translate(camera.tx,camera.ty);
  // Original Soccer-JS pitch/players/ball renderer, no native sim ticks.
  sim.renderAll(ctx);
- drawEnclosure(ctx,field);
  ctx.restore();
  $('score').textContent=s.join(' – ');
  $('clock').textContent=Math.floor(t)+"'"+(t>=90&&match.durationMinutes===120?' · ET':'');
@@ -528,7 +529,8 @@ function render(t,options={}){
   boardGeometry:Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal}),
   goalPaused:!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
   queuedSavePresentation:queuedPresentation?.phase||null,queuedSaveCount:incidentQueue.length,
-  autoContinueSaves,saveAutoCountdown:saveAutoDeadline!==null,kickoff:script.kickoff||null,saveSequence:script.saveSequence||null,
+  autoContinueSaves,saveAutoCountdown:saveAutoDeadline!==null,kickoff:script.kickoff||null,
+  kickoffIntro:kickoffIntro?{...kickoffIntro}:null,saveSequence:script.saveSequence||null,
   replay:isReplay?{id:replaySession.entry.id,
    kind:replaySession.clip.kind,progress:options.progress||0}:null};
  if(!isReplay)renderHighlightCatalog();
@@ -574,8 +576,13 @@ function step(now){
    const elapsed=Math.max(0,(now-last)/1000);
    // Suspended tabs pause instead of teleporting or triggering old incidents.
    if(elapsed>2){playing=false;last=null;}
-   else if(minute<stopAt)minute=Math.min(stopAt,
-    minute+elapsed*playbackRate(minute,match.events,speed));
+   else if(minute<stopAt){
+    const field=Utils.getFieldBounds();
+    const items=Kickoff.scenes(match,field,sec=>rawMotionFrame(match,sec/60,field,true),
+     sec=>rawMotionFrame(match,sec/60,field));
+    const next=Kickoff.advanceClock(minute*60,elapsed,speed,items,kickoffIntro);
+    kickoffIntro=next.state;minute=Math.min(stopAt,next.seconds/60);
+   }
    else if(minute>=match.durationMinutes&&match.shootout&&
     kickIndex<match.shootout.attempts.length){
     kickElapsed+=elapsed*speed;
@@ -600,6 +607,7 @@ function step(now){
  requestAnimationFrame(step);
 }
 function seek(t){
+ kickoffIntro=null;
  queuedPresentation=null;incidentQueue=[];liveSaveEvent=null;
  if(replaySession)returnToMatch();
  if(t<minute)promptedGoals.clear();
@@ -639,6 +647,10 @@ async function boot(){
    $('projection').value='orthographic';$('camera').value='follow';
   $('status').textContent='GENERATING REAL SOCCER-JS SPRITES…';
   sim=new Simulator({seed:12345});await sim.start();sim.active=true;
+  // Boards are part of the pitch background. Native renderAll then paints
+  // the y-sorted players and ball above them in every projection.
+  const pitchRender=sim.pitch.render.bind(sim.pitch);
+  sim.pitch.render=g=>{pitchRender(g);drawEnclosure(g,Utils.getFieldBounds());};
   // Use an actual original soccer-ball sprite at the native ball's projected
   // position. This replaces only graphics, never collision/physics or results.
   soccerBallSprite=new Image();
@@ -719,7 +731,7 @@ async function boot(){
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
-  $('pause').onclick=()=>{seek(minute);lastSent=-2;render(minute);};
+  $('pause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
   $('restart').onclick=()=>{kickIndex=0;seek(0)};
   $('skip').onclick=finish;
   $('scrub').oninput=e=>seek(Number(e.target.value));
