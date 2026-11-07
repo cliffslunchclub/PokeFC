@@ -137,6 +137,38 @@ async function serve(){
    assert.deepEqual(errors,[],'Browser JS error '+device+': '+errors.join('; '));
    console.log('PASS enclosed PokéFC Chromium '+device+
     ' four-board physical banks, loose-ball pickup, six boards, no whistles, stable goal replay');
+   // The production game uses the *embedded* iframe, not the standalone
+   // Watch page. Check its actual positioned overlay and zoom controls.
+   await page.goto(url+'?embedded=1&inline=1&v=17',
+    {waitUntil:'domcontentloaded',timeout:30000});
+   await page.waitForFunction(()=>
+    document.documentElement.classList.contains('pfc-inline'),
+    null,{timeout:20000});
+   const overlay=await page.evaluate(()=>{
+    const pitch=document.querySelector('.pitchwrap')?.getBoundingClientRect();
+    const panel=document.getElementById('commentaryPanel');
+    const rect=panel?.getBoundingClientRect();
+    const style=panel&&getComputedStyle(panel);
+    const zoom=document.getElementById('zoomIn');
+    const zoomRect=zoom?.getBoundingClientRect();
+    const toggle=document.getElementById('commentaryToggle');
+    return {pitch:pitch&&{x:pitch.x,y:pitch.y,width:pitch.width,height:pitch.height},
+     panel:rect&&{x:rect.x,y:rect.y,width:rect.width,height:rect.height},
+     visible:!!style&&style.display!=='none'&&style.visibility!=='hidden'&&style.opacity!=='0',
+     positioned:style?.position,zoomVisible:!!zoomRect&&zoomRect.width>20&&zoomRect.height>20,
+     hasHistory:!!toggle&&toggle.getAttribute('aria-controls')==='commentaryHistory'};
+   });
+   assert(overlay.visible&&overlay.positioned==='absolute',
+    'Embedded commentary panel was not visibly positioned: '+JSON.stringify(overlay));
+   assert(overlay.panel?.width>150&&overlay.panel?.height>30,
+    'Embedded commentary is missing its lower third: '+JSON.stringify(overlay));
+   assert(overlay.panel.y>=overlay.pitch.y-2&&
+    overlay.panel.y+overlay.panel.height<=overlay.pitch.y+overlay.pitch.height+2,
+    'Embedded commentary must be inside the visible match pitch');
+   assert(overlay.zoomVisible&&overlay.hasHistory,
+    'Embedded Watch must show camera zoom and commentary history controls');
+   console.log('PASS embedded PokéFC Chromium '+device+
+    ' commentary lower-third, zoom buttons, history and pitch positioning');
    await page.close();
   }
  }finally{if(browser)await browser.close();server.kill('SIGTERM');}
