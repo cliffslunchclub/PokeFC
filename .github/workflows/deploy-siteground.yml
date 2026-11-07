@@ -111,6 +111,7 @@ jobs:
           node watch/soccerjs/test-player-pace.cjs
           node watch/soccerjs/test-camera-zoom.cjs
           node watch/soccerjs/test-commentary.cjs
+          node tests/test-watch-embed-cache.cjs
           node watch/soccerjs/test-hybrid-counterpress.cjs
           node watch/soccerjs/test-three-defender-press.cjs
           node watch/soccerjs/test-offside-aware-passing.cjs
