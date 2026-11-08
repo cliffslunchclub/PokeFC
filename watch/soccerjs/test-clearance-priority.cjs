@@ -10,7 +10,8 @@ for(const durationMinutes of [90,120])for(let seed=0;seed<12;seed++){
   const a=plan.actions[i],side=Math.floor(a.owner/11),depth=side===0?a.from.x:106-a.from.x;
   assert.equal(a.wall,null);assert.notEqual(a.mode,'rebound');
   if(a.pattern==='defensive-clearance'){
-   assert.equal(a.mode,'pass','Kick immediately instead of dribbling');
+   assert.equal(a.mode,a.clearance?.intercepted?'challenge':'pass',
+    'An interception is a contested turnover, not a completed cross-team pass');
    assert.equal(a.owner,plan.actions[i-1]?.receiver??a.owner);
    const distance=Math.hypot(a.to.x-a.from.x,a.to.y-a.from.y);
    assert(distance>=24.99&&distance<=35.01,'Approved 25–35m danger clearance');
