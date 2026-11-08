@@ -47,7 +47,7 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a"><div 
      const paused=await snap();await page.waitForTimeout(250);assert.equal((await snap()).celebration.elapsed,paused.celebration.elapsed);
      await page.evaluate(s=>window.session.play(s),speed);
     }
-    await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.celebration?.elapsed>1,null,{timeout:6000});
+    await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.celebration?.elapsed>1.2&&Math.max(...window.__PFC_SNAPSHOT__.actorHeights)>.2,null,{timeout:6000});
     const close=await snap();assert.equal(close.minute,goal.minute);assert(close.scale>start.scale);
     assert(Math.max(...close.actorHeights)>.01,'Scorer must visibly hop');
     await frame.locator('.pitchwrap').screenshot({path:path.join(out,'celebration-'+device+'-'+view+'-'+speed+'.png')});
