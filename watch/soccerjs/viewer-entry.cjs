@@ -585,7 +585,7 @@ function render(t,options={}){
  const sceneMinute=Number.isFinite(options.sceneSeconds)?options.sceneSeconds/60:t;
  const saveEvent=isReplay&&replaySession?.entry.kind==='save'?replaySession.entry.event:liveSaveEvent;
  if($('fullscreenPlayback')){
-  const running=playing||queuedPresentation&&!queuedPresentation.paused;
+  const running=playing||queuedPresentation&&!queuedPresentation.paused||goalCelebration&&!goalCelebration.paused;
   $('fullscreenPause').hidden=!running;
   $('fullscreenResume').hidden=!!running;
   $('fullscreenSpeed').value=String(speed);
@@ -594,7 +594,7 @@ function render(t,options={}){
  if(!commentaryFeed)commentaryFeed=Commentary.build(match,field);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
- const script=options.sceneFrame?smoothMotion(options.sceneFrame,sceneMinute):isReplay&&replaySession?.clip.kind==='shootout'?
+ const script=options.sceneFrame?(options.celebration?options.sceneFrame:smoothMotion(options.sceneFrame,sceneMinute)):isReplay&&replaySession?.clip.kind==='shootout'?
   motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
   match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
    motionFrame(match,t,field,{kickIndex}):
@@ -664,6 +664,7 @@ function render(t,options={}){
   'illustrative-save-buildup':'Goalkeeper save buildup','illustrative-save-shot':'Shot on target',
   'official-save':'OFFICIAL PSE GOALKEEPER SAVE','illustrative-keeper-punt':'Keeper long kick',
   'official-goal':'OFFICIAL QUICK SIM GOAL',
+  'official-goal-celebration':'GOAL! Scorer celebration',
   'official-shootout-goal':'OFFICIAL SHOOTOUT CONVERSION',
   'official-shootout-saved':'OFFICIAL SHOOTOUT SAVE',
   'official-shootout-off-target':'OFFICIAL SHOOTOUT MISS'
@@ -696,9 +697,12 @@ function render(t,options={}){
   }:null,
   carrier:ballCarrier,ballContact:script.contact||'continuous-play',
   oneOnOne:script.oneOnOne||null,scheduleConflict:script.scheduleConflict||null,
+  celebration:script.celebration||null,goalCelebrationActive:!!goalCelebration,
   officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
   soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
   cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,
+  ballPixelRadius:Math.max(1.5,Settings.BALL_DRAW_RADIUS*Utils.getScaleMultiplier()),
+  spritePixelSize:80*Utils.getScaleMultiplier(),
   actorWorldPositions:script.actors.map(p=>[p.x,p.y]),
   actualSprites:!!ImageDB.get('player_Brazil_main')&&!!ImageDB.get('player_Argentina_main'),
   pokemonSpritesLoaded:spriteRoster.entries.filter(e=>e.image?.naturalWidth>0).length,
