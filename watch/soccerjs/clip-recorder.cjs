@@ -15,6 +15,7 @@ class BrowserClipRecorder{
   const supported=Clip.MIMES.filter(m=>this.RecorderClass.isTypeSupported?.(m.mime));
   if(!supported.length)throw Error('No supported MP4 or WebM MediaRecorder format');
   this.stream=this.canvas.captureStream(Clip.FPS);
+  this.track=this.stream.getVideoTracks?.()[0]||this.stream.getTracks()[0];
   let failure;
   for(const format of supported){
    try{this.media=new this.RecorderClass(this.stream,{mimeType:format.mime,videoBitsPerSecond:2500000});
@@ -32,11 +33,12 @@ class BrowserClipRecorder{
    if(this.cancelled){this.status='cancelled';this.chunks=[];this.onCancel();return}
    const blob=new Blob(this.chunks,{type:this.media.mimeType||this.format.mime});
    this.chunks=[];
-   if(!blob.size){this.fail(Error('Browser recorder produced an empty video'));return}
+   if(!blob.size){this.fail(Error('Browser recorder produced an empty video ('+this.format.mime+')'));return}
    this.status='complete';this.onProgress(1);
    this.onComplete(blob,this.format);
   };
   this.paint(this.clip.start*60,0);
+  try{this.track?.requestFrame?.()}catch(_){}
   try{this.media.start(1000)}catch(e){this.stream.getTracks().forEach(t=>t.stop());this.fail(e);throw e}
   this.started=this.clock();this.status='recording';this.onProgress(0);
   return {mimeType:this.media.mimeType||this.format.mime,extension:this.format.extension};
@@ -46,6 +48,8 @@ class BrowserClipRecorder{
   const elapsed=Math.max(0,(now-this.started)/1000);
   const progress=Clip.progressAt(elapsed,this.clip,this.speed);
   this.paint((this.clip.start+(this.clip.end-this.clip.start)*progress)*60,progress);
+  // Some encoders need an explicit capture request even with a fixed FPS.
+  try{this.track?.requestFrame?.()}catch(_){}
   this.onProgress(progress);
   if(progress>=1){
    this.status='finishing';
