@@ -267,6 +267,7 @@ function unboundedMotionFrame(fixture,t,field,options=false){
     strength:ease((seconds-sequence.start)/.2)}],
    goalSequenceStart:sequence.start,goalShotStart:sequence.shotStart,
    goalPassStart:sequence.passStart,goalBallStart:sequence.active,
+   scheduleConflict:sequence.scheduleConflict||null,
    goalkeeperRushSide:seconds>=sequence.active&&!shooting&&Keeper.target(1-side,field,
     {mode:'carry',owner:side*11+6},ball).urgent?1-side:null,
    action:t>=event.minute?'official-goal':shooting?'illustrative-shot':
