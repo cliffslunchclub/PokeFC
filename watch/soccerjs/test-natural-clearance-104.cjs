@@ -85,7 +85,7 @@ const Clearance=require('./phase10-clearance-flight.cjs');
 const positions=Array.from({length:22},()=>({x:4,y:61}));
 positions[6]={x:43,y:34}; // Teammate is two meters short of minimum 25m landing
 for(let id=12;id<22;id++){
- const n=id-12;positions[id]={x:45+(n%5)*2.5,y:32+Math.floor(n/5)*4};
+ const n=id-12;positions[id]={x:45+(n%5)*2.5,y:n<5?34:32};
 }
 const contested=Clearance.plan({field,from:{x:20,y:34,z:.23},owner:2,side:0,
  position:id=>positions[id],seed:'issue104-intercept-0',offside:()=>false});
