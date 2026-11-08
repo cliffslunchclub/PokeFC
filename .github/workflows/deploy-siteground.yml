@@ -110,6 +110,7 @@ jobs:
           node watch/soccerjs/test-play-sequence-director.cjs
           node watch/soccerjs/test-player-pace.cjs
           node watch/soccerjs/test-goal-celebration.cjs
+          node watch/soccerjs/test-keeper-urgency.cjs
           node watch/soccerjs/test-camera-zoom.cjs
           node watch/soccerjs/test-commentary.cjs
           node tests/test-watch-embed-cache.cjs

@@ -25,6 +25,7 @@ jobs:
       - run: node watch/soccerjs/test-followup-guardrails.cjs
       - run: node watch/soccerjs/test-onside-movement.cjs
       - run: node watch/soccerjs/test-official-saves-restarts.cjs
+      - run: node watch/soccerjs/test-keeper-urgency.cjs
       - run: node watch/soccerjs/test-kickoff-intro.cjs
       - run: node watch/soccerjs/test-connected-clearances.cjs
       - run: node watch/soccerjs/test-one-on-one.cjs

@@ -114,5 +114,22 @@ function sceneAt(field,event,seconds,{start,end,shot,side,opening,ballAt,diveY})
  return {x:a[i*2]+(a[i*2+2]-a[i*2])*blend,
   y:a[i*2+1]+(a[i*2+3]-a[i*2+1])*blend};
 }
+// Decide responsibility once at the block. Earliest physically playable
+// touch wins; prefer the defender only when arrival times are equal. Sampling
+// the moving deflection also resolves a stationary ball as soon as reachable,
+// rather than waiting for a separate recovery/clearance phase to expire.
+function firstClearanceTouch(actors,keeper,ballAt){
+ const side=Math.floor(keeper/11);
+ for(let tick=4;tick<=200;tick++){
+  const dt=tick/100,point=ballAt(dt);
+  if((point.z??.23)>1.1)continue;
+  const options=actors.map((p,id)=>({id,p,d:distance(p,point)}))
+   .filter(c=>Math.floor(c.id/11)===side&&
+    (c.id!==keeper||dt>=.12)&&c.d<=SPEED_LIMIT*dt+.75)
+   .sort((a,b)=>a.d-b.d||(a.id===keeper)-(b.id===keeper)||a.id-b.id);
+  if(options.length)return {...options[0],point,dt};
+ }
+ return null;
+}
 module.exports={at,build,target,center,danger,SPEED_LIMIT,RETURN_SPEED,
- TRIGGER_DISTANCE,BOX_HALF_WIDTH,STEP,sceneAt};
+ TRIGGER_DISTANCE,BOX_HALF_WIDTH,STEP,sceneAt,firstClearanceTouch};
