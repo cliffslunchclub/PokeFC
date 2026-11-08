@@ -30,6 +30,7 @@ jobs:
       - run: node watch/soccerjs/test-connected-clearances.cjs
       - run: node watch/soccerjs/test-one-on-one.cjs
       - run: node watch/soccerjs/test-shot-retreat.cjs
+      - run: node watch/soccerjs/test-goal-celebration.cjs
       - run: node watch/soccerjs/test-defensive-recovery.cjs
       - run: node watch/soccerjs/test-clearance-priority.cjs
       - run: node tests/test-watch-highlights.cjs
@@ -54,5 +55,7 @@ jobs:
         if: always()
         with:
           name: official-save-browser-proof
-          path: pse-browser-artifacts/
+          path: |
+            pse-browser-artifacts/
+            celebration-browser-artifacts/
           retention-days: 7

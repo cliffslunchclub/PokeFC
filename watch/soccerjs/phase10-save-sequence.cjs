@@ -126,6 +126,10 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
  for(let index=limit-1;index>=0;index--){
   const e=f.events[index];
   if(e.type!=='save'||Math.abs(seconds-e.minute*60)>65||(targetEvent&&e!==targetEvent))continue;
+  // A later official restart ends an earlier save's recovery in live Watch.
+  // Targeted save replays remain independent, including historical exports
+  // whose incidents predate PSE's current three-minute spacing rule.
+  if(!targetEvent&&frame.kickoff&&e.minute*60<frame.kickoff.start)continue;
   const first=f.events.findIndex(p=>p.minute===e.minute&&p.type==='save');
   if(!targetEvent&&first<index)continue;
   const prior=sec=>apply(f,field,sec,normal(sec),normal,first);

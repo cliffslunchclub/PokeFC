@@ -139,11 +139,11 @@ async function serve(){
    assert.equal(restarted.animation,'illustrative-kickoff','Missing kickoff broadcast cut on '+device);
    assert(['kickoff-reposition','kickoff-setup','kickoff-pass','kickoff-recovery'].includes(restarted.ballContact),
     'Kickoff must have a valid setup/pass phase on '+device);
-   if(restarted.ballContact==='kickoff-setup')
+   if(['kickoff-setup','kickoff-recovery'].includes(restarted.ballContact))
     assert(restarted.carrier>=0,'Kickoff setup needs a controlling Pokémon on '+device);
    else assert.equal(restarted.carrier,-1,'Kickoff pass cannot claim midflight possession');
-   assert(Math.hypot(restarted.ball.x-held.ball.x,restarted.ball.y-held.ball.y)<
-    (restartMinute-holdMinute)*60*14+.1,'Restart ball must travel continuously');
+   assert.equal(restarted.sceneCut,'post-goal-kickoff','Goal restart must be an explicit camera cut');
+   assert.notEqual(restarted.ballContact,'kickoff-reposition','No rolling return to midfield');
    assert.deepEqual(restarted.score,bridge.scoreAt(fixture,restartMinute),
     'Kickoff visual must never change the official PSE score');
    await page.screenshot({path:path.join(screenshotDir,'pse-kickoff-'+device+'.png')});
