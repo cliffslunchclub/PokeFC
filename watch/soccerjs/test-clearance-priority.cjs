@@ -19,7 +19,11 @@ for(const durationMinutes of [90,120])for(let seed=0;seed<12;seed++){
    if(a.clearance.truncated){
     assert(a.scheduleConflict?.kind==='clearance-period-end',
      'Do not speed up a clearance to complete it at the final whistle');
-    assert(a.clearance.bounceEndSeconds>a.end,'Natural flight remains unfinished at FT');
+    assert(a.clearance.plannedDuration>a.duration,
+     'Full-time truncates the final physical rollout or reception');
+    const ending=D.ballAt(a,a.end);
+    assert(Math.hypot(ending.x-a.to.x,ending.y-a.to.y)>.000001,
+     'No ball teleport to a physically unreachable receiving point');
    }else assert(a.clearance.bounceEndSeconds<a.end,
     'Ball bounce must finish before the controlled receiving touch');
    assert(a.clearance?.receiver===a.receiver,'Receiver must be physically assigned');
