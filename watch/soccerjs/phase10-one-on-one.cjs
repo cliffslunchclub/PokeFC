@@ -183,8 +183,8 @@ function blockFrame(s,t,frame){
  }else if(t<s.clearAt-1e-8){
   ball={...s.loose};action='illustrative-block-recovery';contact='loose-ball';
  }else if(t<s.clearArrival-1e-8){
-  ball=lerpPoint(s.loose,s.clearTo,(t-s.clearAt)/(s.clearArrival-s.clearAt),5);
-  action='illustrative-upfield-clearance';contact='foot-clearance';
+  ball=Clearance.flight(s.clearFlight,t);
+  action='illustrative-upfield-clearance';contact='clearance-'+ball.contact;
  }else{
   ball=Recovery.sample(s.join,t).ball;
   action='illustrative-clearance-recovery';contact='clearance-recovery';
