@@ -5,7 +5,11 @@ const {spawn}=require('node:child_process'),{chromium}=require('playwright');
 const qs=require('../assets/js/quick-sim.js'),bridge=require('../watch/soccerjs/watch-bridge.js');
 const base=require('../watch/soccerjs/fixture.json'),root=path.resolve(__dirname,'..');
 const preview={home:base.home,away:base.away},result=qs.simulate(preview,{seed:'official-saves-0'});
-const fixture=bridge.snapshot(preview,result),first=fixture.events.find(e=>e.type==='save');
+const fixture=bridge.snapshot(preview,result);
+const Highlights=require('../watch/soccerjs/highlight-replay.cjs');
+// A short real save replay keeps the auto-return assertion within its timeout.
+const first=fixture.events.find(e=>e.type==='save'&&Highlights.clipFor(fixture,
+ Highlights.catalog(fixture,e.minute).find(h=>h.event===e)).durationSeconds<=10);
 const incidents=fixture.events.filter(e=>e.type==='save'||e.type==='goal');
 const {presentationFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const field={width:106,height:68};
