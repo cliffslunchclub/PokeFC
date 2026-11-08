@@ -53,10 +53,21 @@ if(e.data?.type==='pfc-phase10-ready')e.source.postMessage({type:'pfc-phase10-fi
    assert(data.highlight.startSeconds<=fixture.reproduction.clearanceStartSeconds);
    assert.equal(data.recording.replaySpeed,1);
    assert(data.referenceId&&data.app.buildId);
-   // Record a real full-length clip with the selected Broadcast/Follow view.
+   console.log('EXPORT '+device+' window '+JSON.stringify({start:data.highlight.startSeconds,
+    end:data.highlight.endSeconds,speed:data.recording.replaySpeed,reference:data.referenceId}));
+   // Report the actual browser recorder state rather than hiding it behind a timeout.
    await frame.locator('#clipExportDownload').click();
-   await frame.waitForFunction(()=>document.querySelector('#clipExportStatus').textContent.includes('ready'),
-    null,{timeout:120000});
+   try{
+    await frame.waitForFunction(()=>{
+     const status=document.querySelector('#clipExportStatus').textContent;
+     return /ready|failed|error|cannot/i.test(status);
+    },null,{timeout:60000});
+   }catch(e){
+    console.error('EXPORT STATE '+device+': '+await frame.locator('#clipExportStatus').innerText());
+    console.error('PAGE ERRORS '+JSON.stringify(errors));throw e;
+   }
+   const exportState=await frame.locator('#clipExportStatus').innerText();
+   assert(exportState.includes('ready'),'Recorder did not finish: '+exportState);
    await page.waitForTimeout(700);
    const video=downloads.find(d=>/\.(mp4|webm)$/.test(d.suggestedFilename()));
    assert(video,'No MP4/WebM download for '+device);
