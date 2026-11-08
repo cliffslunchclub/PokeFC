@@ -25,9 +25,41 @@ function connectClearance(f,field,event,s,normalFrame){
   officialSecond:goalSecond,availableSeconds:s.shotStart-active,
   eventId:event.id||null}});
  if(!Number.isInteger(owner)||owner%11===0||Math.floor(owner/11)!==s.side||
-  owner===s.scorer||received.ownerIndex!==owner||
-  distance(received.actors[owner],source)>1.8)
+  received.ownerIndex!==owner||distance(received.actors[owner],source)>1.8)
   return missing('Clearance has no controlled receiving touch on scoring side');
+ // If the PSE scorer received the clearance, do not invent a teammate pass.
+ // The scorer takes a controlled first touch and dribbles into an attainable
+ // shooting location. Moving that shot slightly farther from goal may buy
+ // enough time without speeding up any player or the ball.
+ if(owner===s.scorer){
+  let solution=null;
+  for(let shift=0;shift<=8;shift+=.25){
+   const proposed={x:s.finish.x+(s.side===0?-shift:shift),
+    y:s.finish.y,z:.23};
+   const shotStart=s.end-distance(proposed,s.net)/SHOT_SPEED;
+   const travelTime=shotStart-active,runDistance=distance(source,proposed);
+   if(travelTime>0&&runDistance<=CARRY_SPEED*travelTime+.001){
+    solution={finish:proposed,shotStart};break;
+   }
+  }
+  if(!solution)return missing('Recorded scorer cannot carry into shooting range at 3.6 m/s');
+  let start=s.start,opening=normalFrame(start);
+  for(let n=0;n<12;n++){
+   const required=distance(opening.actors[owner],source)/RUN_SPEED;
+   if(active-start>=required-.01||start===0)break;
+   start=Math.max(0,start-(required-(active-start))-.1);
+   opening=normalFrame(start);
+  }
+  if(distance(opening.actors[owner],source)>RUN_SPEED*(active-start)+.05)
+   return missing('Scorer cannot physically receive the clearance');
+  return {...s,start,openingRun:opening,opening:received,active,from:source,
+   finish:solution.finish,shotStart:solution.shotStart,
+   passFrom:solution.finish,passStart:solution.shotStart,
+   support:owner,directCarry:true,clearance:{
+    start:recent.start,arrival:recent.end,receiver:owner,
+    from:{...recent.from},to:{...recent.to},controlledAt:active},
+   scheduleConflict:null};
+ }
  const total=distance(source,s.finish),available=s.shotStart-active;
  const room=available-total/PASS_SPEED;
  const maximumCarry=room/(1/CARRY_SPEED-1/PASS_SPEED);
