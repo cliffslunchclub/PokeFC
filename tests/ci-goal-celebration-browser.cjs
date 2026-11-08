@@ -27,6 +27,7 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a"><div 
   await page.goto(origin+'/celebration-qa');await page.waitForFunction(()=>window.ready,null,{timeout:120000});
   const frame=page.frames().find(f=>f.url().includes('/dist/index.html'));assert(frame);
   const snap=()=>frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+  if(process.env.PFC_EXPECTED_BUILD_ID)assert.equal((await snap()).buildId,process.env.PFC_EXPECTED_BUILD_ID,'Verify the exact deployed renderer commit');
   const seek=async t=>{await page.evaluate(t=>window.session.seek(t),t);await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__.minute-t)<1e-7,t)};
   for(const view of ['orthographic','isometric','topdown']){
    await seek(1);await page.evaluate(v=>window.session.setProjection(v),view);

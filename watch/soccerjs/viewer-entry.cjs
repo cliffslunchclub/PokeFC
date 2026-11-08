@@ -644,7 +644,7 @@ function render(t,options={}){
   buildId:CLIP_BUILD_ID,spriteWorldScale:Settings.camera.scale/24,
   celebration:celebration?{elapsed:celebration.elapsed,scorer:celebration.scene.scorer,paused:celebration.paused,done:celebration.done}:null,
   actorHeights:script.actors.map(p=>p.z||0),
-  animation:script.action,pressPhase:script.pressPhase||null,
+  animation:script.action,sceneCut:script.sceneCut||null,pressPhase:script.pressPhase||null,
   pressingSide:script.pressingSide??null,
   pressingPlayers:script.pressingPlayers||[],goalkeeperRushSide:script.goalkeeperRushSide??null,
   visualTactic:script.visualTactic||null,
