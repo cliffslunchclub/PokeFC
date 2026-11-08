@@ -5,6 +5,7 @@
 const Director=require('./phase10-play-director.cjs');
 const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const Recovery=require('./phase10-connected-recovery.cjs');
+const Clearance=require('./phase10-clearance-flight.cjs');
 const STEP=.1,SHOOTING_RANGE=25,BOX_DEPTH=25,BOX_HALF_WIDTH=25;
 const cache=new WeakMap();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -99,24 +100,28 @@ function build(f,field,rawFrame){
   const actorsAtClear=atBlock.map((p,id)=>move(p,pose.actors[id],intercept.dt));
   const reach=Math.min(1,5*intercept.dt/Math.max(.001,intercept.d));
   actorsAtClear[clearer]={...recoveryFrom,x:mix(recoveryFrom.x,clearFrom.x,reach),y:mix(recoveryFrom.y,clearFrom.y,reach),z:0};
-  const desired={x:clamp(clearFrom.x+(defending===0?52:-52),8,field.width-8),y:field.height*.5};
-  const receivers=actorsAtClear.map((p,id)=>({id,p,d:distance(p,desired)}))
-   .filter(c=>c.id%11!==0&&c.id!==clearer&&distance(c.p,clearFrom)>=32&&
-    (c.p.x-clearFrom.x)*(defending===0?1:-1)>32)
-   .sort((a,b)=>a.d-b.d||a.id-b.id);
-  const receiver=receivers[0]?.id;
-  if(receiver===undefined)continue;
-  const receiveActor=actorsAtClear[receiver];
-  const clearTo={x:receiveActor.x+(receiver<11?.72:-.72),y:receiveActor.y+.32,z:.23};
-  const clearArrival=clearAt+distance(clearFrom,clearTo)/26;
+  const planned=Clearance.plan({field,from:clearFrom,owner:clearer,side:defending,
+   position:id=>actorsAtClear[id],seed:String(f.visualSeed||'')+':blocked:'+sec,
+   offside:Director.isOffside.bind(null,f,field)});
+  // Never fabricate a connected receiver if no capped run can reach. These
+  // are illustrative blocks, not official PSE save/goal events.
+  if(planned.conflict)continue;
+  const receiver=planned.receiver,clearTo={...planned.to,z:.23};
+  const clearArrival=clearAt+planned.duration;
   if(clearArrival>=plan.duration)continue;
-  const normalArrival=rawFrame(clearArrival),direction=defending===0?1:-1;
+  const normalArrival=rawFrame(clearArrival);
+  const reacting=new Set([receiver,...planned.supporters,...planned.contesters]);
   const arrivalActors=actorsAtClear.map((p,id)=>{
-   if(id===receiver)return {...p};
-   const target=Math.floor(id/11)===defending&&id%11!==0?
-    {...normalArrival.actors[id],x:clamp(p.x+direction*10,1,field.width-1)}:normalArrival.actors[id];
-   return move(p,target,clearArrival-clearAt);
+   const to=reacting.has(id)?
+    Clearance.reaction({id,from:p,target:clearTo,receiver,side:defending,
+     field,duration:planned.duration}):normalArrival.actors[id];
+   return move(p,to,planned.duration);
   });
+  // Feet must be at the stationary ball at the actual receiving touch.
+  if(distance(arrivalActors[receiver],clearTo)>1.6)continue;
+  const clearFlight={start:clearAt,duration:planned.duration,from:clearFrom,
+   to:clearTo,clearance:{plannedDuration:planned.duration,landingSeconds:clearAt+planned.duration*.66,
+    bounceEndSeconds:clearAt+planned.duration*.86}};
   const join=Recovery.plan(clearTo,arrivalActors,receiver,clearArrival,rawFrame,Math.min(30,plan.duration-clearArrival));
   const finish=join?.end??Infinity;
   const hazards=f.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>{
@@ -126,7 +131,9 @@ function build(f,field,rawFrame){
   if(join&&finish<plan.duration&&!period&&!hazards.some(h=>sec<h.end&&finish>h.start)){
    shots.push({...chance,start:sec,impactSeconds:hit,end:finish,from,impact:block,
     spilled,loose:clearFrom,clearAt,clearTo,clearArrival,clearer,keeperFrom,clearerFrom:{...recoveryFrom},
-    actorsAtHit:atBlock,actorsAtClear,arrivalActors,receiver,join,to:{...join.terminal.ball},terminal:join.terminal,outcome:'block'});
+    actorsAtHit:atBlock,actorsAtClear,arrivalActors,receiver,clearFlight,
+    clearance:{...planned,releaseSeconds:clearAt,arrivalSeconds:clearArrival},
+    join,to:{...join.terminal.ball},terminal:join.terminal,outcome:'block'});
    available=finish+.1;continue;
   }
   shots.push({...chance,start:sec,impactSeconds,end,from,impact,to:{...landing.ball},
