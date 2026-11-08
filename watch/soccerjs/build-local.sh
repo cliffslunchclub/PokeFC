@@ -15,6 +15,7 @@ cp "$HERE/phase10-onside-movement.cjs" "$TMP/upstream/phase10-onside-movement.cj
 cp "$HERE/phase10-one-on-one.cjs" "$TMP/upstream/phase10-one-on-one.cjs"
 cp "$HERE/phase10-goal-sequence.cjs" "$TMP/upstream/phase10-goal-sequence.cjs"
 cp "$HERE/phase10-kickoff.cjs" "$TMP/upstream/phase10-kickoff.cjs"
+cp "$HERE/phase10-connected-recovery.cjs" "$TMP/upstream/phase10-connected-recovery.cjs"
 cp "$HERE/phase10-save-sequence.cjs" "$TMP/upstream/phase10-save-sequence.cjs"
 cp "$HERE/phase10-play-director.cjs" "$TMP/upstream/phase10-play-director.cjs"
 cp "$HERE/phase10-player-pace.cjs" "$TMP/upstream/phase10-player-pace.cjs"

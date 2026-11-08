@@ -154,7 +154,7 @@
   }
   return s;
  }
- function open({preview,result,onRecord,onClose,source='PokéFC',viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&v=21'}){
+ function open({preview,result,onRecord,onClose,source='PokéFC',viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&v=22'}){
   if(active)throw Error('Another Phase 10 Watch session is already open');
   requireValid(typeof onRecord==='function','Result callback required');
   const fixture=snapshot(preview,result);
@@ -299,7 +299,7 @@
  function mountInline({
   preview,result,container,onRecord,onCancel,onProgress,onReady,onStatus,
   autoRecordOnSimToEnd=false,
-  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=21'
+  viewerUrl='../watch/soccerjs/dist/index.html?embedded=1&inline=1&v=22'
  }){
   requireValid(!active,'Another Watch session is already active');
   requireValid(container&&typeof container.appendChild==='function','A match viewport is required');

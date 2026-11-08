@@ -9,6 +9,10 @@ const fixture=bridge.snapshot(preview,result),first=fixture.events.find(e=>e.typ
 const incidents=fixture.events.filter(e=>e.type==='save'||e.type==='goal');
 const {presentationFrame}=require('../watch/soccerjs/phase10-motion.cjs');
 const field={width:106,height:68};
+const One=require('../watch/soccerjs/phase10-one-on-one.cjs');
+const blocks=One.build(fixture,field,t=>presentationFrame(fixture,t,field)).filter(s=>s.outcome==='block');
+const clearances=[blocks.find(s=>s.clearer===s.keeper),blocks.find(s=>s.clearer!==s.keeper)];
+assert(clearances.every(Boolean),'Require real GK and defender clearance scenes');
 assert(first);
 for(let i=1;i<incidents.length;i++)assert(incidents[i].minute-incidents[i-1].minute>=3-1e-9);
 const original=JSON.stringify(result),out=path.join(root,'pse-browser-artifacts');fs.mkdirSync(out,{recursive:true});
@@ -44,21 +48,21 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
   assert.equal((await snap()).ballContact,'kickoff-setup');
   for(const speed of [1,4,16]){
    await seek(0);await page.evaluate(speed=>window.session.play(speed),speed);
-   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=1,null,{timeout:10000});
+   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=.4,null,{timeout:10000});
    await page.evaluate(()=>window.session.pause());
    const held=await snap();assert.equal(held.minute,0);assert.equal(held.ballContact,'kickoff-setup');
-   assert(held.kickoffIntro.elapsed<2,'Setup must hold for two real seconds at every speed');
+   assert(held.kickoffIntro.elapsed<1,'Setup must hold for one real second at every speed');
    const circle=held.actorWorldPositions.map((p,i)=>({p,i})).filter(({p})=>Math.hypot(p[0]-53,p[1]-34)<9.15);
    assert.deepEqual(circle.map(a=>a.i),[held.kickoff.kicker,held.kickoff.receiver]);
    if(speed===1)await frame.locator('.pitchwrap').screenshot({path:path.join(out,'two-player-kickoff-'+device+'.png')});
    await page.waitForTimeout(250);assert.equal((await snap()).kickoffIntro.elapsed,held.kickoffIntro.elapsed);
    await page.evaluate(speed=>window.session.play(speed),speed);
-   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=3,null,{timeout:10000});
+   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=1.2,null,{timeout:10000});
    const ramp=await snap();
-   assert(ramp.kickoffIntro.elapsed<4);assert(ramp.minute>0);
-   const expected=speed*(ramp.kickoffIntro.elapsed-2)**2/4;
+   assert(ramp.kickoffIntro.elapsed<1.5);assert(ramp.minute>0);
+   const expected=speed*(ramp.kickoffIntro.elapsed-1)**2;
    assert(Math.abs(ramp.minute*60-expected)<.01,'Live clock follows continuous acceleration');
-   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=4,null,{timeout:10000});
+   await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.kickoffIntro?.elapsed>=1.5,null,{timeout:10000});
    await page.evaluate(()=>window.session.pause());
   }
   // Render both teams' kickoff setup after half-time and after a goal.
@@ -89,6 +93,29 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a;color:
    await frame.locator('.pitchwrap').screenshot({path:path.join(out,'border-layering-'+device+'-'+view+'.png')});
   }
   await page.evaluate(()=>window.session.setProjection('orthographic'));
+  for(const shot of clearances){
+   for(const speed of [1,4,16]){
+    await seek((shot.clearAt-.02)/60);
+    await page.evaluate(speed=>window.session.play(speed),speed);
+    await frame.waitForFunction(at=>window.__PFC_SNAPSHOT__.minute*60>=at,shot.clearArrival+.02,{timeout:10000});
+    await page.evaluate(()=>window.session.pause());
+    assert.equal((await snap()).officialEventType,null,'Illustrative clearance adds no official save or shot');
+   }
+   // Seek to the exact landing: the visible ball must touch its receiver.
+   await seek(shot.clearArrival/60);const landed=await snap();
+   assert.equal(landed.carrier,shot.receiver);
+   const receiver=landed.actorWorldPositions[shot.receiver];
+   assert(Math.hypot(receiver[0]-landed.ball.x,receiver[1]-landed.ball.y)<1.5);
+   await frame.locator('.pitchwrap').screenshot({path:path.join(out,
+    'first-touch-'+(shot.clearer===shot.keeper?'keeper':'defender')+'-clearance-'+device+'.png')});
+   await seek((shot.clearAt+shot.clearArrival)/120);const flight=await snap();
+   assert(flight.actorWorldPositions.filter((p,id)=>Math.hypot(p[0]-shot.actorsAtClear[id].x,p[1]-shot.actorsAtClear[id].y)>.1).length>=4);
+   // Continuous ordinary-play handoff, including all 22 rendered feet.
+   await seek((shot.end-1e-5)/60);const before=await snap();
+   await seek((shot.end+1e-5)/60);const after=await snap();
+   assert(Math.hypot(before.ball.x-after.ball.x,before.ball.y-after.ball.y)<.01);
+   assert(before.actorWorldPositions.every((p,id)=>Math.hypot(p[0]-after.actorWorldPositions[id][0],p[1]-after.actorWorldPositions[id][1])<.01));
+  }
   for(const speed of [1,4,16]){
    await seek(first.minute-.03/60);await page.evaluate(speed=>window.session.play(speed),speed);
    await frame.locator('#highlightNotice').waitFor({state:'visible',timeout:15000});
