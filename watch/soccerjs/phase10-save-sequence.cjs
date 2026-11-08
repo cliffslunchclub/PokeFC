@@ -130,12 +130,14 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
   const s=sequence(f,field,e,prior);if(!s||seconds<s.start||seconds>=s.recoveryEnd)continue;
   let actors,ball,owner=-1,action,contact;
   if(seconds<s.end){
-   const sampled=seconds<s.active?{ball:prior(seconds).ball,owner:prior(seconds).ownerIndex,phase:'ordinary'}:
+   // Keep actual clearance visual up to its receiving touch.
+   const previous=seconds<s.active?prior(seconds):null;
+   const sampled=previous?{ball:previous.ball,owner:previous.ownerIndex,phase:'ordinary'}:
     Goal.sample(s,Director.planFor(f,field),seconds);
    ball=sampled.ball;owner=sampled.owner;contact=sampled.phase;
    actors=buildupActors(s,seconds,prior);
    if(seconds>=s.shotStart){actors[s.scorer].frame=3;actors[s.keeper].frame=8;}
-   action=seconds>=s.shotStart?'illustrative-save-shot':'illustrative-save-buildup';
+   action=seconds>=s.shotStart?'illustrative-save-shot':previous?.action||'illustrative-save-buildup';
   }else if(seconds<s.release){
    actors=restartActors(s,seconds,prior);
    ball={...s.net};owner=s.keeper;contact='keeper-hold';action='official-save';
