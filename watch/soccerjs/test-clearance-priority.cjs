@@ -16,7 +16,7 @@ for(const durationMinutes of [90,120])for(let seed=0;seed<12;seed++){
    assert(distance>=24.99&&distance<=35.01,'Approved 25–35m danger clearance');
    assert((a.to.x-a.from.x)*(side===0?1:-1)>0,'Kick upfield');
    assert(a.clearance?.flightSeconds>0&&a.clearance?.bounceEndSeconds<a.end,
-    'Ball flight/bounce must finish before the receiving touch');
+    'Ball flight/bounce must finish before the receiving touch: '+JSON.stringify({start:a.start,end:a.end,clearance:a.clearance}));
    assert(a.clearance?.receiver===a.receiver,'Receiver must be physically assigned');
    clearances++;sides.add(side);
   }
