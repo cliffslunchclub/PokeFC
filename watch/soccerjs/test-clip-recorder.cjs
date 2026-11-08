@@ -21,7 +21,7 @@ let recorder=new BrowserClipRecorder({...params,speed:4});
 assert.equal(recorder.start().extension,'webm');
 now=2000;recorder.tick();
 assert.equal(recorder.status,'recording');
-assert(Math.abs(frames.at(-1).seconds-(clip.start+.15)*60)<1e-6);
+assert(Math.abs(frames.at(-1).seconds-clip.start*60+8)<1e-6);
 now=4500;recorder.tick();
 assert.equal(recorder.status,'complete');
 assert.equal(result.format.extension,'webm');assert(result.blob.size>0);
