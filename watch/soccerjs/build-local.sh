@@ -24,11 +24,16 @@ cp "$HERE/phase10-camera-zoom.cjs" "$TMP/upstream/phase10-camera-zoom.cjs"
 cp "$HERE/phase10-team-shape.cjs" "$TMP/upstream/phase10-team-shape.cjs"
 cp "$HERE/phase10-wall-physics.cjs" "$TMP/upstream/phase10-wall-physics.cjs"
 cp "$HERE/highlight-replay.cjs" "$TMP/upstream/highlight-replay.cjs"
+cp "$HERE/clip-export.cjs" "$TMP/upstream/clip-export.cjs"
+cp "$HERE/clip-recorder.cjs" "$TMP/upstream/clip-recorder.cjs"
 cp "$HERE/phase10-commentary.cjs" "$TMP/upstream/phase10-commentary.cjs"
 cp "$HERE"/pokemon-*.cjs "$TMP/upstream/"
 mkdir -p "$HERE/dist"
+# Each JSON clip identifies the exact build needed for deterministic replay.
+PFC_BUILD_ID="${GITHUB_SHA:-$(git -C "$HERE" rev-parse HEAD 2>/dev/null || echo local)}"
 "$TMP/upstream/node_modules/.bin/esbuild" "$TMP/upstream/phase10-viewer-entry.cjs" \
   --bundle --platform=browser --format=iife --target=es2020 \
+  --define:__PFC_BUILD_ID__="\"$PFC_BUILD_ID\"" \
   --minify --outfile="$HERE/dist/viewer.bundle.js"
 cp "$HERE/index.html" "$HERE/viewer.css" "$HERE/fixture.json" "$HERE/dist/"
 cp -R "$TMP/upstream/assets" "$TMP/upstream/presets" "$HERE/dist/"

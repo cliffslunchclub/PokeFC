@@ -1,0 +1,58 @@
+name: Watch browser-only clip export
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/clip-export.cjs'
+      - 'watch/soccerjs/pokemon-load.cjs'
+      - 'watch/soccerjs/test-pokemon-cors.cjs'
+      - 'watch/soccerjs/clip-recorder.cjs'
+      - 'watch/soccerjs/test-clip-export.cjs'
+      - 'watch/soccerjs/test-clip-recorder.cjs'
+      - 'tests/ci-clip-export-browser.cjs'
+      - 'tests/ci-clip-save-browser.cjs'
+      - 'watch/soccerjs/viewer-entry.cjs'
+      - 'watch/soccerjs/watch-bridge.js'
+      - 'play/play.js'
+      - '.github/workflows/watch-clip-export.yml'
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --check watch/soccerjs/clip-export.cjs
+      - run: node watch/soccerjs/test-clip-export.cjs
+      - run: node watch/soccerjs/test-clip-recorder.cjs
+      - run: node watch/soccerjs/test-pokemon-cors.cjs
+      - run: node tests/test-watch-highlights.cjs
+      - run: node tests/test-phase10-quickplay-lifecycle.cjs
+
+  browser:
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: bash watch/soccerjs/build-local.sh
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/ci-clip-export-browser.cjs
+      - run: node tests/ci-clip-save-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pokefc-browser-video-export
+          path: clip-browser-artifacts/
+          retention-days: 14

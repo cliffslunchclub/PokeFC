@@ -74,7 +74,7 @@ function player(id,i,role,prefix,held){
  const position=window.PFC_POSITION_EFFECTIVENESS?.competitiveProfile(b,role);
  // PSE v2 and Soccer-JS consume native effective Pokémon stats; no TM-style adapter.
  return {id:prefix+'-'+i+'-'+id,name:p.name,species:p.name,speciesId:id,pos:posClass(role),
-  pokemonStats:b,exactPosition:role,
+  pokemonStats:b,exactPosition:role,heldItem:typeof held==='string'?held:null,
   positionEfficiency:position?.efficiency??1,positionFit:position?.fit??null};
 }
 function opponent(){return OPP.find(o=>o.key===$('opponent').value)||OPP[0]}
