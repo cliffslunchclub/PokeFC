@@ -49,6 +49,15 @@
  <div class="highlight-replay-bottom">
   <span id="highlightReplayProgress">0%</span>
   <button id="highlightReplaySpeed" type="button" aria-label="Toggle replay speed">0.5× SLOW MO</button>
+  <label class="clip-export-speed" for="clipExportSpeed">CLIP SPEED
+   <select id="clipExportSpeed" aria-label="Video export playback speed">
+    <option value="replay">Selected replay speed</option><option value="1">Normal 1×</option>
+   </select>
+  </label>
+  <button id="clipExportDownload" type="button">⬇ DOWNLOAD CLIP + JSON</button>
+  <button id="clipExportJSON" type="button">⬇ JSON ONLY</button>
+  <button id="clipExportCancel" type="button" hidden>✕ CANCEL EXPORT</button>
+  <span id="clipExportStatus" aria-live="polite" role="status" hidden></span>
   <button id="highlightReplayReturn" type="button">↩ BACK TO MATCH</button>
  </div>
 </section>
