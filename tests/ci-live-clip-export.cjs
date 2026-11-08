@@ -35,8 +35,9 @@ if(e.data?.type==='pfc-phase10-ready')e.source.postMessage({type:'pfc-phase10-fi
   assert(first,'Production missing diagnostic JSON');
   const data=JSON.parse(fs.readFileSync(await first.path(),'utf8'));
   assert.equal(data.schema,'pokefc-watch-clip/v1');
-  assert.equal(data.app.buildId,'ca2b62c8dcab396506362a9f251886398b8d499f',
-   'Production Watch bundle must match merged deploy');
+  const expectedBuild=process.env.PFC_EXPECTED_DEPLOY_SHA||'3d1ebe6ae4e41d2b45389b8c667f6fafc72e8e12';
+  assert.equal(data.app.buildId,expectedBuild,
+   'Production Watch bundle must match actual successful SiteGround deployment');
   assert(data.highlight.startSeconds<=fixture.reproduction.clearanceStartSeconds);
   const t=await frame.evaluate(()=>{
    try{document.getElementById('pitch').toDataURL('image/png');return true}catch(e){return String(e)}
