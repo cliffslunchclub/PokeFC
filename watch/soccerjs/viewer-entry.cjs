@@ -210,7 +210,7 @@ function setHighlightDrawer(open){
  if(open){clearHighlightNotice();renderHighlightCatalog(true);}
 }
 function replayMoment(id){
- if(!match||replaySession||queuedPresentation||clipExportSession)return false;
+ if(!match||replaySession||queuedPresentation||clipExportSession||goalCelebration)return false;
  const entry=resolveHighlight(match,String(id),minute,kickIndex);
  const clip=clipFor(match,entry);
  if(!clip)return false;
@@ -731,6 +731,7 @@ function advanceKick(){
 }
 function step(now){
  if(clipExportSession){clipExportSession.tick(now);requestAnimationFrame(step);return;}
+ if(goalCelebration){advanceGoalCelebration(now);requestAnimationFrame(step);return;}
  if(queuedStep(now)){requestAnimationFrame(step);return;}
  if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
@@ -743,7 +744,10 @@ function step(now){
   const close=Math.hypot(visible.ball.x-source.ball.x,visible.ball.y-source.ball.y)<.15;
   const keeper=entry.kind==='save'?visible.actorWorldPositions[source.saveSequence?.keeper]:null;
   const secured=entry.kind!=='save'||!source.saveSequence||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
-  if(now>=pendingGoal.showAt&&close&&secured){pendingGoal=null;showHighlightNotice(entry)}
+  if(now>=pendingGoal.showAt&&close&&secured){
+    pendingGoal=null;
+    if(entry.kind==='goal')beginGoalCelebration(entry,now);else showHighlightNotice(entry);
+   }
  }
  if(replaySession){
   if(replayLast!==null){
@@ -798,6 +802,7 @@ function step(now){
 }
 function seek(t){
  if(clipExportSession)return;
+ stopGoalCelebration();pendingGoal=null;
  kickoffIntro=null;
  queuedPresentation=null;incidentQueue=[];liveSaveEvent=null;
  if(replaySession)returnToMatch();
@@ -809,6 +814,7 @@ function seek(t){
  render(minute);
 }
 function finish(){
+ stopGoalCelebration();pendingGoal=null;
  queuedPresentation=null;incidentQueue=[];liveSaveEvent=null;
  if(replaySession)returnToMatch()&&finish();
  playing=false;last=null;clearMotionTracking();clearHighlightNotice();
