@@ -1,0 +1,32 @@
+name: Verify deployed Watch clip video + JSON
+on:
+  pull_request:
+    paths:
+      - 'tests/ci-clip-export-browser.cjs'
+      - 'tests/ci-clip-save-browser.cjs'
+      - '.github/workflows/watch-live-clip-export.yml'
+  workflow_run:
+    workflows: ["Deploy PokéFC Home + Three Game Modes"]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  production-clip-export:
+    if: github.event_name == 'pull_request' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PFC_LIVE_SITE: '1'
+      PFC_EXPECTED_BUILD: ${{ github.event.workflow_run.head_sha || github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/ci-clip-export-browser.cjs
+      - run: node tests/ci-clip-save-browser.cjs
