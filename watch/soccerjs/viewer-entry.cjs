@@ -243,11 +243,15 @@ function startClipExport(){
  const speed=$('clipExportSpeed').value==='1'?1:replaySpeed;
  const stage=$('pitch'),output=document.createElement('canvas');
  output.width=stage.width;output.height=stage.height;
+ // Keep the recording canvas attached and paintable on Chromium/Safari:
+ // a detached or display:none canvas can yield an empty MediaRecorder blob.
+ output.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';
+ document.body.append(output);
  const ctx=output.getContext('2d',{alpha:false});
  const ref=Clip.refId(match,entry,CLIP_BUILD_ID);
  const remembered={elapsed:current.elapsed,progress:current.progress};
  const restore=()=>{
-  clipExportSession=null;clipBusy(false);clearMotionTracking();replayLast=null;
+  clipExportSession=null;output.remove();clipBusy(false);clearMotionTracking();replayLast=null;
   if(replaySession===current){
    current.elapsed=remembered.elapsed;current.progress=remembered.progress;
    render(clip.start+(clip.end-clip.start)*remembered.progress,
