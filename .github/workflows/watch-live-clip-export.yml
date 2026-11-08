@@ -24,6 +24,8 @@ jobs:
       - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
       - run: npx playwright install --with-deps chromium
       - run: node tests/ci-live-clip-export.cjs
+        env:
+          PFC_EXPECTED_DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || '3d1ebe6ae4e41d2b45389b8c667f6fafc72e8e12' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
