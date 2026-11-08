@@ -187,6 +187,111 @@ function returnToMatch(){
  }
  return true;
 }
+// Only the native pitch canvas is captured; HTML playback controls never
+// enter exported frames. The scoreboard and shared diagnostic ID are drawn
+// deliberately into a second browser-local canvas.
+function clipSettings(entry,clip,speed,format,output){
+ return {buildId:CLIP_BUILD_ID,projection:Settings.projectionMode,
+  camera:$('camera').value,zoomFactor,speed,
+  format:format?.extension||null,mimeType:format?.mime||null,
+  width:output?.width||$('pitch').width,height:output?.height||$('pitch').height};
+}
+function clipData(entry,clip,speed,format,canvas){
+ return Clip.diagnostic(match,entry,clip,clipSettings(entry,clip,speed,format,canvas));
+}
+function saveClipFile(data,filename){
+ const blob=data instanceof Blob?data:new Blob([data],{type:'application/json'});
+ const url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function exportStatus(label){
+ $('clipExportStatus').hidden=!label;$('clipExportStatus').textContent=label||'';
+}
+function clipBusy(busy){
+ for(const id of ['clipExportDownload','clipExportJSON','clipExportSpeed',
+  'highlightReplayReturn','highlightReplaySpeed'])$(id).disabled=!!busy;
+ $('clipExportCancel').hidden=!busy;
+}
+function drawClipHud(ctx,canvas,t,entry,ref){
+ const width=canvas.width,height=canvas.height,scale=width/1120;
+ const sideA=String(match.home.name||match.home.id).slice(0,24);
+ const sideB=String(match.away.name||match.away.id).slice(0,24);
+ const score=scoreAt(t/60).join(' – ');
+ ctx.save();ctx.fillStyle='rgba(8,12,18,.83)';
+ ctx.fillRect(0,0,width,Math.round(66*scale));
+ ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';
+ ctx.font='bold '+Math.round(19*scale)+'px sans-serif';
+ ctx.fillText(sideA+'  '+score+'  '+sideB,Math.round(15*scale),Math.round(23*scale));
+ ctx.font=Math.round(13*scale)+'px sans-serif';ctx.fillStyle='#ffc0bd';
+ const event=entry.kind==='goal'?'GOAL · '+entry.name:'SAVE · '+entry.name+' vs '+entry.shooterName;
+ ctx.fillText(event+' · '+Math.floor(entry.minute+1)+'′',Math.round(15*scale),Math.round(49*scale));
+ ctx.fillStyle='rgba(8,12,18,.72)';
+ const footerHeight=Math.round(29*scale);
+ ctx.fillRect(0,height-footerHeight,width,footerHeight);
+ ctx.fillStyle='#ddd';ctx.textAlign='right';
+ ctx.font=Math.round(12*scale)+'px monospace';
+ ctx.fillText(ref,width-Math.round(15*scale),height-Math.round(11*scale));
+ ctx.restore();
+}
+function startClipExport(){
+ if(!replaySession||clipExportSession||!['goal','save'].includes(replaySession.entry.kind))return;
+ const current=replaySession,entry=current.entry,clip=current.clip;
+ const speed=$('clipExportSpeed').value==='1'?1:replaySpeed;
+ const stage=$('pitch'),output=document.createElement('canvas');
+ output.width=stage.width;output.height=stage.height;
+ const ctx=output.getContext('2d',{alpha:false});
+ const ref=Clip.refId(match,entry,CLIP_BUILD_ID);
+ const remembered={elapsed:current.elapsed,progress:current.progress};
+ const restore=()=>{
+  clipExportSession=null;clipBusy(false);clearMotionTracking();replayLast=null;
+  if(replaySession===current){
+   current.elapsed=remembered.elapsed;current.progress=remembered.progress;
+   render(clip.start+(clip.end-clip.start)*remembered.progress,
+    {replay:true,progress:remembered.progress});
+  }
+ };
+ const paint=(seconds,progress)=>{
+  render(seconds/60,{replay:true,progress});
+  ctx.clearRect(0,0,output.width,output.height);
+  ctx.drawImage(stage,0,0,output.width,output.height);
+  drawClipHud(ctx,output,seconds,entry,ref);
+ };
+ const recorder=new BrowserClipRecorder({canvas:output,clip,speed,
+  RecorderClass:window.MediaRecorder,paint,
+  onProgress:p=>exportStatus('Recording '+Math.round(p*100)+'% · '+ref),
+  onCancel:()=>{restore();exportStatus('Export cancelled · original replay restored')},
+  onError:error=>{restore();exportStatus('Export failed: '+String(error?.message||error))},
+  onComplete:(video,format)=>{
+   try{
+    const data=clipData(entry,clip,speed,format,output);
+    const videoName=Clip.filename(ref,entry,format.extension);
+    const jsonName=Clip.filename(ref,entry,'json');
+    saveClipFile(video,videoName);
+    saveClipFile(JSON.stringify(data,null,2),jsonName);
+    restore();exportStatus('Video + JSON ready · '+ref+' (retry JSON Only if blocked)');
+   }catch(error){restore();exportStatus('Export error: '+String(error?.message||error))}
+  }
+ });
+ try{
+  clipBusy(true);exportStatus('Preparing browser recording…');
+  clearMotionTracking();clipExportSession=recorder;
+  recorder.start();
+ }catch(error){
+  restore();exportStatus('This browser cannot export MP4/WebM: '+String(error.message||error));
+ }
+}
+function exportDebugJSON(){
+ if(!replaySession||clipExportSession)return;
+ const {entry,clip}=replaySession;
+ if(!['goal','save'].includes(entry.kind))return;
+ const speed=$('clipExportSpeed').value==='1'?1:replaySpeed;
+ const format=Clip.supportedFormat(window.MediaRecorder);
+ const data=clipData(entry,clip,speed,format);
+ saveClipFile(JSON.stringify(data,null,2),Clip.filename(data.referenceId,entry,'json'));
+ exportStatus('Diagnostic JSON saved · '+data.referenceId);
+}
+
 function highlightEntryElement(entry,buttonLabel){
  const row=document.createElement('div');row.className='highlight-entry';
  const time=document.createElement('span');time.className='highlight-entry-time';
