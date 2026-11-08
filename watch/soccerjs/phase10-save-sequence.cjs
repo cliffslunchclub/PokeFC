@@ -52,7 +52,9 @@ function sequence(f,field,event,normal){
  const data={...s,active,opening,from:connected?{...s.from}:{...opening.ball},
   finish:finishPoint,passStart,shotStart,net:catchPoint,end,scheduleConflict:conflict,
   defending,keeper:keeperId,event,fixture:f,field,width:field.width,height:field.height};
- const release=end+.85;
+ // Securing the catch includes the kick setup; traffic never adds another
+ // idle animation. The explicit Replay/Continue pause is a separate UI state.
+ const release=end+.65;
  const targetX=clamp(catchPoint.x+(side===0?-1:1)*42,12,field.width-12);
  const target={x:targetX,y:clamp(field.height/2+((Director.hash(event.player+event.minute)%2)?8:-8),5,field.height-5),z:.23};
  const receiver=Array.from({length:10},(_,i)=>defending*11+i+1)
