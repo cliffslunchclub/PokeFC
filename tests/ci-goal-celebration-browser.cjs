@@ -29,6 +29,11 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a"><div 
   const snap=()=>frame.evaluate(()=>window.__PFC_SNAPSHOT__);
   if(process.env.PFC_EXPECTED_BUILD_ID)assert.equal((await snap()).buildId,process.env.PFC_EXPECTED_BUILD_ID,'Verify the exact deployed renderer commit');
   const seek=async t=>{await page.evaluate(t=>window.session.seek(t),t);await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__.minute-t)<1e-7,t)};
+  const save=fixture.events.find(e=>e.type==='save');assert(save);
+  await seek(save.minute);const held=await snap();
+  assert(held.saveSequence.release-held.saveSequence.end<=.8+1e-7,'Deployed keeper release deadline');
+  await seek((held.saveSequence.release+.01)/60);assert.equal((await snap()).animation,'illustrative-keeper-punt');
+  const savedBall=(await snap()).ball;assert(Math.hypot(savedBall.x-held.ball.x,savedBall.y-held.ball.y)>0,'Keeper must start distributing');
   for(const view of ['orthographic','isometric','topdown']){
    await seek(1);await page.evaluate(v=>window.session.setProjection(v),view);
    const a=await frame.evaluate(()=>({s:window.__PFC_SNAPSHOT__,width:window.__spriteWidths[0],ball:window.__ballWidth}));
@@ -38,6 +43,12 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a"><div 
    assert(Math.abs(b.ball/a.ball-ratio)<1e-6,'Ball and pitch must share zoom');
    assert.deepEqual(a.s.actorWorldPositions,b.s.actorWorldPositions,'Zoom must not move feet');
    await frame.locator('#zoomOut').click();
+   const feet=(await snap()).actorWorldPositions;
+   await page.evaluate(()=>FXI_PHASE10_WATCH.toggleFullscreen(document.getElementById('stage')));
+   await frame.waitForFunction(()=>document.documentElement.classList.contains('pfc-watch-fullscreen'));
+   assert.deepEqual((await snap()).actorWorldPositions,feet,'Fullscreen must preserve world positions');
+   await page.evaluate(()=>FXI_PHASE10_WATCH.leaveFullscreen(document.getElementById('stage')));
+   await frame.waitForFunction(()=>!document.documentElement.classList.contains('pfc-watch-fullscreen'));
    for(const speed of [1,4,16]){
     await seek(goal.minute-.01/60);await page.evaluate(s=>window.session.play(s),speed);
     await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.celebration&&!window.__PFC_SNAPSHOT__.celebration.done,null,{timeout:15000});
