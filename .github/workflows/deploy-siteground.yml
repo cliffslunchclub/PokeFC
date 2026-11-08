@@ -184,11 +184,14 @@ jobs:
           cp watch/soccerjs/phase10-team-shape.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-wall-physics.cjs soccer-js-upstream/
           cp watch/soccerjs/highlight-replay.cjs soccer-js-upstream/
+          cp watch/soccerjs/clip-export.cjs soccer-js-upstream/
+          cp watch/soccerjs/clip-recorder.cjs soccer-js-upstream/
           cp watch/soccerjs/phase10-commentary.cjs soccer-js-upstream/
           cp watch/soccerjs/pokemon-*.cjs soccer-js-upstream/
           mkdir -p watch/soccerjs/dist
           ./soccer-js-upstream/node_modules/.bin/esbuild soccer-js-upstream/pfc-viewer-entry.cjs \
             --bundle --platform=browser --format=iife --target=es2020 \
+            --define:__PFC_BUILD_ID__="\"$GITHUB_SHA\"" \
             --minify --outfile=watch/soccerjs/dist/viewer.bundle.js
           cp watch/soccerjs/index.html watch/soccerjs/viewer.css watch/soccerjs/dist/
           cp -R soccer-js-upstream/presets soccer-js-upstream/assets watch/soccerjs/dist/
