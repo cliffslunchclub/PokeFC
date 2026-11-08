@@ -3,6 +3,7 @@
 // Build from the actual composed actor positions, including defensive press
 // and goalkeeper rush. Never infer a chance from nominal formation slots.
 const Director=require('./phase10-play-director.cjs');
+const Keeper=require('./phase10-goalkeeper-rush.cjs');
 const Recovery=require('./phase10-connected-recovery.cjs');
 const STEP=.1,SHOOTING_RANGE=25,BOX_DEPTH=25,BOX_HALF_WIDTH=25;
 const cache=new WeakMap();
@@ -84,14 +85,10 @@ function build(f,field,rawFrame){
   // Intercept the moving spill on the first reachable foot touch. The
   // keeper needs only a short recovery from the block, never a staged hold.
   const atBlock=atHit.actors.map((p,id)=>id===chance.keeper?{...p,...block,z:0}:{...p});
-  let intercept;
-  for(let dt=.04;dt<=2&&!intercept;dt+=.01){
+  const intercept=Keeper.firstClearanceTouch(atBlock,chance.keeper,dt=>{
    const u=Math.min(1,dt/.3),point={x:mix(block.x,loose.x,u),y:mix(block.y,loose.y,u),z:.23};
-   const options=atBlock.map((p,id)=>({id,p,d:distance(p,point)}))
-    .filter(c=>Math.floor(c.id/11)===defending&&(c.id!==chance.keeper||dt>=.12-1e-8)&&c.d<=5*dt+.75)
-    .sort((a,b)=>(a.id===chance.keeper)-(b.id===chance.keeper)||a.d-b.d||a.id-b.id);
-   if(options.length)intercept={...options[0],point,dt};
-  }
+   return point;
+  });
   if(!intercept)continue;
   const clearer=intercept.id,recoveryFrom=atBlock[clearer],clearAt=hit+intercept.dt,spilled=clearAt;
   if(clearAt>=plan.duration)continue;
