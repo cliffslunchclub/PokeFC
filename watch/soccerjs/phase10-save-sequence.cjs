@@ -47,6 +47,7 @@ function sequence(f,field,event,normal){
   }
  }
  const active=connected?s.active:Math.max(0,Math.min(s.active,passStart-.1));
+ if(!Number.isFinite(active)||active<0||active>(f.durationMinutes||90)*60)throw Error('Invalid save active '+JSON.stringify({active,connected,minute:event.minute,shotStart,passStart,goalActive:s.active,goalStart:s.start,goalShot:s.shotStart,goalPass:s.passStart,seed:f.visualSeed}));
  const opening=connected?s.opening:normal(active);
  const data={...s,active,opening,from:connected?{...s.from}:{...opening.ball},
   finish:finishPoint,passStart,shotStart,net:catchPoint,end,scheduleConflict:conflict,
