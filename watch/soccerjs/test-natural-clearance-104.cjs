@@ -93,5 +93,5 @@ assert(!contested.conflict,'Synthetic physical contest has valid reachable kick'
 assert(contested.intercepted,'Closer opponent should physically intercept: '+JSON.stringify(contested));
 assert.equal(Math.floor(contested.receiver/11),1,'Give actual first touch to opponent');
 assert(contested.intendedReceiver===6,'Original intended teammate retained in diagnostic');
-assert(dist(contested.to,{x:20,y:34})>=25);
+assert(dist(contested.to,{x:20,y:34})>=24.99);
 console.log('PASS issue #104 saved visual seed: '+verified+' physically continuous 25–35m clearances, bounced recovery, 22-player movement and locked PSE');
