@@ -6,6 +6,7 @@ const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,rawMotionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const Kickoff=require('./phase10-kickoff.cjs');
+const Celebrate=require('./goal-celebration.cjs');
 const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
 const Commentary=require('./phase10-commentary.cjs');
@@ -29,7 +30,7 @@ const promptedGoals=new Set();
 const SAVE_AUTO_KEY='pokefc-auto-continue-saves';
 let autoContinueSaves=false,saveAutoDeadline=null;
 let liveSaveEvent=null,incidentQueue=[],queuedPresentation=null;
-let kickoffIntro=null;
+let kickoffIntro=null,goalCelebration=null;
 try{autoContinueSaves=localStorage.getItem(SAVE_AUTO_KEY)==='true'}catch(_){}
 function setSaveAuto(value){
  autoContinueSaves=!!value;
