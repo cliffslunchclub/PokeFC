@@ -36,4 +36,21 @@ assert.equal(stopped,2);
 assert(!recorder.cancel(),'Cannot cancel twice');
 assert.throws(()=>new BrowserClipRecorder({...params,RecorderClass:null}).start(),/not supported/);
 assert.equal(Clip.durationSeconds(clip,4),4.5);
+class AdvertisedMp4ButEmpty{
+ static isTypeSupported(s){return s==='video/mp4'||s==='video/webm;codecs=vp8'}
+ constructor(stream,opts){this.mimeType=opts.mimeType;this.state='inactive'}
+ start(){this.state='recording'}
+ stop(){this.state='inactive';
+  if(this.mimeType.includes('webm'))this.ondataavailable?.({data:new Blob(['real-webm'])});
+  this.onstop?.();
+ }
+}
+now=0;result=null;
+recorder=new BrowserClipRecorder({...params,speed:4,RecorderClass:AdvertisedMp4ButEmpty});
+assert.equal(recorder.start().extension,'mp4');
+now=4500;recorder.tick();
+assert.equal(recorder.format.extension,'webm','Retry actual playable WebM after empty MP4');
+now=9000;recorder.tick();
+assert.equal(recorder.status,'complete');assert(result.blob.size>0);
+assert.equal(result.format.extension,'webm');
 console.log('PASS recorder wall-clock timing, slow device seek catch-up, MP4/WebM fallback, cancellation and repeat');
