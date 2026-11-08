@@ -6,6 +6,7 @@ const {Utils}=require('./kernel/core/lib/utils.js');
 const {ImageDB}=require('./kernel/core/lib/imagedb.js');
 const {motionFrame,rawMotionFrame,shotSummary,playbackRate}=require('./phase10-motion.cjs');
 const Kickoff=require('./phase10-kickoff.cjs');
+const Celebration=require('./goal-celebration.cjs');
 const Pace=require('./phase10-player-pace.cjs');
 const Zoom=require('./phase10-camera-zoom.cjs');
 const Commentary=require('./phase10-commentary.cjs');
@@ -22,7 +23,7 @@ const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,trackedRenderAt=null,kickIndex=0,kickElapsed=0;
 let zoomFactor=1; // Reset by each fresh Watch iframe, retained across camera modes.
-let clipExportSession=null;
+let clipExportSession=null,celebration=null;
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
@@ -39,7 +40,20 @@ function setSaveAuto(value){
  send({type:'save-preference',enabled:autoContinueSaves});
  if(match&&sim){lastSent=-2;render(minute)}
 }
+function cutToKickoff(){
+ if(!replayNotice?.startsWith('goal-'))return;
+ const entry=resolveHighlight(match,replayNotice,minute,kickIndex),field=Utils.getFieldBounds();
+ const normal=sec=>rawMotionFrame(match,sec/60,field,true);
+ const restart=Kickoff.scenes(match,field,normal,sec=>rawMotionFrame(match,sec/60,field))
+  .find(s=>s.goal===entry.event);
+ // Do not jump past a tightly clustered historical official incident.
+ const next=match.events.find(e=>e.minute>minute&&e.minute*60<=restart?.ready);
+ if(restart&&!next&&restart.ready<(match.durationMinutes||90)*60){
+  minute=restart.ready/60;kickoffIntro=null;clearMotionTracking();
+ }
+}
 function continueMatch(){
+ cutToKickoff();
  if(incidentQueue.length&&liveSaveEvent){
   const at=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
   clearHighlightNotice();playing=false;last=null;lastSent=-2;
@@ -128,7 +142,9 @@ function highlightEntries(){
  return catalog(match,position.minute,position.kickIndex);
 }
 function clearHighlightNotice(){
- pendingGoal=null;replayNotice=null;saveAutoDeadline=null;$('highlightNotice').hidden=true;
+ pendingGoal=null;replayNotice=null;saveAutoDeadline=null;celebration=null;
+ if($('goalCelebration'))$('goalCelebration').hidden=true;
+ $('highlightNotice').hidden=true;
 }
 function showHighlightNotice(entry,allowCountdown=true){
  if(replaySession||!entry||!['goal','save'].includes(entry.kind))return;
@@ -363,14 +379,22 @@ function cameraFit(canvas,field,ball){
  // Deliberately tighter television-style framing; camera tracks the ball.
  // Midfield/penalty-area FIFA-like framing without the extreme 4.8x closeup.
  Settings.camera.scale=fit*(camera==='follow'?3.15:1.35)*zoomFactor;
+ if(celebration)Settings.camera.scale*=Celebration.sample(celebration.scene,celebration.elapsed,field).zoom;
  const corners=[[0,0],[field.width,0],[0,field.height],[field.width,field.height]]
    .map(([x,y])=>Utils.toScreen(x,y,0));
  const xs=corners.map(v=>v.x),ys=corners.map(v=>v.y);
  const center={x:(Math.min(...xs)+Math.max(...xs))/2,y:(Math.min(...ys)+Math.max(...ys))/2};
- const focus=Utils.toScreen(ball.x,ball.y,0);
- if(camera==='follow'){
-  center.x=mix(center.x,focus.x,.94);
-  center.y=mix(center.y,focus.y,.94);
+ let target=ball;
+ if(celebration){
+  const focus=Celebration.sample(celebration.scene,celebration.elapsed,field).focus;
+  const t=Math.min(1,celebration.elapsed/.8),blend=celebration.scene.reducedMotion?0:t*t*(3-2*t);
+  target={x:mix(ball.x,focus.x,blend),y:mix(ball.y,focus.y,blend)};
+ }
+ const focus=Utils.toScreen(target.x,target.y,0);
+ if(camera==='follow'||celebration){
+  const weight=celebration?1:.94;
+  center.x=mix(center.x,focus.x,weight);
+  center.y=mix(center.y,focus.y,weight);
  }
  // Soften abrupt changes of possession in illustrative sequences.
  if(playing&&smoothedFocus&&smoothedFocus.projection===p&&smoothedFocus.camera===camera){
@@ -519,7 +543,7 @@ function render(t,options={}){
  const sceneMinute=Number.isFinite(options.sceneSeconds)?options.sceneSeconds/60:t;
  const saveEvent=isReplay&&replaySession?.entry.kind==='save'?replaySession.entry.event:liveSaveEvent;
  if($('fullscreenPlayback')){
-  const running=playing||queuedPresentation&&!queuedPresentation.paused;
+  const running=playing||queuedPresentation&&!queuedPresentation.paused||celebration&&!celebration.done&&!celebration.paused;
   $('fullscreenPause').hidden=!running;
   $('fullscreenResume').hidden=!!running;
   $('fullscreenSpeed').value=String(speed);
@@ -528,11 +552,12 @@ function render(t,options={}){
  if(!commentaryFeed)commentaryFeed=Commentary.build(match,field);
  // All shot paths and keeper movements are illustrative; only the PSE
  // incident and final ledger are authoritative.
- const script=options.sceneFrame?smoothMotion(options.sceneFrame,sceneMinute):isReplay&&replaySession?.clip.kind==='shootout'?
+ let script=options.sceneFrame?smoothMotion(options.sceneFrame,sceneMinute):isReplay&&replaySession?.clip.kind==='shootout'?
   motionFrame(match,t,field,{kickIndex:replaySession.clip.kickIndex,kickProgress:options.progress||0}):
   match.shootout&&t>=match.durationMinutes&&kickIndex>0&&!isReplay?
    motionFrame(match,t,field,{kickIndex}):
    smoothMotion(motionFrame(match,sceneMinute,field,{saveEvent}),sceneMinute);
+ if(celebration&&!isReplay&&!clipExportSession)script=Celebration.sample(celebration.scene,celebration.elapsed,field).frame;
  for(const p of script.actors){
   const actor=(p.side===0?sim.teamA:sim.teamB).players[p.index];
   actor.x=p.x;actor.y=p.y;actor.z=p.z;
@@ -612,10 +637,13 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused,watchSpeed:speed});
+   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused||!!celebration&&!celebration.done&&!celebration.paused,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
+  buildId:CLIP_BUILD_ID,spriteWorldScale:Settings.camera.scale/24,
+  celebration:celebration?{elapsed:celebration.elapsed,scorer:celebration.scene.scorer,paused:celebration.paused,done:celebration.done}:null,
+  actorHeights:script.actors.map(p=>p.z||0),
   animation:script.action,pressPhase:script.pressPhase||null,
   pressingSide:script.pressingSide??null,
   pressingPlayers:script.pressingPlayers||[],goalkeeperRushSide:script.goalkeeperRushSide??null,
@@ -646,7 +674,7 @@ function render(t,options={}){
    x:goal.lineX,min:goal.yMin,max:goal.yMax
   })),
   boardGeometry:Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal}),
-  goalPaused:!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
+  goalPaused:!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing||!!celebration&&!celebration.done&&!celebration.paused,
   queuedSavePresentation:queuedPresentation?.phase||null,queuedSaveCount:incidentQueue.length,
   autoContinueSaves,saveAutoCountdown:saveAutoDeadline!==null,kickoff:script.kickoff||null,
   kickoffIntro:kickoffIntro?{...kickoffIntro}:null,saveSequence:script.saveSequence||null,
@@ -661,6 +689,16 @@ function advanceKick(){
 }
 function step(now){
  if(clipExportSession){clipExportSession.tick(now);requestAnimationFrame(step);return;}
+ if(celebration&&!celebration.done){
+  const delta=celebration.last===null?0:Math.max(0,(now-celebration.last)/1000);celebration.last=now;
+  if(delta>2)celebration.paused=true;
+  if(!celebration.paused)celebration.elapsed=Math.min(Celebration.DURATION,celebration.elapsed+delta);
+  render(minute);
+  if(celebration.elapsed>=Celebration.DURATION){
+   celebration.done=true;$('goalCelebration').hidden=true;showHighlightNotice(celebration.entry);
+  }
+  requestAnimationFrame(step);return;
+ }
  if(queuedStep(now)){requestAnimationFrame(step);return;}
  if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
@@ -673,7 +711,17 @@ function step(now){
   const close=Math.hypot(visible.ball.x-source.ball.x,visible.ball.y-source.ball.y)<.15;
   const keeper=entry.kind==='save'?visible.actorWorldPositions[source.saveSequence?.keeper]:null;
   const secured=entry.kind!=='save'||!source.saveSequence||keeper&&Math.hypot(keeper[0]-visible.ball.x,keeper[1]-visible.ball.y)<.9;
-  if(now>=pendingGoal.showAt&&close&&secured){pendingGoal=null;showHighlightNotice(entry)}
+  if(now>=pendingGoal.showAt&&close&&secured){
+   pendingGoal=null;
+   if(entry.kind==='goal'){
+    const sceneFrame={...source,actors:source.actors.map((p,id)=>{
+     const actor=(id<11?sim.teamA:sim.teamB).players[id%11];return {...p,x:actor.x,y:actor.y,z:0};
+    })};
+    celebration={scene:Celebration.create(match,entry.event,sceneFrame,
+     window.matchMedia('(prefers-reduced-motion: reduce)').matches),entry,elapsed:0,last:now,paused:false,done:false};
+    $('goalCelebrationName').textContent=entry.name;$('goalCelebration').hidden=false;
+   }else showHighlightNotice(entry);
+  }
  }
  if(replaySession){
   if(replayLast!==null){
@@ -781,12 +829,12 @@ async function boot(){
   sim.ball.render=function(g){
    if(!soccerBallSprite?.naturalWidth){oldBallRender(g);return}
    const scale=Utils.getScaleMultiplier();
-   const r=Math.max(4.5,Settings.BALL_DRAW_RADIUS*scale);
+   const r=Settings.BALL_DRAW_RADIUS*scale;
    const ground=Utils.toScreen(this.x,this.y,0);
    const ball=Utils.toScreen(this.x,this.y,this.z);
    g.save();
    g.fillStyle='#0008';g.beginPath();
-   const shadow=Math.max(3.5,r*.72)/(1+this.z*.35);
+   const shadow=r*.72/(1+this.z*.35);
    g.ellipse(ground.x,ground.y,shadow,shadow*.45,0,0,Math.PI*2);g.fill();
    g.drawImage(soccerBallSprite,ball.x-r,ball.y-r,r*2,r*2);
    g.restore();
@@ -799,7 +847,7 @@ async function boot(){
    actor.preRender=()=>{};
    actor.render=g=>{
     window.__PFC_DRAWN__++;
-    if(draw(g,actor,spriteRoster.entries[index],Utils.toScreen,$('showNumbers').checked,ballCarrier===index))window.__PFC_REAL_SPRITES_DRAWN__++;
+    if(draw(g,actor,spriteRoster.entries[index],Utils.toScreen,$('showNumbers').checked,ballCarrier===index,Settings.camera.scale/24))window.__PFC_REAL_SPRITES_DRAWN__++;
    };
   }
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
@@ -807,6 +855,11 @@ async function boot(){
   // The highlight catalog is shared by standalone and embedded Soccer-JS.
   $('highlightToggle').onclick=()=>setHighlightDrawer(!highlightDrawerOpen);
   $('highlightClose').onclick=()=>setHighlightDrawer(false);
+  $('skipCelebration').onclick=()=>{
+   if(!celebration||celebration.done)return;
+   celebration.elapsed=Celebration.DURATION;celebration.done=true;
+   $('goalCelebration').hidden=true;showHighlightNotice(celebration.entry);
+  };
   $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
   $('highlightNoticeDismiss').onclick=continueMatch;
   for(const id of ['saveAutoControl','saveAutoAlert']){
@@ -843,6 +896,8 @@ async function boot(){
   };
   $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
+    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+    cutToKickoff();
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
     }
@@ -850,12 +905,14 @@ async function boot(){
     stopAt=match.durationMinutes;lastSent=-2;last=null;playing=true;
    };
   $('playFive').onclick=()=>{
+    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+    cutToKickoff();
     if(minute>=match.durationMinutes){playing=true;last=null;return}
     if(replayNotice||pendingGoal)clearHighlightNotice();
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
-  $('pause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
+  $('pause').onclick=()=>{if(celebration&&!celebration.done)celebration.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('restart').onclick=()=>{kickIndex=0;seek(0)};
   $('skip').onclick=finish;
   $('scrub').oninput=e=>seek(Number(e.target.value));
@@ -866,9 +923,11 @@ async function boot(){
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
-  $('fullscreenPause').onclick=()=>{if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
+  $('fullscreenPause').onclick=()=>{if(celebration&&!celebration.done)celebration.paused=true;if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
+   if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
    if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
+   cutToKickoff();
    if(replayNotice||pendingGoal)clearHighlightNotice();
    lastSent=-2;
    if(minute<match.durationMinutes){playing=true;last=null;}
@@ -909,6 +968,8 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
+    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+    cutToKickoff();
     if(queuedPresentation){speed=Math.max(1,Math.min(16,Number(msg.speed)||speed));queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
@@ -918,6 +979,7 @@ async function boot(){
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
+    if(celebration&&!celebration.done)celebration.paused=true;
     if(queuedPresentation)queuedPresentation.paused=true;
     playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){

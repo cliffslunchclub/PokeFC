@@ -34,9 +34,9 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
  const after=motionFrame(fixture,cut+1e-7,field);
  assert.equal(before.action,'official-goal');
  assert.equal(after.action,'illustrative-kickoff');
- assert.equal(after.sceneCut,null);
- assert(distance(before.ball,after.ball)<.001,'No net-to-centre teleport');
- assert(Math.max(...before.actors.map((a,i)=>distance(a,after.actors[i])))<.001);
+ assert.equal(after.sceneCut,'post-goal-kickoff');
+ assert(distance(after.ball,{x:53,y:34})<.001,'Restart cuts directly to midfield');
+ assert.equal(after.contact,'kickoff-setup');
  assert.equal(after.officialEvent,null,'Kickoff is not an invented official PSE event');
  const restartStart=(pos+.22)*60;
  const restartEnd=after.kickoff.end;
