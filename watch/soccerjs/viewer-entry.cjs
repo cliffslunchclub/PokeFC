@@ -583,7 +583,7 @@ function render(t,options={}){
  $('clock').textContent=Math.floor(t)+"'"+(t>=90&&match.durationMinutes===120?' · ET':'');
  $('scrub').value=t;$('played').textContent=t.toFixed(1)+"/"+match.durationMinutes+"'";
  $('toast').textContent=script.scheduleConflict?'VISUAL TIMING CONFLICT · Official PSE clock preserved':script.label;
- $('toast').hidden=!script.label&&!script.scheduleConflict;
+ $('toast').hidden=!!celebration||!script.label&&!script.scheduleConflict;
  const totalKicks=match.shootout?.attempts.length||0;
  const shootoutPending=!!totalKicks&&t>=match.durationMinutes&&kickIndex<totalKicks;
  $('status').textContent=isReplay?'INSTANT REPLAY':shootoutPending?'PENALTY SHOOTOUT':
