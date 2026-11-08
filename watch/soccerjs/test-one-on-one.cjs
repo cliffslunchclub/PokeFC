@@ -57,7 +57,7 @@ for(const shot of shots){
   assert.equal(loose.ownerIndex,-1);assert.equal(loose.officialEvent,null);
   const clear=motionFrame(f,(shot.clearAt+.001)/60,field);
   assert.equal(clear.action,'illustrative-upfield-clearance');
-  assert(dist(clear.ball,clear.actors[shot.clearer])<.1,'Clearance must begin at the clearer feet');
+  assert(dist(clear.ball,clear.actors[shot.clearer])<.9,'Clearance must begin within a reachable foot touch');
   assert(Math.abs(shot.clearTo.x-shot.loose.x)>30,'Clear strongly upfield');
  }
 

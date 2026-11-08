@@ -1,5 +1,6 @@
 'use strict';
 // A presentation restart: travel to centre, two-player kick, continuous handoff.
+const Recovery=require('./phase10-connected-recovery.cjs');
 const cache=new WeakMap(),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const mix=(a,b,u)=>a+(b-a)*clamp(u,0,1);
@@ -24,19 +25,22 @@ function scenes(f,field,normal,official=normal){
   const transit=s.initial?0:Math.max(dist(opening.ball,center)/12,...setup.map((a,i)=>dist(a,opening.actors[i])/4));
   const ready=s.start+transit,kick=ready+.7,arrival=kick+.5;
   const receive={x:setup[receiver].x+direction*.72,y:setup[receiver].y+.32,z:.23};
-  let end=arrival+12,landing;
-  for(let i=0;i<5;i++){
-   end=Math.min(end,(f.durationMinutes||90)*60);landing=normal(end);
-   const needed=Math.max(dist(receive,landing.ball)/12,...setup.map((a,j)=>dist(a,landing.actors[j])/4));
-   if(end-arrival>=needed)break;end=arrival+needed+.2;
-  }
-  end=Math.min(end,(f.durationMinutes||90)*60);landing=normal(end);
-  items.push({...s,opening,setup,center,kicker,receiver,transit,ready,kick,arrival,receive,end,landing});
+  const received=setup.map(a=>({...a}));
+  const total=(f.durationMinutes||90)*60;
+  let join=Recovery.plan(receive,received,receiver,arrival,normal,Math.min(40,total-arrival));
+  // A late goal can leave too little match time for a second passage of
+  // play. Finish the visible restart where it is, never probe beyond FT.
+  const terminalHold=!join;
+  if(!join)join={from:receive,actors:received,receiver,start:arrival,end:Math.max(total,arrival+.001),
+   terminal:{actors:received,ball:receive,ownerIndex:receiver},passStart:total};
+  const end=terminalHold?total:join.end,landing=join.terminal;
+  items.push({...s,opening,setup,center,kicker,receiver,transit,ready,kick,arrival,receive,end,landing,join,terminalHold});
  });
  cache.set(f,{width:field.width,height:field.height,items});return items;
 }
 function apply(f,field,seconds,frame,normal,official=normal){
- const s=scenes(f,field,normal,official).slice().reverse().find(s=>seconds>=s.start&&seconds<s.end);
+ const s=scenes(f,field,normal,official).slice().reverse().find(s=>seconds>=s.start&&
+  (seconds<s.end||s.terminalHold&&seconds===s.end));
  if(!s||frame.officialEvent||frame.goalSequenceStart!==undefined)return frame;
  const ready=s.start+s.transit;
  let actors,ball,owner=-1,contact;
@@ -48,10 +52,8 @@ function apply(f,field,seconds,frame,normal,official=normal){
  }else if(seconds<s.kick){actors=s.setup.map(a=>({...a}));ball=s.center;owner=s.kicker;contact='kickoff-setup';}
  else if(seconds<s.arrival){actors=s.setup.map(a=>({...a}));ball=blend(s.center,s.receive,(seconds-s.kick)/(s.arrival-s.kick));actors[s.kicker].frame=3;contact='kickoff-pass';}
  else{
-  const u=(seconds-s.arrival)/(s.end-s.arrival);
-  actors=s.setup.map((a,i)=>blend(a,s.landing.actors[i],u));ball=blend(s.receive,s.landing.ball,u);
-  // The nearby teammate receives first, then releases into the planned play.
-  if(seconds<s.arrival+.2)owner=s.receiver;
+  const joined=Recovery.sample(s.join,seconds);
+  actors=joined.actors;ball=joined.ball;owner=joined.ownerIndex;
   contact='kickoff-recovery';
  }
  return {...frame,actors,ball,ownerIndex:owner,action:'illustrative-kickoff',contact,
@@ -59,12 +61,12 @@ function apply(f,field,seconds,frame,normal,official=normal){
   kickoff:{start:s.start,ready:s.ready,kick:s.kick,arrival:s.arrival,end:s.end,kicker:s.kicker,receiver:s.receiver},
   passStart:s.kick,passArrival:s.arrival,passOrigin:s.center,passTarget:s.receive};
 }
-// Live presentation only: two real seconds to see the setup, then two real
-// seconds of continuous acceleration into the selected Watch speed. Integrate
+// Live presentation only: one real second to see the setup, then half a
+// second of continuous acceleration into the selected Watch speed. Integrate
 // the ramp so frame rate and speed changes cannot jump the match clock.
 function advanceClock(seconds,elapsed,speed,items,state){
- if(state&&state.elapsed<4){
-  const integral=t=>t<=2?0:t<4?(t-2)**2/4:t-3;
+ if(state&&state.elapsed<1.5){
+  const integral=t=>t<=1?0:t<1.5?(t-1)**2:t-1.25;
   const next=state.elapsed+elapsed;
   return {seconds:seconds+speed*(integral(next)-integral(state.elapsed)),
    state:{ready:state.ready,elapsed:next}};
