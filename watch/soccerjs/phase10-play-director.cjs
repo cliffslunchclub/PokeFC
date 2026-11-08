@@ -105,7 +105,7 @@ function makePlan(f,field){
   // at release. Fallback is a controlled dribble, never a whistle or reset.
   if(mode==='pass'&&recipient!=null){
    const side=sideOf(owner),target=releasePosition(recipient);
-   if(isOffside(f,field,side,ball.x,target.x)){
+   if(sideOf(recipient)===side&&isOffside(f,field,side,ball.x,target.x)){
     const replacement=receiver(f,field,owner,end,pattern,
      count+':fallback:'+actions.length,ball.x,releasePosition);
     if(replacement!=null)recipient=replacement;
