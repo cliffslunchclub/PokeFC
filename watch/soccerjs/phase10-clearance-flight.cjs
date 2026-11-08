@@ -7,7 +7,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const ease=t=>{const u=clamp(t,0,1);return u*u*(3-2*u)};
 function flight(stage,seconds){
- const T=stage.duration,u=clamp((seconds-stage.start)/T,0,1);
+ const T=stage.clearance?.plannedDuration||stage.duration,
+  u=clamp((seconds-stage.start)/T,0,1);
  const p=2*u-u*u,dX=stage.to.x-stage.from.x,dY=stage.to.y-stage.from.y;
  const k=2*(1-u)/T,landing=.66,bounceEnd=.86;
  let z=GROUND,phase='rolling';
