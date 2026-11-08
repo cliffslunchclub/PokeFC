@@ -80,4 +80,24 @@ function durationSeconds(clip,speed){
 function progressAt(seconds,clip,speed){
  return Math.max(0,Math.min(1,(Number(seconds)||0)/durationSeconds(clip,speed)));
 }
-module.exports={VERSION,FPS,MIMES,supportedFormat,refId,filename,diagnostic,durationSeconds,progressAt};
+// Safe same-build rehydration from a downloaded diagnostic. This never
+// re-simulates PSE: the authoritative fixture and recorded event are reused.
+function reproduce(data,currentBuildId){
+ if(data?.schema!==VERSION||!data.fixture||!data.highlight)throw Error('Invalid PokéFC clip JSON');
+ if(String(data.app?.buildId)!==String(currentBuildId))
+  throw Error('Clip requires the exact matching Watch build');
+ const fixture=JSON.parse(JSON.stringify(data.fixture));
+ const Replay=require('./highlight-replay.cjs');
+ const entry=Replay.resolve(fixture,data.highlight.id,data.highlight.minute,0);
+ if(!entry||entry.kind!==data.highlight.kind)throw Error('Official replay event missing');
+ const clip=Replay.clipFor(fixture,entry);
+ if(!clip||Math.abs(clip.start*60-data.highlight.startSeconds)>.01||
+    Math.abs(clip.end*60-data.highlight.endSeconds)>.01)
+  throw Error('Recorded highlight window differs from the supplied build');
+ if(refId(fixture,entry,currentBuildId)!==data.referenceId)
+  throw Error('Clip identity differs from the downloaded fixture');
+ return {fixture,entry,clip,camera:data.recording?.camera,
+  projection:data.recording?.projection,zoomFactor:data.recording?.zoomFactor,
+  speed:data.recording?.replaySpeed};
+}
+module.exports={VERSION,FPS,MIMES,supportedFormat,refId,filename,diagnostic,durationSeconds,progressAt,reproduce};
