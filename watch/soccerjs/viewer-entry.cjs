@@ -15,10 +15,14 @@ const Boundaries=require('./phase10-player-boundaries.cjs');
 const {prepare}=require('./pokemon-roster.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const {catalog,clipFor,resolve:resolveHighlight}=require('./highlight-replay.cjs');
+const Clip=require('./clip-export.cjs');
+const {BrowserClipRecorder}=require('./clip-recorder.cjs');
+const CLIP_BUILD_ID=typeof __PFC_BUILD_ID__==='string'?__PFC_BUILD_ID__:'unknown-public-build';
 const $=id=>document.getElementById(id);
 const mix=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
 let match,sim,soccerBallSprite=null,minute=0,playing=false,last=null,speed=1,lastSent=-2,stopAt=90,spriteRoster=null,ballCarrier=-1,smoothedFocus=null,trackedActors=null,trackedBall=null,trackedMinute=null,trackedPhase=null,trackedRenderAt=null,kickIndex=0,kickElapsed=0;
 let zoomFactor=1; // Reset by each fresh Watch iframe, retained across camera modes.
+let clipExportSession=null;
 let replaySession=null,replayLast=null,replaySpeed=.5,replayNotice=null,pendingGoal=null,highlightFilter='all',
  lastCatalogIds='',highlightDrawerOpen=false;
 const promptedGoals=new Set();
