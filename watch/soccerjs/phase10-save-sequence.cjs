@@ -118,6 +118,7 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
     run:(seconds-s.passStart)/Math.max(.001,s.shotStart-s.passStart),
     strength:Math.max(0,Math.min(1,(seconds-s.start)/.2))}]:null,
    saveSequence:{start:s.start,active:s.active,shotStart:s.shotStart,end:s.end,release:s.release,arrival:s.arrival,finish:s.recoveryEnd,keeper:s.keeper,shooter:s.scorer},
+   scheduleConflict:s.scheduleConflict||null,
    illustrative:seconds<s.end||seconds>=s.release,passStart:s.passStart,passArrival:s.shotStart};
  }
  return frame;
