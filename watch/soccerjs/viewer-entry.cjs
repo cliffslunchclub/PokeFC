@@ -158,7 +158,7 @@ function setHighlightDrawer(open){
  if(open){clearHighlightNotice();renderHighlightCatalog(true);}
 }
 function replayMoment(id){
- if(!match||replaySession||queuedPresentation)return false;
+ if(!match||replaySession||queuedPresentation||clipExportSession)return false;
  const entry=resolveHighlight(match,String(id),minute,kickIndex);
  const clip=clipFor(match,entry);
  if(!clip)return false;
@@ -170,16 +170,19 @@ function replayMoment(id){
  $('highlightReplayTitle').textContent=entry.title+' · '+entry.name;
  $('highlightReplaySpeed').textContent='0.5× SLOW MO';
  $('highlightReplayProgress').textContent='0%';
- render(clip.start,{replay:true,progress:0});
+ $('clipExportDownload').hidden=!['goal','save'].includes(entry.kind);
+ $('clipExportJSON').hidden=!['goal','save'].includes(entry.kind);
+ $('clipExportSpeed').parentElement.hidden=!['goal','save'].includes(entry.kind);
+ exportStatus('');render(clip.start,{replay:true,progress:0});
  return true;
 }
 function returnToMatch(){
- if(!replaySession)return false;
+ if(!replaySession||clipExportSession)return false;
  const saved=replaySession.saved;
  replaySession=null;replayLast=null;last=null;clearMotionTracking();
  minute=saved.minute;kickIndex=saved.kickIndex;stopAt=saved.stopAt;
  playing=saved.playing&&minute<stopAt;
- $('highlightReplay').hidden=true;
+ $('highlightReplay').hidden=true;exportStatus('');
  render(minute);
  if(saved.goalPromptId){
   const goal=catalog(match,minute,kickIndex).find(e=>e.id===saved.goalPromptId);
@@ -653,6 +656,7 @@ function advanceKick(){
  kickIndex++;kickElapsed=0;render(minute);return true;
 }
 function step(now){
+ if(clipExportSession){clipExportSession.tick(now);requestAnimationFrame(step);return;}
  if(queuedStep(now)){requestAnimationFrame(step);return;}
  if(saveAutoDeadline!==null&&!replaySession&&now>=saveAutoDeadline)continueMatch();
  // Let the ball settle beyond the goal line before showing Replay/Continue.
@@ -719,6 +723,7 @@ function step(now){
  requestAnimationFrame(step);
 }
 function seek(t){
+ if(clipExportSession)return;
  kickoffIntro=null;
  queuedPresentation=null;incidentQueue=[];liveSaveEvent=null;
  if(replaySession)returnToMatch();
@@ -805,6 +810,9 @@ async function boot(){
   }
   window.addEventListener('storage',e=>{if(e.key===SAVE_AUTO_KEY)setSaveAuto(e.newValue==='true')});
   $('highlightReplayReturn').onclick=returnToMatch;
+  $('clipExportDownload').onclick=startClipExport;
+  $('clipExportJSON').onclick=exportDebugJSON;
+  $('clipExportCancel').onclick=()=>clipExportSession?.cancel();
   $('highlightReplaySpeed').onclick=()=>{
    replaySpeed=replaySpeed===.5?1:.5;
    $('highlightReplaySpeed').textContent=replaySpeed===.5?'0.5× SLOW MO':'1× NORMAL';
