@@ -1,0 +1,29 @@
+name: Live clearance issue 104 verification
+on:
+  pull_request:
+    paths: ['.github/workflows/watch-live-clearance-104-proof.yml', 'tests/ci-live-natural-clearance-104.cjs']
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: startsWith(github.head_ref, 'test/live-clearance-104')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/ci-live-natural-clearance-104.cjs
+        env:
+          PFC_EXPECTED_DEPLOY_SHA: 9a83ca3799cfba673d58c161718782b122fa5c1f
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue104-live-clearance-proof
+          path: natural-clearance-live-proof/
+          retention-days: 14

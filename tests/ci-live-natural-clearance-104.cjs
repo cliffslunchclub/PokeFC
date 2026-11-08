@@ -23,7 +23,8 @@ const host='<!doctype html><html><head><meta charset="utf-8"><style>body{margin:
 (async()=>{let browser;
  try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-  const page=await browser.newPage({viewport:{width:1280,height:720}}),errors=[];
+  const context=await browser.newContext({viewport:{width:1280,height:720},recordVideo:{dir:out,size:{width:1280,height:720}}});
+  const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(String(e)));
   await page.route('**/__pfc_natural_clearance_proof__',r=>r.fulfill({contentType:'text/html',body:host}));
   await page.goto(origin+'/__pfc_natural_clearance_proof__',{waitUntil:'domcontentloaded',timeout:45000});
@@ -31,6 +32,10 @@ const host='<!doctype html><html><head><meta charset="utf-8"><style>body{margin:
    null,{timeout:90000});
   const frame=page.frames().find(f=>f.url().includes('/watch/soccerjs/dist/index.html'));
   assert(frame,'Live production Soccer-JS iframe missing');
+  const initial=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+  assert.equal(initial.buildId,process.env.PFC_EXPECTED_DEPLOY_SHA,'Must verify exact deployed #112 build');
+  console.log('PASS exact live build '+initial.buildId);
+  const evidence={buildId:initial.buildId,seed:fixture.visualSeed,sides:[]};
   const seek=async seconds=>{
    await page.evaluate(s=>document.querySelector('iframe').contentWindow.postMessage(
     {type:'pfc-phase10-control',action:'seek',minute:s/60},location.origin),seconds);
@@ -40,6 +45,23 @@ const host='<!doctype html><html><head><meta charset="utf-8"><style>body{margin:
   for(const [side,a] of selected.entries()){
    const range=distance(a.from,a.to);
    assert(range>=24.99&&range<=35.01,'Natural clearance no longer within 25–35m');
+   const frames=[];
+   const sampleTimes=[a.start+.02,a.start+a.duration*.2,a.clearance.landingSeconds-.01,
+    a.clearance.landingSeconds,a.clearance.landingSeconds+.01,
+    (a.clearance.landingSeconds+a.clearance.bounceEndSeconds)/2,
+    (a.clearance.bounceEndSeconds+a.end)/2,a.end-.01];
+   for(const sec of sampleTimes){
+    const observed=await seek(sec),expected=Director.ballAt(a,sec);
+    assert(distance(observed.ball,expected)<.01&&Math.abs(observed.ball.z-expected.z)<.01,
+     'Deployed flight differs from saved physical trajectory at '+sec);
+    assert.equal(observed.carrier,-1,'No airborne or premature possession');
+    frames.push({sec,ball:observed.ball,actors:observed.actorWorldPositions});
+   }
+   const moved=id=>distance({x:frames[0].actors[id][0],y:frames[0].actors[id][1]},
+    {x:frames.at(-1).actors[id][0],y:frames.at(-1).actors[id][1]});
+   assert(moved(a.receiver)>.1,'Receiver stood idle during clearance');
+   assert(a.clearance.supporters.filter(id=>moved(id)>.1).length>=2,'Supporting teammates stood idle');
+   assert(a.clearance.contesters.filter(id=>moved(id)>.1).length>=2,'Opponents did not contest');
    let baseline;
    for(const speed of [1,4,16]){
     await frame.evaluate(speed=>{const el=document.querySelector('#speed');
@@ -57,6 +79,20 @@ const host='<!doctype html><html><head><meta charset="utf-8"><style>body{margin:
    assert(distance({x:received.actorWorldPositions[a.receiver][0],y:received.actorWorldPositions[a.receiver][1]},received.ball)<1.6,
     'Receiver did not physically meet the ball');
    await frame.locator('.pitchwrap').screenshot({path:path.join(out,'side-'+side+'-arrival.png')});
+   for(const speed of [1,4,16]){
+    await seek(a.start+.01);
+    await page.evaluate(speed=>document.querySelector('iframe').contentWindow.postMessage(
+     {type:'pfc-phase10-control',action:'play',speed},location.origin),speed);
+    await frame.waitForFunction(end=>window.__PFC_SNAPSHOT__.minute*60>=end,a.end+.02,{timeout:15000});
+    await page.evaluate(()=>document.querySelector('iframe').contentWindow.postMessage(
+     {type:'pfc-phase10-control',action:'pause'},location.origin));
+    await frame.waitForFunction(()=>!window.__PFC_SNAPSHOT__.watchPlaying);
+    const played=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+    assert.equal(played.carrier,a.receiver,'Live playback lost controlled reception at '+speed+'x');
+    assert(distance({x:played.actorWorldPositions[a.receiver][0],y:played.actorWorldPositions[a.receiver][1]},played.ball)<1.6,
+     'Live receiver did not control ball at '+speed+'x');
+   }
+   evidence.sides.push({side,range,receiver:a.receiver,frames});
    console.log('PASS live side '+side+' '+range.toFixed(2)+'m controlled clearance, 1x/4x/16x reproducibility');
   }
   for(const goal of fixture.events.filter(e=>e.type==='goal')){
@@ -64,6 +100,8 @@ const host='<!doctype html><html><head><meta charset="utf-8"><style>body{margin:
    assert.equal(frameAt.officialEventType,'goal','Watch displaced official PSE goal');
   }
   assert.deepEqual(errors,[],'Production browser error');
+  fs.writeFileSync(path.join(out,'live-clearance-measurements.json'),JSON.stringify(evidence,null,2));
+  await context.close();
   console.log('PASS deployed SiteGround natural clearance #104, both teams, official PSE goals, all playback speeds');
  }finally{if(browser)await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
