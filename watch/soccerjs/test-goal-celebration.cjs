@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const C=require('./goal-celebration.cjs'),K=require('./phase10-kickoff.cjs');
-const {motionFrame,rawMotionFrame}=require('./phase10-motion.cjs');
+const {motionFrame,rawMotionFrame,presentationFrame}=require('./phase10-motion.cjs');
 const {draw}=require('./pokemon-draw.cjs');
 const f=require('./fixture.json'),field={width:106,height:68},before=JSON.stringify(f);
 let goals=0;
@@ -42,5 +42,15 @@ const a=paint(1),b=paint(2),jump=paint(2,.6);
 assert.equal(b[1][3],a[1][3]*2);assert.equal(b[1][4],a[1][4]*2);
 assert.equal(jump[0][2],b[0][2],'Jump shadow must remain grounded');
 assert(jump[1][2]<b[1][2],'Jump must lift the sprite');
+// Historical, tightly clustered official incidents must not let an earlier
+// save's recovery hide a later goal's direct kickoff cut.
+const historical=JSON.parse(before),g=historical.events.find(e=>e.type==='goal');
+const defending=g.team===historical.home.id?historical.away:historical.home;
+historical.events.push({type:'save',minute:g.minute-.05,team:defending.id,
+ player:defending.lineup[0].id,shooter:g.player});
+historical.events.sort((a,b)=>a.minute-b.minute);
+const restart=presentationFrame(historical,(g.minute+.22)*60+1e-4,field);
+assert.equal(restart.contact,'kickoff-setup','Old save recovery masked a later kickoff');
+assert.equal(restart.sceneCut,'post-goal-kickoff');
 assert.equal(JSON.stringify(f),before);
 console.log('PASS celebration: '+goals+' goals, 3 hops, immutable PSE/ball, bounded sweep, reduced motion, direct two-player kickoff cuts and proportional sprite scaling');
