@@ -851,12 +851,12 @@ async function boot(){
   sim.ball.render=function(g){
    if(!soccerBallSprite?.naturalWidth){oldBallRender(g);return}
    const scale=Utils.getScaleMultiplier();
-   const r=Math.max(4.5,Settings.BALL_DRAW_RADIUS*scale);
+   const r=Math.max(1.5,Settings.BALL_DRAW_RADIUS*scale);
    const ground=Utils.toScreen(this.x,this.y,0);
    const ball=Utils.toScreen(this.x,this.y,this.z);
    g.save();
    g.fillStyle='#0008';g.beginPath();
-   const shadow=Math.max(3.5,r*.72)/(1+this.z*.35);
+   const shadow=Math.max(1.4,r*.72)/(1+this.z*.35);
    g.ellipse(ground.x,ground.y,shadow,shadow*.45,0,0,Math.PI*2);g.fill();
    g.drawImage(soccerBallSprite,ball.x-r,ball.y-r,r*2,r*2);
    g.restore();
@@ -869,7 +869,7 @@ async function boot(){
    actor.preRender=()=>{};
    actor.render=g=>{
     window.__PFC_DRAWN__++;
-    if(draw(g,actor,spriteRoster.entries[index],Utils.toScreen,$('showNumbers').checked,ballCarrier===index))window.__PFC_REAL_SPRITES_DRAWN__++;
+    if(draw(g,actor,spriteRoster.entries[index],Utils.toScreen,$('showNumbers').checked,ballCarrier===index,Utils.getScaleMultiplier()))window.__PFC_REAL_SPRITES_DRAWN__++;
    };
   }
   if(!ImageDB.get('player_Brazil_main')||!ImageDB.get('player_Argentina_main'))
