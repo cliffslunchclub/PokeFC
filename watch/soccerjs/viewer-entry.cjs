@@ -80,11 +80,23 @@ function celebrationKickoffTarget(event){
  return Celebrate.kickoffReady(scenes,event);
 }
 function continueMatch(){
+ if(goalCelebration){finishGoalCelebration();return}
  if(incidentQueue.length&&liveSaveEvent){
   const at=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
   clearHighlightNotice();playing=false;last=null;lastSent=-2;
   queuedPresentation={phase:'restart',seconds:minute*60,end:at.saveSequence.finish,entry:null,last:null};
   return;
+ }
+ const entry=replayNotice?.startsWith('goal-')?
+  catalog(match,minute,kickIndex).find(e=>e.id===replayNotice):null;
+ if(entry){
+  const target=celebrationKickoffTarget(entry.event);
+  if(target&&target.seconds>=minute*60&&target.seconds<stopAt*60-.7){
+   // Direct broadcast cut to the ALREADY EXISTING two-player setup.
+   // No ball roll, no player return-to-midfield, no additional PSE event.
+   minute=(target.seconds+.0001)/60;
+   kickoffIntro=null;clearMotionTracking();
+  }
  }
  clearHighlightNotice();lastSent=-2;last=null;playing=minute<stopAt;render(minute);
 }
