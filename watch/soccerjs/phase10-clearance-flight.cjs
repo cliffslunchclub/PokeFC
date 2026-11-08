@@ -56,10 +56,19 @@ function plan({field,from,owner,position,side,seed,offside}){
  // intended runner normally wins; an opposing runner can contest and collect
  // only by reaching within the same bounded travel time.
  const target=chosen.target,duration=chosen.duration;
- const team=all.filter(a=>Math.floor(a.id/11)===side&&a.id!==owner&&a.id!==chosen.player.id&&a.id%11!==0);
+ // If an opponent is objectively closer at the REAL landing time and can
+ // reach it within the same player speed cap, award the visible first touch
+ // to that opponent. This is a Watch-only interception, never a PSE tackle.
+ const challengers=opponents.slice().sort((a,b)=>dist(a.p,target)-dist(b.p,target)||a.id-b.id);
+ const first=challengers[0],oppRun=first?dist(first.p,target):Infinity;
+ const intendedRun=dist(chosen.player.p,target);
+ const intercept=oppRun+.75<intendedRun&&oppRun<=SPEED*duration/1.5-.2;
+ const catcher=intercept?first.id:chosen.player.id;
+ const team=all.filter(a=>Math.floor(a.id/11)===side&&a.id!==owner&&a.id!==catcher&&a.id%11!==0);
  const supporters=team.sort((a,b)=>dist(a.p,target)-dist(b.p,target)||a.id-b.id).slice(0,3).map(x=>x.id);
- const contesters=opponents.sort((a,b)=>dist(a.p,target)-dist(b.p,target)||a.id-b.id).slice(0,3).map(x=>x.id);
- return {to:target,receiver:chosen.player.id,duration,
+ const contesters=challengers.filter(a=>a.id!==catcher).slice(0,3).map(x=>x.id);
+ return {to:target,receiver:catcher,intercepted:intercept,
+  intendedReceiver:chosen.player.id,duration,
   landingFraction:.66,bounceEndFraction:.86,travelDistance:dist(from,target),
   flightSeconds:duration*.66,emergency:false,room:chosen.room,
   supporters,contesters,conflict:null};
