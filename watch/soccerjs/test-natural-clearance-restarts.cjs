@@ -57,6 +57,9 @@ for(const e of fixture.events.filter(x=>x.type==='save').slice(0,12)){
  const shown=motionFrame(fixture,(s.release+.5)/60,field,{saveEvent:e});
  assert.equal(shown.action,'illustrative-keeper-punt');
  assert(distance(shown.ball,Flight.flight(s.clearFlight,s.release+.5))<.001);
+ const controlled=motionFrame(fixture,s.arrival/60,field,{saveEvent:e});
+ assert(distance(controlled.ball,controlled.actors[s.receiver])<1.8,
+  'Punted ball must meet the actual visible receiver, not an offscreen director position');
  punts++;official++;
 }
 assert(punts>=1,'No physical goalkeeper punts followed official PSE saves');
