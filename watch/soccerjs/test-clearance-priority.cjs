@@ -12,15 +12,25 @@ for(const durationMinutes of [90,120])for(let seed=0;seed<12;seed++){
   if(a.pattern==='defensive-clearance'){
    assert.equal(a.mode,'pass','Kick immediately instead of dribbling');
    assert.equal(a.owner,plan.actions[i-1]?.receiver??a.owner);
-   assert((a.to.x-a.from.x)*(side===0?1:-1)>=40,'Strong upfield distance');
-   assert(a.to.y>=68*.35&&a.to.y<=68*.65,'Aim into open central lanes');
-   assert(a.arc>=6);clearances++;sides.add(side);
+   const distance=Math.hypot(a.to.x-a.from.x,a.to.y-a.from.y);
+   assert(distance>=24.99&&distance<=35.01,'Approved 25–35m danger clearance');
+   assert((a.to.x-a.from.x)*(side===0?1:-1)>0,'Kick upfield');
+   assert(a.clearance?.flightSeconds>0&&a.clearance?.bounceEndSeconds<a.end,
+    'Ball flight/bounce must finish before the receiving touch');
+   assert(a.clearance?.receiver===a.receiver,'Receiver must be physically assigned');
+   clearances++;sides.add(side);
   }
   if(a.mode==='challenge'&&i+1<plan.actions.length){
    const next=plan.actions[i+1],newSide=Math.floor(next.owner/11);
    const ownDepth=newSide===0?next.from.x:106-next.from.x;
    if(ownDepth<=106/3){
-    assert.equal(next.pattern,'defensive-clearance','Every defensive-third recovery clears first');
+    // A newly recovered ball clears promptly, unless the team has just
+    // collected its own clearance and is making a controlled first touch.
+    const lastClearance=plan.actions.slice(0,i+1).reverse()
+     .find(x=>x.pattern==='defensive-clearance');
+    if(!lastClearance||next.start-lastClearance.start>8)
+     assert.equal(next.pattern,'defensive-clearance','Fresh defensive-third recovery must clear');
+    else assert(['carry','pass'].includes(next.mode),'No clearance-return loop');
     assert.equal(next.start,a.end,'No wait after recovery');recoveries++;
    }
   }
@@ -29,4 +39,4 @@ for(const durationMinutes of [90,120])for(let seed=0;seed<12;seed++){
 assert(clearances>100&&recoveries>20);assert.deepEqual([...sides].sort(),[0,1]);
 for(const g of f.events.filter(e=>e.type==='goal'))assert.equal(motionFrame(f,g.minute,field).officialEvent,g);
 assert.equal(JSON.stringify(f),before);
-console.log('PASS maximum clearance priority: '+clearances+' clearances, '+recoveries+' immediate recoveries, both directions, 90/120 minutes, no deliberate boards, unchanged PSE');
+console.log('PASS controlled 25–35m clearance priority: '+clearances+' clearances, '+recoveries+' immediate recoveries, both directions, 90/120 minutes, no deliberate boards, unchanged PSE');
