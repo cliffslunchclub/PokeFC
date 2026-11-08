@@ -50,7 +50,7 @@ for(const e of fixture.events.filter(x=>x.type==='save').slice(0,12)){
  const prior=sec=>rawMotionFrame(fixture,sec/60,field,true);
  const s=Save.sequence(fixture,field,e,prior);
  if(!s||s.arrival>=fixture.durationMinutes*60||s.puntPlan?.conflict)continue;
- assert.equal(s.release-e.minute*60,.65,'Goalkeeper clears within approved .65s');
+ assert(Math.abs(s.release-e.minute*60-.65)<1e-6,'Goalkeeper clears within approved .65s');
  checkFlight(s.clearFlight,s.net,s.target,s.release,s.arrival,'official GK punt');
  const at=motionFrame(fixture,e.minute,field,{saveEvent:e});
  assert.equal(at.officialEvent,e,'PSE official save mutated');
