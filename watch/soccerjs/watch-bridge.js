@@ -47,13 +47,25 @@
     'Shootout final total or winner does not reconcile');
   }
   const teams=[preview.home,preview.away];
-  const ids=new Set();
+  const ids=new Set(),pokemonKeys=['hp','attack','defense','spAttack','spDefense','speed'];
+  const safeStats=raw=>raw&&typeof raw==='object'?Object.fromEntries(pokemonKeys
+   .filter(k=>Number.isFinite(Number(raw[k]))&&Number(raw[k])>=0&&Number(raw[k])<=1000)
+   .map(k=>[k,Number(raw[k])])):null;
   const clean=t=>({
    id:String(t.id),name:String(t.name||t.city||t.id),
+   formation:t.formation==null?null:String(t.formation).slice(0,48),
+   tactic:t.tactic==null?null:String(t.tactic).slice(0,48),
    lineup:t.lineup.map(p=>{
     const id=String(p.id);
     requireValid(id&&!ids.has(id),'Player IDs must be unique');ids.add(id);
-    return {id,name:String(p.name||p.species||id),pos:String(p.pos||'MID'),speciesId:p.speciesId??p.pokemonId??p.dexId??null,jerseyNumber:p.jerseyNumber??p.shirtNumber??null};
+    return {id,name:String(p.name||p.species||id),pos:String(p.pos||'MID'),
+     speciesId:p.speciesId??p.pokemonId??p.dexId??null,
+     jerseyNumber:p.jerseyNumber??p.shirtNumber??null,
+     exactPosition:p.exactPosition==null?null:String(p.exactPosition).slice(0,20),
+     heldItem:p.heldItem==null?null:String(p.heldItem).slice(0,72),
+     pokemonStats:safeStats(p.pokemonStats),
+     positionEfficiency:Number.isFinite(p.positionEfficiency)?p.positionEfficiency:null,
+     positionFit:Number.isFinite(p.positionFit)?p.positionFit:null};
    })
   });
 
@@ -141,6 +153,8 @@
    // Presentation RNG is deterministic but not part of the official ledger.
    visualSeed:String(preview.seed||'pfc')+':'+safeTeams.map(t=>t.id).join(':')+':'+
     result.events.filter(e=>e.type==='goal').map(e=>String(e.minute)).join(':'),
+   matchSeed:preview.seed==null?null:String(preview.seed).slice(0,256),
+   pseVersion:result.statsModel==null?null:String(result.statsModel).slice(0,90),
    home:safeTeams[0],away:safeTeams[1],score:result.score.slice(),
    ...(v1?{setPieceRules:'v1'}:{}),stats:result.stats.map(s=>({...s})),events,box,
    ...(duration===120?{knockoutRules:result.knockoutRules,regulationScore:result.regulationScore.slice()}:{}),
