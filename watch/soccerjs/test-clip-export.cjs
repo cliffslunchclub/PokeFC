@@ -25,6 +25,22 @@ assert.equal(Clip.filename(first.referenceId,entry,'json').replace(/\.json$/,'.w
  Clip.filename(first.referenceId,entry,'webm'));
 assert.deepEqual(Clip.diagnostic(fixture,entry,window,settings),first);
 assert.notEqual(Clip.refId(fixture,entry,'abc123'),Clip.refId(fixture,entry,'other-build'));
+const fromJson=Clip.reproduce(JSON.parse(JSON.stringify(first)),'abc123');
+assert.deepEqual(fromJson.fixture,fixture);
+assert.equal(fromJson.entry.id,entry.id);
+assert.equal(fromJson.speed,.5);
+assert.throws(()=>Clip.reproduce(first,'incorrect-build'),/matching Watch build/);
+const {motionFrame}=require('./phase10-motion.cjs'),field={width:106,height:68};
+for(const second of [fixture.reproduction.clearanceStartSeconds+1,
+ fixture.reproduction.clearanceArrivalSeconds+.5,entry.minute*60]){
+ const original=motionFrame(fixture,second/60,field);
+ const restored=motionFrame(fromJson.fixture,second/60,field);
+ assert.deepEqual(restored.ball,original.ball,'Downloaded JSON cannot change deterministic visual trajectory');
+ assert.deepEqual(restored.actors.map(p=>[p.x,p.y,p.frame]),
+  original.actors.map(p=>[p.x,p.y,p.frame]),'Downloaded JSON must reproduce same Pokémon motion');
+ assert.equal(restored.officialEvent?.type,original.officialEvent?.type);
+}
+
 assert.equal(Clip.supportedFormat({isTypeSupported:m=>m==='video/mp4'}).extension,'mp4');
 assert.equal(Clip.supportedFormat({isTypeSupported:m=>m==='video/webm;codecs=vp8'}).extension,'webm');
 assert.equal(Clip.supportedFormat({isTypeSupported:()=>false}),null);
