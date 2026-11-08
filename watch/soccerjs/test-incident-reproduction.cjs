@@ -67,7 +67,7 @@ let saveRepro=null;
   for(const event of fixture.events.filter(e=>e.type==='save')){
    const defending=event.team===fixture.home.id?0:1,scoring=1-defending;
    const sec=event.minute*60;
-   const callback=t=>rawMotionFrame(fixture,t/60,field,true);
+   const callback=t=>{if(!Number.isFinite(t)||t<0||t>fixture.durationMinutes*60)throw Error('Invalid save setup sample '+JSON.stringify({t,minute:event.minute,visualSeed:fixture.visualSeed}));return rawMotionFrame(fixture,t/60,field,true)};
    const scene=Saves.sequence(fixture,field,event,callback);
    if(!scene)continue;
    const stage=actions.find(a=>a.mode==='pass'&&a.pattern==='defensive-clearance'&&
