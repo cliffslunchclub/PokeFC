@@ -214,16 +214,30 @@ function makePlan(f,field){
    const release=seconds,kickOwner=owner;
    append('pass',target.duration,target.to,target.receiver,'defensive-clearance',3.2);
    const stage=actions.at(-1),end=stage.end;
+   const truncated=stage.duration<target.duration-.00001;
    stage.clearance={...target,receiver:target.receiver,
+    plannedDuration:target.duration,truncated,
     landingSeconds:release+target.duration*.66,
     bounceEndSeconds:release+target.duration*.86,
     startSeconds:release,endSeconds:end};
+   if(truncated){
+    stage.scheduleConflict={kind:'clearance-period-end',
+     reason:'Remaining match seconds cannot fit the planned natural ball flight',
+     releaseSeconds:release,officialFinalSeconds:total,
+     requiredSeconds:target.duration,availableSeconds:stage.duration};
+    // At the whistle the runner has not collected the still-flying ball.
+    const arr=tracks[target.receiver],record=arr.at(-1);
+    const catcher=Clearance.reaction({id:target.receiver,
+     from:startPositions[target.receiver],target:target.to,receiver:target.receiver,
+     side,field,duration:stage.duration});
+    if(record)record.p={x:catcher.x,y:catcher.y};
+   }
    const ids=[target.receiver,...target.supporters,...target.contesters];
    for(const id of ids){
     // Emit a REAL run from release to the landing zone. Cubic easing has
     // a 1.5x speed peak; Clearance.reaction caps the full travel distance.
     mark(id,release,{x:startPositions[id].x+offset(id),y:startPositions[id].y+.32});
-    if(id===target.receiver)continue; // append() already committed this touch
+    if(id===target.receiver)continue; // append() committed touch (or truncated chase)
     const to=Clearance.reaction({id,from:startPositions[id],target:target.to,
      receiver:target.receiver,side,field,duration:target.duration});
     mark(id,end,{x:to.x+offset(id),y:to.y+.32});
