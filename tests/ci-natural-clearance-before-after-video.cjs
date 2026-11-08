@@ -24,7 +24,9 @@ const field={width:106,height:68},distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
    const Motion=require(path.join(workspace,variant,'watch/soccerjs/phase10-motion.cjs'));
    const candidates=D.planFor(f,field).actions.filter(a=>a.pattern==='defensive-clearance'&&
     a.start>90&&a.start<600&&a.end-a.start>1);
-   const action=candidates.find(a=>Motion.motionFrame(f,(a.start+.15)/60,field).action==='illustrative-upfield-clearance');
+   const action=candidates.find(a=>
+    Motion.motionFrame(f,(a.start+.15)/60,field).action==='illustrative-upfield-clearance'&&
+    Motion.motionFrame(f,(a.start+a.end)/120,field).action==='illustrative-upfield-clearance');
    assert(action,'Need visible seeded clearance in '+variant);
    const length=distance(action.from,action.to);
    if(variant==='baseline')assert(length>=40,'Baseline regression no longer long');
@@ -49,6 +51,24 @@ const field={width:106,height:68},distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
     {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),start);
    await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__?.minute*60-t)<.001,start,{timeout:15000});
    await frame.locator('.pitchwrap').screenshot({path:path.join(out,variant+'-before-kick.png')});
+   // Playback speed changes must not change sampled physical world pose.
+   let reference=null;
+   for(const clockSpeed of [1,4,16]){
+    await frame.locator('#speed').selectOption(String(clockSpeed));
+    const midway=(action.start+action.end)/2;
+    await page.evaluate(t=>document.querySelector('iframe').contentWindow.postMessage(
+     {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),midway);
+    await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__?.minute*60-t)<.001,midway);
+    const snap=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
+    assert.equal(snap.animation,'illustrative-upfield-clearance');
+    assert.equal(snap.carrier,-1,'Clearance ball cannot be owned in mid-flight');
+    if(reference)assert(distance(reference,snap.ball)<.000001,'World trajectory changed with speed '+clockSpeed);
+    reference=snap.ball;
+   }
+   await frame.locator('#speed').selectOption('4');
+   await page.evaluate(t=>document.querySelector('iframe').contentWindow.postMessage(
+    {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),start);
+   await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__?.minute*60-t)<.001,start);
    await frame.evaluate(()=>document.getElementById('play').click());
    await frame.waitForFunction(t=>window.__PFC_SNAPSHOT__?.minute*60>=t-.02,
     Math.min(f.durationMinutes*60-1,action.end+2),{timeout:30000});
