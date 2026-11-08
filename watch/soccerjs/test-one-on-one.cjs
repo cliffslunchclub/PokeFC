@@ -58,7 +58,9 @@ for(const shot of shots){
   const clear=motionFrame(f,(shot.clearAt+.001)/60,field);
   assert.equal(clear.action,'illustrative-upfield-clearance');
   assert(dist(clear.ball,clear.actors[shot.clearer])<.9,'Clearance must begin within a reachable foot touch');
-  assert(Math.abs(shot.clearTo.x-shot.loose.x)>30,'Clear strongly upfield');
+  const range=dist(shot.clearTo,shot.loose);
+  assert(range>=24.99&&range<=35.01,'New approved 25–35m clearance, not 52m');
+  assert(shot.clearFlight?.duration>2,'Blocked ball must have an actual flight plan');
  }
 
  for(const seam of [shot.start,shot.impactSeconds,...(shot.outcome==='block'?[shot.spilled,shot.clearAt,shot.clearArrival]:[]),shot.end]){
