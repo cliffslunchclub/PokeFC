@@ -2,9 +2,10 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
 const fixture=require('../watch/soccerjs/repros/opposite-clearance-buildup-64.json');
-const root=path.resolve(__dirname,'..'),origin='http://127.0.0.1:8770';
+const root=path.resolve(__dirname,'..'),live=process.env.PFC_LIVE_SITE==='1',
+ origin=live?'https://pfc.cliffslunchclub.com':'http://127.0.0.1:8770';
 const out=path.join(root,'clip-browser-artifacts');fs.mkdirSync(out,{recursive:true});
-const server=spawn('python3',['-m','http.server','8770','--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
+const server=live?null:spawn('python3',['-m','http.server','8770','--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
 const html=`<!doctype html><html><head><meta charset="utf-8"><style>
 body{margin:0;background:#111}iframe{width:100vw;height:100vh;border:0}
 </style><script>const fixture=${JSON.stringify(fixture)};window.addEventListener('message',e=>{
@@ -58,6 +59,8 @@ if(e.data?.type==='pfc-phase10-ready')e.source.postMessage({type:'pfc-phase10-fi
    assert(data.highlight.startSeconds<=fixture.reproduction.clearanceStartSeconds);
    assert.equal(data.recording.replaySpeed,1);
    assert(data.referenceId&&data.app.buildId);
+   if(live)assert.equal(data.app.buildId,process.env.PFC_EXPECTED_BUILD,
+    'Production clip JSON has the wrong deployed build ID');
    console.log('EXPORT '+device+' window '+JSON.stringify({start:data.highlight.startSeconds,
     end:data.highlight.endSeconds,speed:data.recording.replaySpeed,reference:data.referenceId}));
    // Report the actual browser recorder state rather than hiding it behind a timeout.
@@ -90,5 +93,5 @@ if(e.data?.type==='pfc-phase10-ready')e.source.postMessage({type:'pfc-phase10-fi
    console.log('PASS '+device+' MP4/WebM recording '+fullName+' + JSON, cancel, replay restored');
    await context.close();
   }
- }finally{if(browser)await browser.close();server.kill('SIGTERM')}
+ }finally{if(browser)await browser.close();server?.kill('SIGTERM')}
 })().catch(e=>{console.error(e);process.exitCode=1});
