@@ -78,6 +78,6 @@ function durationSeconds(clip,speed){
  return duration/rate;
 }
 function progressAt(seconds,clip,speed){
- return Math.max(0,Math.min(1,Number(seconds)||0)/durationSeconds(clip,speed)));
+ return Math.max(0,Math.min(1,(Number(seconds)||0)/durationSeconds(clip,speed)));
 }
 module.exports={VERSION,FPS,MIMES,supportedFormat,refId,filename,diagnostic,durationSeconds,progressAt};
