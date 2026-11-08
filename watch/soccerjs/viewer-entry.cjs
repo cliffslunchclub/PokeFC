@@ -40,6 +40,45 @@ function setSaveAuto(value){
  send({type:'save-preference',enabled:autoContinueSaves});
  if(match&&sim){lastSent=-2;render(minute)}
 }
+function stopGoalCelebration(){
+ goalCelebration=null;$('goalCelebration').hidden=true;
+}
+function finishGoalCelebration(){
+ if(!goalCelebration)return;
+ const entry=goalCelebration.entry;
+ stopGoalCelebration();clearMotionTracking();
+ showHighlightNotice(entry);
+}
+function beginGoalCelebration(entry,now=performance.now()){
+ const field=Utils.getFieldBounds();
+ const scene=Celebrate.create(match,field,entry.event,motionFrame(match,entry.minute,field));
+ const reducedMotion=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ goalCelebration={entry,scene,elapsed:0,last:now,paused:false,reducedMotion};
+ $('goalCelebrationTitle').textContent='GOAL!';
+ $('goalCelebrationName').textContent=scene.scorerName;
+ $('goalCelebration').hidden=false;
+ clearMotionTracking();playing=false;last=null;
+ render(minute,{sceneFrame:Celebrate.sample(scene,0,{reducedMotion}),celebration:true});
+}
+function advanceGoalCelebration(now){
+ const c=goalCelebration;if(!c)return false;
+ if(!c.paused){
+  const delta=c.last==null?0:Math.max(0,(now-c.last)/1000);
+  // Backgrounded tabs freeze presentation; never teleport the orbit.
+  if(delta<=2)c.elapsed=Math.min(Celebrate.DURATION,c.elapsed+delta);
+ }
+ c.last=now;
+ if(c.elapsed>=Celebrate.DURATION){finishGoalCelebration();return true}
+ render(minute,{sceneFrame:Celebrate.sample(c.scene,c.elapsed,{reducedMotion:c.reducedMotion}),
+  celebration:true});
+ return true;
+}
+function celebrationKickoffTarget(event){
+ const field=Utils.getFieldBounds();
+ const normal=sec=>rawMotionFrame(match,sec/60,field,true);
+ const scenes=Kickoff.scenes(match,field,normal,sec=>rawMotionFrame(match,sec/60,field));
+ return Celebrate.kickoffReady(scenes,event);
+}
 function continueMatch(){
  if(incidentQueue.length&&liveSaveEvent){
   const at=motionFrame(match,minute,Utils.getFieldBounds(),{saveEvent:liveSaveEvent});
