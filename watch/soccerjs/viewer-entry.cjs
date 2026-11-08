@@ -890,6 +890,7 @@ async function boot(){
   $('highlightClose').onclick=()=>setHighlightDrawer(false);
   $('highlightNoticePlay').onclick=()=>{if(replayNotice)replayMoment(replayNotice)};
   $('highlightNoticeDismiss').onclick=continueMatch;
+  $('skipCelebration').onclick=finishGoalCelebration;
   for(const id of ['saveAutoControl','saveAutoAlert']){
    $(id).checked=autoContinueSaves;$(id).onchange=e=>setSaveAuto(e.target.checked);
   }
@@ -924,6 +925,8 @@ async function boot(){
   };
   $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
+    if(goalCelebration){goalCelebration.paused=false;goalCelebration.last=null;return}
+    if(replayNotice?.startsWith('goal-')){continueMatch();return}
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
     }
@@ -931,12 +934,15 @@ async function boot(){
     stopAt=match.durationMinutes;lastSent=-2;last=null;playing=true;
    };
   $('playFive').onclick=()=>{
+    if(goalCelebration){goalCelebration.paused=false;goalCelebration.last=null;return}
+    if(replayNotice?.startsWith('goal-')){continueMatch();return}
     if(minute>=match.durationMinutes){playing=true;last=null;return}
     if(replayNotice||pendingGoal)clearHighlightNotice();
     stopAt=Math.min(match.durationMinutes,(Math.floor(minute/5)+1)*5);
     last=null;playing=true;
    };
-  $('pause').onclick=()=>{playing=false;last=null;lastSent=-2;render(minute);};
+  $('pause').onclick=()=>{if(goalCelebration){goalCelebration.paused=true;goalCelebration.last=null;return}
+   playing=false;last=null;lastSent=-2;render(minute);};
   $('restart').onclick=()=>{kickIndex=0;seek(0)};
   $('skip').onclick=finish;
   $('scrub').oninput=e=>seek(Number(e.target.value));
@@ -947,8 +953,11 @@ async function boot(){
   $('nextKick').onclick=advanceKick;
   $('shootoutAdvance').onclick=advanceKick;
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
-  $('fullscreenPause').onclick=()=>{if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
+  $('fullscreenPause').onclick=()=>{if(goalCelebration){goalCelebration.paused=true;goalCelebration.last=null;render(minute);return}
+   if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
+   if(goalCelebration){goalCelebration.paused=false;goalCelebration.last=null;render(minute);return}
+   if(replayNotice?.startsWith('goal-')){continueMatch();return}
    if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
    if(replayNotice||pendingGoal)clearHighlightNotice();
    lastSent=-2;
@@ -990,6 +999,8 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
+    if(goalCelebration){goalCelebration.paused=false;goalCelebration.last=null;return}
+    if(replayNotice?.startsWith('goal-')){continueMatch();return}
     if(queuedPresentation){speed=Math.max(1,Math.min(16,Number(msg.speed)||speed));queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
      (!match.shootout||kickIndex>=match.shootout.attempts.length))return;
@@ -999,6 +1010,7 @@ async function boot(){
     lastSent=-2;playing=true;last=null;
     render(minute);
    }else if(msg.action==='pause'){
+    if(goalCelebration){goalCelebration.paused=true;goalCelebration.last=null;render(minute);return}
     if(queuedPresentation)queuedPresentation.paused=true;
     playing=false;last=null;lastSent=-2;render(minute);
    }else if(msg.action==='fullscreen'){
