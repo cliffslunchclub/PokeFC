@@ -78,4 +78,18 @@ for(const seed of [fixture.visualSeed,'issue-104-mirror-1','issue-104-mirror-2']
 assert.deepEqual([...sides].sort(),[0,1],'Clearances must work in both attacking directions');
 assert(verified>15&&bounces===verified&&receivers.size>2);
 assert.equal(JSON.stringify(fixture),before,'Director must not mutate official PSE fixture');
+// Synthetic opponent-wins-the-race example: visual possession may switch
+// ONLY when a real outfield opponent reaches the ball first.
+const Clearance=require('./phase10-clearance-flight.cjs');
+const positions=Array.from({length:22},()=>({x:4,y:61}));
+positions[6]={x:47,y:34};
+positions[17]={x:45,y:34};
+positions[18]={x:46,y:35};
+const contested=Clearance.plan({field,from:{x:20,y:34,z:.23},owner:2,side:0,
+ position:id=>positions[id],seed:'issue104-intercept-0',offside:()=>false});
+assert(!contested.conflict,'Synthetic physical contest has valid reachable kick');
+assert(contested.intercepted,'Closer opponent should physically intercept');
+assert.equal(Math.floor(contested.receiver/11),1,'Give actual first touch to opponent');
+assert(contested.intendedReceiver===6,'Original intended teammate retained in diagnostic');
+assert(dist(contested.to,{x:20,y:34})>=25);
 console.log('PASS issue #104 saved visual seed: '+verified+' physically continuous 25–35m clearances, bounced recovery, 22-player movement and locked PSE');
