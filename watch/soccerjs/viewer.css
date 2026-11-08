@@ -268,3 +268,15 @@ html.pfc-watch-fullscreen .watch-commentary{bottom:74px}
 .save-auto-control{display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.4;max-width:420px;padding:8px 0}.save-auto-control[hidden]{display:none}.save-auto-control input{width:20px;height:20px;vertical-align:middle}.save-auto-control small{font-size:11px;opacity:.8}
 
 .controls .save-auto-control{flex-basis:100%;margin-left:0;align-items:flex-start;white-space:normal}.save-auto-control span,.save-auto-control small{white-space:normal}
+
+/* Browser-only highlight export: controls are outside the captured pitch. */
+.clip-export-speed{display:flex;align-items:center;gap:5px;font-size:10px;color:#dbe2e9;font-weight:750}
+.clip-export-speed select{max-width:150px;min-height:42px;padding:6px;border:1px solid #777;background:#272b34;color:white;border-radius:7px}
+.highlight-replay-bottom #clipExportDownload{background:#e53935;border-color:#fca2a0}
+.highlight-replay-bottom #clipExportCancel{background:#40434b;border-color:#f4d071}
+.highlight-replay-bottom #clipExportJSON{background:#292d35}
+.highlight-replay-bottom #clipExportStatus:not([hidden]){min-width:100px;max-width:270px;font-size:11px;color:#f3ecdb;font-variant-numeric:tabular-nums}
+@media(max-width:600px){
+ .clip-export-speed select{min-height:44px;max-width:120px;font-size:10px}
+ .highlight-replay-bottom #clipExportStatus:not([hidden]){order:3;max-width:100%;text-align:center}
+}
