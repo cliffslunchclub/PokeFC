@@ -7,10 +7,11 @@ const preview={home:base.home,away:base.away},result=Q.simulate(preview,{seed:'o
 const fixture={...Bridge.snapshot(preview,result),visualSeed:'opposite-save-clearance-2'};
 const event=fixture.events.find(e=>e.type==='save'&&e.minute===86.5);
 assert(event&&event.shooter,'Need official recorded shooter for save clip');
-const root=path.resolve(__dirname,'..'),out=path.join(root,'clip-browser-artifacts'),port=8771;
+const root=path.resolve(__dirname,'..'),out=path.join(root,'clip-browser-artifacts'),port=8771,
+ live=process.env.PFC_LIVE_SITE==='1';
 fs.mkdirSync(out,{recursive:true});
-const server=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
-const origin='http://127.0.0.1:'+port;
+const server=live?null:spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
+const origin=live?'https://pfc.cliffslunchclub.com':'http://127.0.0.1:'+port;
 const html=`<!doctype html><html><head><meta charset="utf-8"><script>
 const fixture=${JSON.stringify(fixture)};
 window.addEventListener('message',e=>{
@@ -50,6 +51,8 @@ window.addEventListener('message',e=>{
   assert(video&&json,'Save video and companion JSON must both download');
   const data=JSON.parse(fs.readFileSync(await json.path(),'utf8'));
   assert.equal(data.highlight.kind,'save');
+  if(live)assert.equal(data.app.buildId,process.env.PFC_EXPECTED_BUILD,
+   'Save clip JSON must identify deployed SiteGround build');
   assert.equal(data.highlight.minute,86.5);
   assert.deepEqual(data.official.events,fixture.events);
   assert(data.referenceId&&video.suggestedFilename().includes(data.referenceId));
@@ -62,5 +65,5 @@ window.addEventListener('message',e=>{
   assert.deepEqual(fixture.events,Bridge.snapshot(preview,result).events);
   assert.deepEqual(errors,[]);
   console.log('PASS browser official-save MP4/WebM export, full preceding clearance, JSON and PSE immutability');
- }finally{if(browser)await browser.close();server.kill('SIGTERM')}
+ }finally{if(browser)await browser.close();server?.kill('SIGTERM')}
 })().catch(e=>{console.error(e);process.exitCode=1});
