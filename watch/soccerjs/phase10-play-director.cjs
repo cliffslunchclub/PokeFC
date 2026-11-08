@@ -214,6 +214,9 @@ function makePlan(f,field){
    const release=seconds,kickOwner=owner;
    append('pass',target.duration,target.to,target.receiver,'defensive-clearance',3.2);
    const stage=actions.at(-1),end=stage.end;
+   // A defender's physical interception is a turnover/challenge, never a
+   // 'completed pass' between teams. Kick/flight/landing remain identical.
+   if(target.intercepted)stage.mode='challenge';
    const truncated=stage.duration<target.duration-.00001;
    stage.clearance={...target,receiver:target.receiver,
     plannedDuration:target.duration,truncated,
@@ -378,10 +381,13 @@ function sample(f,field,seconds){
  if(!stage)throw Error('Missing visual stage');
  const u=(seconds-stage.start)/Math.max(.001,stage.duration);
  const ball=ballAt(stage,seconds);
- const ownerIndex=stage.mode==='carry'?stage.owner:
+ const ownerIndex=stage.pattern==='defensive-clearance'&&stage.clearance?-1:
+  stage.mode==='carry'?stage.owner:
   (stage.mode==='challenge'||stage.mode==='rebound')&&u>.96?stage.receiver:-1;
  let action,contact;
- if(stage.mode==='carry'){
+ if(stage.pattern==='defensive-clearance'&&stage.clearance){
+  action='illustrative-upfield-clearance';contact='clearance-'+ball.contact;
+ }else if(stage.mode==='carry'){
   action=u>.94?'illustrative-dribble':'illustrative-carry';
   contact='controlled';
  }else if(stage.mode==='challenge'){
