@@ -46,7 +46,7 @@ function sequence(f,field,event,normal){
      seed:String(f.visualSeed||''),clearanceArrival:s.clearance.arrival,officialSecond:end};
   }
  }
- const active=connected?s.active:Math.min(s.active,passStart-.1);
+ const active=connected?s.active:Math.max(0,Math.min(s.active,passStart-.1));
  const opening=connected?s.opening:normal(active);
  const data={...s,active,opening,from:connected?{...s.from}:{...opening.ball},
   finish:finishPoint,passStart,shotStart,net:catchPoint,end,scheduleConflict:conflict,
