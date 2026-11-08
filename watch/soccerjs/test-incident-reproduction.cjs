@@ -32,6 +32,14 @@ const {seed,goal,clearance,sequence,f}=repro;
 console.log('SAVED REPRO',JSON.stringify({seed,officialGoalMinute:goal.minute,
  goalTeam:goal.team,scorer:goal.player,clearanceStart:clearance.start,
  clearanceEnd:clearance.end,buildupStart:sequence.start,shotStart:sequence.shotStart}));
+const resolved=Goal.forGoal(f,field,goal,sec=>rawMotionFrame(f,sec/60,field,true));
+const source=rawMotionFrame(f,(clearance.end+.00001)/60,field,true);
+console.log('SEQUENCE CONNECTION',JSON.stringify({connected:resolved.clearance,
+ conflict:resolved.scheduleConflict,active:resolved.active,shotStart:resolved.shotStart,
+ sourceOwner:source.ownerIndex,receiver:clearance.receiver,
+ footGap:Math.hypot(source.ball.x-source.actors[clearance.receiver].x,
+ source.ball.y-source.actors[clearance.receiver].y),
+ distance:Math.hypot(source.ball.x-resolved.finish.x,source.ball.y-resolved.finish.y)}));
 const mid=(clearance.start+clearance.end)/2;
 const before=JSON.stringify(f);
 const frame=motionFrame(f,mid/60,field);
