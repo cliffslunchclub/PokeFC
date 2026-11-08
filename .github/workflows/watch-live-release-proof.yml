@@ -1,0 +1,31 @@
+name: Live Watch release 79ce540 proof
+on:
+  pull_request:
+    paths: ['.github/workflows/watch-live-release-proof.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: startsWith(github.head_ref, 'test/live-watch-release-79ce540')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 79ce540cca8533634a69bbe56f58b544ea75296f
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/ci-goal-celebration-browser.cjs
+        env:
+          PFC_LIVE_ORIGIN: https://pfc.cliffslunchclub.com
+          PFC_EXPECTED_BUILD_ID: 79ce540cca8533634a69bbe56f58b544ea75296f
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-watch-release-79ce540-proof
+          path: celebration-browser-artifacts/
+          retention-days: 14
