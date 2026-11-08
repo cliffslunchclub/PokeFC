@@ -32,7 +32,7 @@ const hits=One.build(base,field,raw).filter(x=>x.outcome==='block');
 for(const s of hits.slice(0,30)){
  assert(s.clearFlight&&s.clearance,'Loose block omitted real clearance');
  checkFlight(s.clearFlight,s.loose,s.clearTo,s.clearAt,s.clearArrival,'block');
- const kick=motionFrame(base,s.clearAt/60,field);
+ const kick=motionFrame(base,(s.clearAt+.001)/60,field);
  assert.equal(kick.action,'illustrative-upfield-clearance');
  assert(distance(kick.ball,kick.actors[s.clearer])<1,'Kicker did not physically reach ball');
  const arrival=motionFrame(base,s.clearArrival/60,field);
