@@ -54,7 +54,8 @@ const field={width:106,height:68},distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
    // Playback speed changes must not change sampled physical world pose.
    let reference=null;
    for(const clockSpeed of [1,4,16]){
-    await frame.locator('#speed').selectOption(String(clockSpeed));
+    await frame.evaluate(clockSpeed=>{const el=document.querySelector('#speed');
+     el.value=String(clockSpeed);el.dispatchEvent(new Event('change',{bubbles:true}));},clockSpeed);
     const midway=(action.start+action.end)/2;
     await page.evaluate(t=>document.querySelector('iframe').contentWindow.postMessage(
      {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),midway);
@@ -65,7 +66,8 @@ const field={width:106,height:68},distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
     if(reference)assert(distance(reference,snap.ball)<.000001,'World trajectory changed with speed '+clockSpeed);
     reference=snap.ball;
    }
-   await frame.locator('#speed').selectOption('4');
+   await frame.evaluate(()=>{const el=document.querySelector('#speed');
+    el.value='4';el.dispatchEvent(new Event('change',{bubbles:true}));});
    await page.evaluate(t=>document.querySelector('iframe').contentWindow.postMessage(
     {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),start);
    await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__?.minute*60-t)<.001,start);
