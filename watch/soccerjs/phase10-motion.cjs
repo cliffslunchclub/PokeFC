@@ -329,7 +329,9 @@ function unboundedMotionFrame(fixture,t,field,options=false){
    run:step.mode!=='carry'?(seconds-step.start)/Math.min(.6,step.duration):0,
    strength:shape.attack[side]})),
   offsideBoundary,
-  wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds};
+  wall:visual.wall,wallImpactSeconds:visual.wallImpactSeconds,
+  clearance:visual.clearance||null,
+  scheduleConflict:visual.scheduleConflict||null};
 
 }
 function rawMotionFrame(fixture,t,field,options=false){

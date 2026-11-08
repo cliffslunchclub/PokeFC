@@ -2,6 +2,7 @@
 // Official saves are immutable PSE events; all movement between them is visual.
 const Goal=require('./phase10-goal-sequence.cjs'),Director=require('./phase10-play-director.cjs');
 const Onside=require('./phase10-onside-movement.cjs');
+const Clearance=require('./phase10-clearance-flight.cjs');
 const cache=new WeakMap(),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),mix=(a,b,u)=>a+(b-a)*clamp(u,0,1);
 const blend=(a,b,u)=>({...a,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z||0,b.z||0,u)});
@@ -55,20 +56,38 @@ function sequence(f,field,event,normal){
  // Securing the catch includes the kick setup; traffic never adds another
  // idle animation. The explicit Replay/Continue pause is a separate UI state.
  const release=end+.65;
- const targetX=clamp(catchPoint.x+(side===0?-1:1)*42,12,field.width-12);
- const target={x:targetX,y:clamp(field.height/2+((Director.hash(event.player+event.minute)%2)?8:-8),5,field.height-5),z:.23};
- const receiver=Array.from({length:10},(_,i)=>defending*11+i+1)
-  .sort((a,b)=>dist(atEnd.actors[a],target)-dist(atEnd.actors[b],target)||a-b)[0];
- const arrival=release+Math.max(dist(catchPoint,target)/18,
-  dist(atEnd.actors[receiver],target)/4-(release-end));
+ // The on-screen save moves defenders/GK before the punt. Pick a physically
+ // reachable catcher from that displayed formation, not the raw director.
+ const terminal=buildupActors(data,end,normal);
+ const plan=Clearance.plan({field,from:catchPoint,owner:keeperId,side:defending,
+  position:id=>terminal[id],
+  seed:String(f.visualSeed||'')+':keeper-punt:'+event.minute,
+  offside:Director.isOffside.bind(null,f,field)});
+ // A PSE save is never discarded, even if the visual restart lacks time
+ // for a natural long punt. The planned conflict is exposed to Watch.
+ const fallback=plan.conflict?{
+  to:{x:clamp(catchPoint.x+(defending===0?25:-25),5,field.width-5),
+   y:catchPoint.y},receiver:terminal.map((p,id)=>({id,d:dist(p,catchPoint)}))
+    .filter(x=>Math.floor(x.id/11)===defending&&x.id!==keeperId&&x.id%11!==0)
+    .sort((a,b)=>a.d-b.d||a.id-b.id)[0]?.id,
+  duration:3.25,supporters:[],contesters:[],conflict:plan.conflict
+ }:plan;
+ const target={...fallback.to,z:.23},receiver=fallback.receiver;
+ const arrival=release+fallback.duration;
+ const clearFlight={start:release,from:catchPoint,to:target,
+  duration:fallback.duration,clearance:{plannedDuration:fallback.duration,
+   landingSeconds:release+fallback.duration*.66,
+   bounceEndSeconds:release+fallback.duration*.86}};
  let finish=arrival+12,landing;
  for(let i=0;i<5;i++){
   finish=Math.min(finish,(f.durationMinutes||90)*60);landing=normal(finish);
-  const recovery=Math.max(dist(target,landing.ball)/12,...landing.actors.map((a,id)=>dist(id===receiver?target:id===keeperId?catchPoint:atEnd.actors[id],a)/4));
+  const recovery=Math.max(dist(target,landing.ball)/12,...landing.actors.map((a,id)=>dist(id===receiver?target:id===keeperId?catchPoint:terminal[id],a)/4));
   if(finish-arrival>=recovery)break;finish=arrival+recovery+.2;
  }
  finish=Math.min(finish,(f.durationMinutes||90)*60);landing=normal(finish);
- stored={...data,release,arrival,recoveryEnd:finish,landing,target,receiver};cache.set(event,stored);return stored;
+ stored={...data,release,arrival,recoveryEnd:finish,landing,target,receiver,
+  clearFlight,puntPlan:fallback,
+  scheduleConflict:conflict||plan.conflict||null};cache.set(event,stored);return stored;
 }
 function buildupActors(s,seconds,normal){
  const actors=normal(seconds).actors.map(a=>({...a}));
@@ -126,9 +145,7 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
  for(let index=limit-1;index>=0;index--){
   const e=f.events[index];
   if(e.type!=='save'||Math.abs(seconds-e.minute*60)>65||(targetEvent&&e!==targetEvent))continue;
-  // A later official restart ends an earlier save's recovery in live Watch.
-  // Targeted save replays remain independent, including historical exports
-  // whose incidents predate PSE's current three-minute spacing rule.
+  // The current kickoff takes priority over an earlier save restart.
   if(!targetEvent&&frame.kickoff&&e.minute*60<frame.kickoff.start)continue;
   const first=f.events.findIndex(p=>p.minute===e.minute&&p.type==='save');
   if(!targetEvent&&first<index)continue;
@@ -150,8 +167,9 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
    actors[s.keeper].frame=seconds<s.end+.25?8:seconds>s.end+.55?1:0;
   }else if(seconds<s.arrival){
    actors=restartActors(s,seconds,prior);
-   const u=(seconds-s.release)/(s.arrival-s.release);ball=blend(s.net,s.target,u);ball.z+=Math.sin(Math.PI*u)*9;
-   contact='keeper-punt';action='illustrative-keeper-punt';actors[s.keeper].frame=u<.15?3:0;
+   const u=(seconds-s.release)/(s.arrival-s.release);
+   ball=Clearance.flight(s.clearFlight,seconds);
+   contact='keeper-punt-'+ball.contact;action='illustrative-keeper-punt';actors[s.keeper].frame=u<.15?3:0;
   }else{
    const u=(seconds-s.arrival)/(s.recoveryEnd-s.arrival);
    actors=restartActors(s,s.arrival,prior).map((a,id)=>blend(a,s.landing.actors[id],u));
@@ -162,7 +180,7 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
    onsideGuard:seconds<s.end?[{side:s.side,carrier:owner,runner:s.scorer,
     run:(seconds-s.passStart)/Math.max(.001,s.shotStart-s.passStart),
     strength:Math.max(0,Math.min(1,(seconds-s.start)/.2))}]:null,
-   saveSequence:{start:s.start,active:s.active,shotStart:s.shotStart,end:s.end,release:s.release,arrival:s.arrival,finish:s.recoveryEnd,keeper:s.keeper,shooter:s.scorer},
+   saveSequence:{start:s.start,active:s.active,shotStart:s.shotStart,end:s.end,release:s.release,arrival:s.arrival,finish:s.recoveryEnd,keeper:s.keeper,shooter:s.scorer,receiver:s.receiver,intercepted:!!s.puntPlan?.intercepted},
    scheduleConflict:s.scheduleConflict||null,
    illustrative:seconds<s.end||seconds>=s.release,passStart:s.passStart,passArrival:s.shotStart};
  }

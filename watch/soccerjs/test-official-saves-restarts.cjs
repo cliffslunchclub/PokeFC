@@ -25,7 +25,15 @@ for(let seed=0;seed<16;seed++){
   if(s.release+.1<(fixture.durationMinutes||90)*60)assert.equal(motionFrame(fixture,(s.release+.1)/60,field,{saveEvent:event}).action,'illustrative-keeper-punt');
   if(s.arrival<(fixture.durationMinutes||90)*60){
    const received=motionFrame(fixture,s.arrival/60,field,{saveEvent:event});
-   assert(Math.min(...received.actors.filter(a=>a.side===Math.floor(s.keeper/11)&&a.index!==0).map(a=>dist(a,received.ball)))<1.8,'Long punt must reach an actual receiver');
+   // An opponent may win an open-lane punt on the actual first touch.
+   // Assert the explicitly assigned physical catcher, not a fabricated
+   // same-team completed pass after a contested clearance.
+   assert(Number.isInteger(s.receiver)&&s.receiver>=0&&s.receiver<22,
+    'Punt must have a real outfield receiver');
+   assert(dist(received.actors[s.receiver],received.ball)<1.8,
+    'Punt must reach its real receiver: '+JSON.stringify({seed,minute:event.minute,
+     catcher:s.receiver,intercepted:s.intercepted,received:received.ball,
+     catcherPosition:received.actors[s.receiver]}));
   }
   for(const at of [s.start,s.active,s.shotStart,s.end,s.release,s.arrival,s.finish]){
    if(at<=0||at>=(fixture.durationMinutes||90)*60)continue;

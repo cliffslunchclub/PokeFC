@@ -1,0 +1,65 @@
+name: Watch natural coordinated clearance #104
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/phase10-play-director.cjs'
+      - 'watch/soccerjs/phase10-clearance-flight.cjs'
+      - 'watch/soccerjs/phase10-motion.cjs'
+      - 'watch/soccerjs/phase10-one-on-one.cjs'
+      - 'watch/soccerjs/phase10-goal-sequence.cjs'
+      - 'watch/soccerjs/phase10-save-sequence.cjs'
+      - 'watch/soccerjs/repros/natural-clearance-104.json'
+      - 'watch/soccerjs/test-natural-clearance-104.cjs'
+      - 'watch/soccerjs/test-natural-clearance-restarts.cjs'
+      - 'tests/ci-natural-clearance-before-after-video.cjs'
+      - 'watch/soccerjs/build-local.sh'
+      - '.github/workflows/deploy-siteground.yml'
+      - '.github/workflows/watch-natural-clearance.yml'
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node watch/soccerjs/test-natural-clearance-104.cjs
+      - run: node watch/soccerjs/test-natural-clearance-restarts.cjs
+      - run: node watch/soccerjs/test-play-sequence-director.cjs
+      - run: node watch/soccerjs/test-connected-clearances.cjs
+      - run: node watch/soccerjs/test-clearance-priority.cjs
+      - run: node watch/soccerjs/test-incident-reproduction.cjs
+
+  matching-videos:
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: current
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: 403abe800aabdb4590bec8aed4ebe40fda10aabf
+          path: baseline
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: cd baseline && bash watch/soccerjs/build-local.sh
+      - run: cd current && bash watch/soccerjs/build-local.sh
+      - run: cd current && npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: cd current && npx playwright install --with-deps chromium
+      - run: node current/tests/ci-natural-clearance-before-after-video.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue104-natural-clearance-before-after
+          path: natural-clearance-proof/
+          retention-days: 14
