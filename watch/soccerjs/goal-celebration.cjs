@@ -60,4 +60,12 @@ function sample(scene,elapsed,{reducedMotion=false}={}){
    angleDegrees,zoom:reducedMotion?1:1+.24*ease(t/.85),
    reducedMotion:!!reducedMotion,friendIds:scene.friends.map(x=>x.id)}};
 }
-module.exports={DURATION,create,sample,move,hop};
+// Identify the PREEXISTING two-player restart readiness. Continue cuts
+// directly to this real Watch frame; it never animates goal-to-centre travel.
+function kickoffReady(scenes,event){
+ const s=scenes.find(x=>x.goal&&x.goal.minute===event.minute&&
+  String(x.goal.team)===String(event.team)&&String(x.goal.player)===String(event.player));
+ return s?{seconds:s.ready,sceneStart:s.start,kicker:s.kicker,
+  receiver:s.receiver,transit:s.transit,side:s.side}:null;
+}
+module.exports={DURATION,create,sample,move,hop,kickoffReady};
