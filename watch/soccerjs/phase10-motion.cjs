@@ -227,15 +227,26 @@ function unboundedMotionFrame(fixture,t,field,options=false){
   const finisher=actors[scorerId],startScorer=sequence.openingRun.actors[scorerId];
   finisher.x=lerp(startScorer.x,finish.x-(side===0?.55:-.55),u);
   finisher.y=lerp(startScorer.y,finish.y-.3,u);
+  // A clearance received by the scheduled scorer is a true first-touch
+  // dribble, not a fabricated support pass. The recorded scorer's feet
+  // follow the controlled ball, then make the final PSE shooting contact.
+  if(sequence.directCarry){
+   const arrive=ease((seconds-sequence.start)/Math.max(.001,sequence.active-sequence.start));
+   const foot=seconds<sequence.active?{
+    x:lerp(startScorer.x,sequence.from.x-(side===0?.72:-.72),arrive),
+    y:lerp(startScorer.y,sequence.from.y-.32,arrive)}:
+    {x:ball.x-(side===0?.72:-.72),y:ball.y-.32};
+   if(seconds<sequence.shotStart){finisher.x=foot.x;finisher.y=foot.y;}
+  }
   const starter=actors[support];
-  if(seconds<sequence.active){
+  if(support!==scorerId&&seconds<sequence.active){
    const approach=ease((seconds-sequence.start)/Math.max(.001,sequence.active-sequence.start));
    starter.x=lerp(sequence.openingRun.actors[support].x,sequence.from.x-(side===0?.72:-.72),approach);
    starter.y=lerp(sequence.openingRun.actors[support].y,sequence.from.y-.32,approach);
   }
   if(seconds>=sequence.active){
    const carry=GoalSequence.sample(sequence,plan,Math.min(seconds,sequence.passStart)).ball;
-   starter.x=carry.x-(side===0?.72:-.72);starter.y=carry.y-.32;
+   if(support!==scorerId){starter.x=carry.x-(side===0?.72:-.72);starter.y=carry.y-.32;}
    const keeper=actors[(1-side)*11];
    Object.assign(keeper,Keeper.sceneAt(field,event,seconds,{
     start:sequence.active,end:sequence.end,shot:sequence.shotStart,side:1-side,
@@ -256,6 +267,7 @@ function unboundedMotionFrame(fixture,t,field,options=false){
     strength:ease((seconds-sequence.start)/.2)}],
    goalSequenceStart:sequence.start,goalShotStart:sequence.shotStart,
    goalPassStart:sequence.passStart,goalBallStart:sequence.active,
+   scheduleConflict:sequence.scheduleConflict||null,
    goalkeeperRushSide:seconds>=sequence.active&&!shooting&&Keeper.target(1-side,field,
     {mode:'carry',owner:side*11+6},ball).urgent?1-side:null,
    action:t>=event.minute?'official-goal':shooting?'illustrative-shot':

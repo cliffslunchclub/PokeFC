@@ -441,7 +441,8 @@ function render(t,options={}){
  $('score').textContent=s.join(' – ');
  $('clock').textContent=Math.floor(t)+"'"+(t>=90&&match.durationMinutes===120?' · ET':'');
  $('scrub').value=t;$('played').textContent=t.toFixed(1)+"/"+match.durationMinutes+"'";
- $('toast').textContent=script.label;$('toast').hidden=!script.label;
+ $('toast').textContent=script.scheduleConflict?'VISUAL TIMING CONFLICT · Official PSE clock preserved':script.label;
+ $('toast').hidden=!script.label&&!script.scheduleConflict;
  const totalKicks=match.shootout?.attempts.length||0;
  const shootoutPending=!!totalKicks&&t>=match.durationMinutes&&kickIndex<totalKicks;
  $('status').textContent=isReplay?'INSTANT REPLAY':shootoutPending?'PENALTY SHOOTOUT':
@@ -488,6 +489,7 @@ function render(t,options={}){
  renderCommentary(t,script,isReplay);
  $('motionStatus').textContent=(actionText[script.action]||'Animated sequence')+
   (script.officialEvent?' · official PSE event':' · illustrative movement')+
+  (script.scheduleConflict?' · SCHEDULING CONFLICT: '+script.scheduleConflict.reason:'')+
   (script.pressPhase==='counterpress'?' · HYBRID PRESS':
    script.pressPhase==='recover'?' · ORGANIZED RECOVERY':'');
  if(sim.scoreA!==s[0]||sim.scoreB!==s[1])throw Error('Score changed during render');
@@ -511,7 +513,7 @@ function render(t,options={}){
    impactSeconds:script.wallImpactSeconds
   }:null,
   carrier:ballCarrier,ballContact:script.contact||'continuous-play',
-  oneOnOne:script.oneOnOne||null,
+  oneOnOne:script.oneOnOne||null,scheduleConflict:script.scheduleConflict||null,
   officialEventId:script.officialEvent?.id||null,officialEventType:script.officialEvent?.type||null,
   soccerBallSpriteLoaded:!!soccerBallSprite?.naturalWidth,
   cameraOffset:[camera.tx,camera.ty],ballDrawRadius:Settings.BALL_DRAW_RADIUS,

@@ -7,6 +7,93 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const lerp=(a,b,u)=>a+(b-a)*clamp(u,0,1);
 const CARRY_SPEED=3.6,PASS_SPEED=14,SHOT_SPEED=24,RUN_SPEED=4;
+// Preserve any genuinely preceding defensive clearance instead of laying
+// the official goal animation over its airborne ball. The receiving outfielder
+// must meet that clearance, then carry and pass at the existing capped speeds.
+// This only schedules visual motion; the PSE event minute never changes.
+function connectClearance(f,field,event,s,normalFrame){
+ const plan=Director.planFor(f,field),goalSecond=event.minute*60;
+ const recent=plan.actions.filter(a=>a.mode==='pass'&&a.pattern==='defensive-clearance'&&
+  Math.floor(a.owner/11)===s.side&&a.start>s.start+.1&&
+  a.end<goalSecond-.3&&a.end<=s.shotStart-2&&a.end>=goalSecond-30).at(-1);
+ if(!recent)return s;
+ const active=recent.end+1e-5,received=normalFrame(active);
+ const owner=recent.receiver,source={...received.ball};
+ const missing=reason=>({...s,scheduleConflict:{
+  kind:'clearance-to-goal',reason,seed:String(f.visualSeed||f.seed||''),
+  clearanceStart:recent.start,clearanceArrival:recent.end,
+  officialSecond:goalSecond,availableSeconds:s.shotStart-active,
+  eventId:event.id||null}});
+ if(!Number.isInteger(owner)||owner%11===0||Math.floor(owner/11)!==s.side||
+  received.ownerIndex!==owner||distance(received.actors[owner],source)>1.8)
+  return missing('Clearance has no controlled receiving touch on scoring side');
+ // If the PSE scorer received the clearance, do not invent a teammate pass.
+ // The scorer takes a controlled first touch and dribbles into an attainable
+ // shooting location. Moving that shot slightly farther from goal may buy
+ // enough time without speeding up any player or the ball.
+ if(owner===s.scorer){
+  let solution=null;
+  for(let shift=0;shift<=8;shift+=.25){
+   const proposed={x:s.finish.x+(s.side===0?-shift:shift),
+    y:s.finish.y,z:.23};
+   const shotStart=s.end-distance(proposed,s.net)/SHOT_SPEED;
+   const travelTime=shotStart-active,runDistance=distance(source,proposed);
+   if(travelTime>0&&runDistance<=CARRY_SPEED*travelTime+.001){
+    solution={finish:proposed,shotStart};break;
+   }
+  }
+  if(!solution)return missing('Recorded scorer cannot carry into shooting range at 3.6 m/s');
+  let start=s.start,opening=normalFrame(start);
+  for(let n=0;n<12;n++){
+   const required=distance(opening.actors[owner],source)/RUN_SPEED;
+   if(active-start>=required-.01||start===0)break;
+   start=Math.max(0,start-(required-(active-start))-.1);
+   opening=normalFrame(start);
+  }
+  if(distance(opening.actors[owner],source)>RUN_SPEED*(active-start)+.05)
+   return missing('Scorer cannot physically receive the clearance');
+  return {...s,start,openingRun:opening,opening:received,active,from:source,
+   finish:solution.finish,shotStart:solution.shotStart,
+   passFrom:solution.finish,passStart:solution.shotStart,
+   support:owner,directCarry:true,clearance:{
+    start:recent.start,arrival:recent.end,receiver:owner,
+    from:{...recent.from},to:{...recent.to},controlledAt:active},
+   scheduleConflict:null};
+ }
+ const total=distance(source,s.finish),available=s.shotStart-active;
+ const room=available-total/PASS_SPEED;
+ const maximumCarry=room/(1/CARRY_SPEED-1/PASS_SPEED);
+ if(room<=0||maximumCarry<2.5)
+  return missing('Not enough PSE time for controlled carry and capped final pass');
+ const carryDistance=Math.min(total*.42,maximumCarry*.82);
+ const ratio=total?carryDistance/total:0;
+ const passFrom={x:lerp(source.x,s.finish.x,ratio),
+  y:lerp(source.y,s.finish.y,ratio),z:.23};
+ const passTime=Math.max(.12,distance(passFrom,s.finish)/PASS_SPEED);
+ const passStart=s.shotStart-passTime;
+ if((passStart-active)*CARRY_SPEED+1e-5<carryDistance||
+    passStart<=active+.2)
+  return missing('Controlled carry would exceed 3.6 m/s');
+ // The original scene starts early enough for the scorer's off-ball run.
+ // The actual clearance remains visible until its receiving touch.
+ let start=s.start,opening=normalFrame(start);
+ for(let n=0;n<12;n++){
+  const runner=distance(opening.actors[s.scorer],s.finish)/RUN_SPEED;
+  const receiver=distance(opening.actors[owner],source)/RUN_SPEED;
+  if(s.shotStart-start>=runner-.01&&active-start>=receiver-.01)break;
+  const needed=Math.max(runner-(s.shotStart-start),receiver-(active-start));
+  if(start===0)return missing('Outfield receiver or shooter cannot reach the ball on time');
+  start=Math.max(0,start-needed-.1);opening=normalFrame(start);
+ }
+ if(distance(opening.actors[s.scorer],s.finish)>RUN_SPEED*(s.shotStart-start)+.05||
+    distance(opening.actors[owner],source)>RUN_SPEED*(active-start)+.05)
+  return missing('Outfield runner would exceed 4 m/s');
+ return {...s,start,openingRun:opening,opening:received,active,from:source,
+  passFrom,passStart,support:owner,clearance:{
+   start:recent.start,arrival:recent.end,receiver:owner,
+   from:{...recent.from},to:{...recent.to},controlledAt:active},
+  scheduleConflict:null};
+}
 function forGoal(f,field,event,normalFrame){
  const key=field.width+':'+field.height;
  const previous=cache.get(event);if(previous?.key===key&&previous.fixture===f)return previous;
@@ -82,7 +169,8 @@ function forGoal(f,field,event,normalFrame){
  }
  opening=normalFrame(start);
  const result={...data,key,fixture:f,start,end,openingRun:opening,side,scorer,support,wing};
- cache.set(event,result);return result;
+ const connected=connectClearance(f,field,event,result,normalFrame);
+ cache.set(event,connected);return connected;
 }
 function sample(sequence,plan,seconds){
  const s=sequence;

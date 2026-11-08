@@ -17,11 +17,40 @@ function sequence(f,field,event,normal){
  const s=Goal.forGoal(f,field,proxy,normal),end=event.minute*60,keeperId=defending*11+keeper;
  const atEnd=normal(end),p=atEnd.actors[keeperId];
  const catchPoint={x:clamp(p.x,defending===0?2:field.width-10,defending===0?10:field.width-2),y:clamp(p.y,field.height/2-7,field.height/2+7),z:.75};
- const shotDuration=Math.max(.12,dist(s.finish,catchPoint)/24);
- // Leave the receiving touch immediately before the scheduled shooting kick.
- const shotStart=end-shotDuration,passStart=shotStart-(s.shotStart-s.passStart);
- const active=Math.min(s.active,passStart-.1),opening=normal(active);
- const data={...s,active,opening,from:{...opening.ball},passStart,shotStart,net:catchPoint,end,
+ // If the scheduled shooter caught the clearance, preserve that touch
+ // through the subsequent official save: no remote ball teleport or invented
+ // assist. Adjust the shooting spot only within the legal 25 m chance range.
+ const connected=!!s.clearance&&!s.scheduleConflict;
+ let finishPoint={...s.finish};
+ let shotStart=end-Math.max(.12,dist(finishPoint,catchPoint)/24);
+ let passStart=shotStart-(s.shotStart-s.passStart);
+ let conflict=s.scheduleConflict||null;
+ if(connected){
+  if(s.directCarry){
+   let possible=false;
+   for(let shift=0;shift<=8;shift+=.25){
+    const candidate={...s.finish,x:s.finish.x+(s.side===0?-shift:shift)};
+    const at=end-Math.max(.12,dist(candidate,catchPoint)/24);
+    if(at-s.active>.1&&dist(s.from,candidate)<=3.6*(at-s.active)+.001){
+     finishPoint=candidate;shotStart=at;passStart=at;possible=true;break;
+    }
+   }
+   if(!possible)conflict={kind:'clearance-to-save',reason:'Scorer cannot carry to save kick at 3.6 m/s',
+    seed:String(f.visualSeed||''),clearanceArrival:s.clearance.arrival,officialSecond:end};
+  }else{
+   passStart=s.passStart+(shotStart-s.shotStart);
+   if(passStart<=s.active+.2||
+    dist(s.from,s.passFrom)>3.6*(passStart-s.active)+.01||
+    dist(s.passFrom,finishPoint)>14*(shotStart-passStart)+.01)
+    conflict={kind:'clearance-to-save',reason:'No time for controlled reception and capped final pass',
+     seed:String(f.visualSeed||''),clearanceArrival:s.clearance.arrival,officialSecond:end};
+  }
+ }
+ const active=connected?s.active:Math.max(0,Math.min(s.active,passStart-.1));
+ if(!Number.isFinite(active)||active<0||active>(f.durationMinutes||90)*60)throw Error('Invalid save active '+JSON.stringify({active,connected,minute:event.minute,shotStart,passStart,goalActive:s.active,goalStart:s.start,goalShot:s.shotStart,goalPass:s.passStart,seed:f.visualSeed}));
+ const opening=connected?s.opening:normal(active);
+ const data={...s,active,opening,from:connected?{...s.from}:{...opening.ball},
+  finish:finishPoint,passStart,shotStart,net:catchPoint,end,scheduleConflict:conflict,
   defending,keeper:keeperId,event,fixture:f,field,width:field.width,height:field.height};
  const release=end+.85;
  const targetX=clamp(catchPoint.x+(side===0?-1:1)*42,12,field.width-12);
@@ -44,14 +73,22 @@ function buildupActors(s,seconds,normal){
  const u=clamp((seconds-s.start)/(s.shotStart-s.start),0,1);
  const fin={x:s.finish.x-(s.side===0?.55:-.55),y:s.finish.y-.3};
  Object.assign(actors[s.scorer],blend(s.openingRun.actors[s.scorer],fin,u));
+ if(s.directCarry&&s.clearance){
+  const foot=seconds<s.active?blend(s.openingRun.actors[s.scorer],
+   {x:s.from.x-(s.side===0?.72:-.72),y:s.from.y-.32},
+   (seconds-s.start)/Math.max(.001,s.active-s.start)):
+   Goal.sample(s,Director.planFor(s.fixture,s.field),seconds).ball;
+  if(seconds<s.shotStart)Object.assign(actors[s.scorer],seconds<s.active?foot:
+   {x:foot.x-(s.side===0?.72:-.72),y:foot.y-.32});
+ }
  if(seconds<s.active){
   const u=Math.max(0,Math.min(1,(seconds-s.start)/Math.max(.001,s.active-s.start)));
-  Object.assign(actors[s.support],blend(s.openingRun.actors[s.support],
+  if(s.support!==s.scorer)Object.assign(actors[s.support],blend(s.openingRun.actors[s.support],
    {x:s.from.x-(s.side===0?.72:-.72),y:s.from.y-.32},u));
  }
  if(seconds>=s.active){
   const carry=Goal.sample(s,Director.planFor(s.fixture,s.field),Math.min(seconds,s.passStart)).ball;
-  Object.assign(actors[s.support],{x:carry.x-(s.side===0?.72:-.72),y:carry.y-.32});
+  if(s.support!==s.scorer)Object.assign(actors[s.support],{x:carry.x-(s.side===0?.72:-.72),y:carry.y-.32});
   Object.assign(actors[s.keeper],blend(s.opening.actors[s.keeper],s.net,(seconds-s.active)/(s.end-s.active)));
  }
  Onside.apply(actors,s.field,Goal.sample(s,Director.planFor(s.fixture,s.field),seconds).ball,s.side,{
@@ -93,12 +130,14 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
   const s=sequence(f,field,e,prior);if(!s||seconds<s.start||seconds>=s.recoveryEnd)continue;
   let actors,ball,owner=-1,action,contact;
   if(seconds<s.end){
-   const sampled=seconds<s.active?{ball:prior(seconds).ball,owner:prior(seconds).ownerIndex,phase:'ordinary'}:
+   // Keep actual clearance visual up to its receiving touch.
+   const previous=seconds<s.active?prior(seconds):null;
+   const sampled=previous?{ball:previous.ball,owner:previous.ownerIndex,phase:'ordinary'}:
     Goal.sample(s,Director.planFor(f,field),seconds);
    ball=sampled.ball;owner=sampled.owner;contact=sampled.phase;
    actors=buildupActors(s,seconds,prior);
    if(seconds>=s.shotStart){actors[s.scorer].frame=3;actors[s.keeper].frame=8;}
-   action=seconds>=s.shotStart?'illustrative-save-shot':'illustrative-save-buildup';
+   action=seconds>=s.shotStart?'illustrative-save-shot':previous?.action||'illustrative-save-buildup';
   }else if(seconds<s.release){
    actors=restartActors(s,seconds,prior);
    ball={...s.net};owner=s.keeper;contact='keeper-hold';action='official-save';
@@ -118,6 +157,7 @@ function apply(f,field,seconds,frame,normal,limit=f.events.length,targetEvent=nu
     run:(seconds-s.passStart)/Math.max(.001,s.shotStart-s.passStart),
     strength:Math.max(0,Math.min(1,(seconds-s.start)/.2))}]:null,
    saveSequence:{start:s.start,active:s.active,shotStart:s.shotStart,end:s.end,release:s.release,arrival:s.arrival,finish:s.recoveryEnd,keeper:s.keeper,shooter:s.scorer},
+   scheduleConflict:s.scheduleConflict||null,
    illustrative:seconds<s.end||seconds>=s.release,passStart:s.passStart,passArrival:s.shotStart};
  }
  return frame;

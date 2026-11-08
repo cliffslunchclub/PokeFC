@@ -46,9 +46,23 @@ function clipFor(fixture,entry){
  const duration=durationOf(fixture);
  if(entry.kind==='save'&&entry.replayAvailable===false)return null;
  if(entry.kind==='goal'||entry.kind==='save'){
-  const start=clamp(entry.minute-8/60,0,duration);
+  // Replay the complete connected buildup, not the last eight seconds when
+  // that would omit an actual clearance, receiver or off-ball scoring run.
+  const field={width:106,height:68};
+  const Motion=require('./phase10-motion.cjs');
+  const normal=sec=>Motion.rawMotionFrame(fixture,sec/60,field,true);
+  const sequence=entry.kind==='goal'?
+   require('./phase10-goal-sequence.cjs').forGoal(fixture,field,entry.event,normal):
+   require('./phase10-save-sequence.cjs').sequence(fixture,field,entry.event,normal);
+  const startSeconds=Math.max(0,Math.min(entry.minute*60-8,sequence?.start??Infinity,
+   sequence?.clearance?.start??Infinity));
+  const start=clamp(startSeconds/60,0,duration);
   const end=clamp(entry.minute+(entry.kind==='save'?.4:1)/60,0,duration);
-  return {id:entry.id,kind:entry.kind,start,end,durationSeconds:(end-start)*60,minute:entry.minute};
+  return {id:entry.id,kind:entry.kind,start,end,
+   durationSeconds:(end-start)*60,minute:entry.minute,
+   buildupStartSeconds:sequence?.start??null,
+   clearanceStartSeconds:sequence?.clearance?.start??null,
+   schedulingConflict:sequence?.scheduleConflict??null};
  }
  if(entry.kind==='set'&&entry.setPiece==='shootout'){
   return {id:entry.id,kind:'shootout',start:duration,end:duration,
