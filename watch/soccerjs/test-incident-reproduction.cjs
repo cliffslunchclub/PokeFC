@@ -54,6 +54,46 @@ for(const g of f.events.filter(e=>e.type==='goal')){
  assert.equal(frame.officialEvent,g);
  assert(playerIndex>=0);
 }
+// Real PSE save counterpart: scan the deterministic visual seed space
+// to find a scorer-side clearance inside a keeper-save buildup.
+const Saves=require('./phase10-save-sequence.cjs');
+let saveRepro=null;
+{
+ const preview={home:f.home,away:f.away};
+ const official=Bridge.snapshot(preview,Q.simulate(preview,{seed:'official-saves-1'}));
+ for(let seed=0;seed<80&&!saveRepro;seed++){
+  const fixture={...official,visualSeed:'opposite-save-clearance-'+seed};
+  const actions=Director.planFor(fixture,field).actions;
+  for(const event of fixture.events.filter(e=>e.type==='save')){
+   const defending=event.team===fixture.home.id?0:1,scoring=1-defending;
+   const sec=event.minute*60;
+   const callback=t=>rawMotionFrame(fixture,t/60,field,true);
+   const scene=Saves.sequence(fixture,field,event,callback);
+   if(!scene)continue;
+   const stage=actions.find(a=>a.mode==='pass'&&a.pattern==='defensive-clearance'&&
+    Math.floor(a.owner/11)===scoring&&a.end>=sec-18&&a.end<=sec-8&&
+    a.start>scene.start+.1&&a.end<scene.shotStart-2);
+   if(!stage)continue;
+   saveRepro={fixture,event,stage,scene};
+   break;
+  }
+ }
+}
+assert(saveRepro,'Reproduce an actual saved shot preceded by an opposite-end clearance');
+const sr=saveRepro,smid=(sr.stage.start+sr.stage.end)/2;
+console.log('SAVED SAVE REPRO',JSON.stringify({seed:sr.fixture.visualSeed,
+ minute:sr.event.minute,clearanceStart:sr.stage.start,
+ clearanceArrival:sr.stage.end,shotStart:sr.scene.shotStart,conflict:sr.scene.scheduleConflict}));
+assert.equal(motionFrame(sr.fixture,smid/60,field,{saveEvent:sr.event}).action,
+ 'illustrative-upfield-clearance','Keep the upfield clearance before a PSE save');
+if(sr.scene.clearance){
+ const sframe=motionFrame(sr.fixture,(sr.scene.active+.5)/60,field,{saveEvent:sr.event});
+ if(sr.scene.directCarry){
+  assert.equal(sframe.ownerIndex,sr.scene.scorer,'Recorded shooter receives save-side clearance');
+  assert(dist(sframe.ball,sframe.actors[sr.scene.scorer])<1.8,'Saved shot carrier must touch ball');
+ }
+}
+
 for(const seed of [1,2,3]){
  const preview={home:f.home,away:f.away};
  const snapshot=Bridge.snapshot(preview,Q.simulate(preview,{seed:'official-saves-'+seed}));
