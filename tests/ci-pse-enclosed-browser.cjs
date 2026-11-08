@@ -46,7 +46,8 @@ const attempts=OneOnOne.build(fixture,{width:106,height:68},
 const outsideGoal=stage=>!fixture.events.some(e=>e.type==='goal'&&
  stage.start<e.minute*60+18&&stage.end>e.minute*60-43);
 assert(stagePlan.actions.every(s=>!s.wall&&s.mode!=='rebound'),'No intentional board play');
-const clearance=stagePlan.actions.find(stage=>stage.pattern==='defensive-clearance'&&stage.start>120&&stage.end<85*60&&outsideGoal(stage)&&!motionFrame(fixture,(stage.start+.05)/60,{width:106,height:68}).saveSequence);
+const clearance=stagePlan.actions.find(stage=>stage.pattern==='defensive-clearance'&&stage.start>120&&stage.end<85*60&&outsideGoal(stage)&&
+ motionFrame(fixture,(stage.start+.05)/60,{width:106,height:68}).action==='illustrative-upfield-clearance');
 const attempt=attempts.find(a=>a.outcome==='block'&&a.start>60&&outsideGoal(a));
 assert(attempt&&clearance,'Need a loose block and defensive clearance');
 const fixturePath=path.join(root,'watch/soccerjs/dist/fixture.json');
