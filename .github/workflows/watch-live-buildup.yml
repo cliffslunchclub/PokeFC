@@ -1,5 +1,9 @@
 name: Verify deployed PSE buildup on live PokéFC
 on:
+  pull_request:
+    paths:
+      - 'tests/ci-live-buildup-proof.cjs'
+      - '.github/workflows/watch-live-buildup.yml'
   workflow_run:
     workflows: ["Deploy PokéFC Home + Three Game Modes"]
     types: [completed]
