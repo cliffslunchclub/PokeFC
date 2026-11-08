@@ -280,3 +280,12 @@ html.pfc-watch-fullscreen .watch-commentary{bottom:74px}
  .clip-export-speed select{min-height:44px;max-width:120px;font-size:10px}
  .highlight-replay-bottom #clipExportStatus:not([hidden]){order:3;max-width:100%;text-align:center}
 }
+
+/* Scorer celebration stays above the pitch, not inside any export canvas. */
+.goal-celebration:not([hidden]){position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;z-index:7;pointer-events:none;padding:clamp(12px,4vw,40px);background:linear-gradient(180deg,rgba(7,10,15,.5),transparent 38%,transparent 72%,rgba(7,10,15,.40))}
+.goal-celebration-label{display:flex;align-items:center;flex-direction:column;gap:5px;text-align:center;color:#fff;text-shadow:0 2px 12px #000f}
+.goal-celebration-label strong{font-size:clamp(25px,6vw,52px);font-weight:950;letter-spacing:.08em;color:#fff}
+.goal-celebration-label span{font-size:clamp(13px,2.5vw,24px);font-weight:850;text-shadow:0 2px 8px #000f}
+.goal-celebration button{min-height:44px;pointer-events:auto;touch-action:manipulation;padding:10px 16px;border:2px solid #f4f5f6;background:#17191fe9;color:white;border-radius:9px;font-size:12px;font-weight:900;letter-spacing:.03em}
+.goal-celebration button:focus-visible{outline:3px solid #ff7975;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.goal-celebration{animation:none!important;transition:none!important}}
