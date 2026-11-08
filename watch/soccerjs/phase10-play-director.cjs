@@ -6,6 +6,7 @@
  */
 const {styleFor}=require('./phase10-team-shape.cjs');
 const Wall=require('./phase10-wall-physics.cjs');
+const Clearance=require('./phase10-clearance-flight.cjs');
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
 const lerp=(a,b,u)=>a+(b-a)*u;
@@ -74,7 +75,7 @@ function makePlan(f,field){
   throw Error('Play Director needs a PSE fixture');
  const total=(f.durationMinutes===120?120:90)*60;
  const actions=[],sequences=[],tracks=Array.from({length:22},()=>[]);
- let seconds=0,owner=6,ball=point(field,field.width*.45,field.height*.5),count=0;
+ let seconds=0,owner=6,ball=point(field,field.width*.45,field.height*.5),count=0,lastClearanceAt=-Infinity;
  const dice=(key,n)=>hash(seed(f)+':'+count+':'+key)%n;
  function mark(id,t,p){
   const arr=tracks[id],spot=point(field,p.x-offset(id),p.y-.32);
@@ -170,26 +171,50 @@ function makePlan(f,field){
   const started=seconds,initial=owner,side=sideOf(owner);
   const sign=dice('side',2)?1:-1;
   const lane=sign*(3+dice('lane',60)/10);
-  // Maximum safety priority throughout our defensive third, for every
-  // recovering player. The first touch is a direct upfield kick, not a carry,
-  // short pass, backwards recycle or deliberate board contact.
+  // Immediate first-touch kick in danger, but choose a landing zone a
+  // teammate can physically reach. Freeze the input before append() writes
+  // the receiving keyframe. No referee event or PSE statistic is generated.
   const ownDepth=side===0?ball.x:field.width-ball.x;
-  if(ownDepth<=field.width/3||owner%11===0){
-   const forward=side===0?1:-1;
-   const x=clamp(ball.x+forward*52,12,field.width-12);
-   const opponents=Array.from({length:11},(_,i)=>base((1-side)*11+i,field));
-   const lanes=[.35,.5,.65].map(v=>({x,y:field.height*v}));
-   lanes.sort((a,b)=>{
-    const space=p=>Math.min(...opponents.map(o=>Math.hypot(o.x-p.x,o.y-p.y)));
-    return space(b)-space(a)||Math.abs(a.y-field.height/2)-Math.abs(b.y-field.height/2);
-   });
-   const to=point(field,lanes[0].x,lanes[0].y);
-   const flight=Math.max(1.5,Math.hypot(to.x-ball.x,to.y-ball.y)*1.5/26);
-   pass(flight,to,'defensive-clearance',6,'through');
+  if((ownDepth<=field.width/3||owner%11===0)&&seconds-lastClearanceAt>8){
+   const startPositions=Array.from({length:22},(_,id)=>releasePosition(id));
+   const target=Clearance.plan({field,from:ball,owner,side,
+    position:id=>startPositions[id],seed:seed(f)+':'+count,
+    offside:(s,x,rx)=>isOffside(f,field,s,x,rx)});
+   if(target.conflict){
+    // Never teleport a fictional receiver to make an impossible kick work.
+    // Hold real possession with a capped carry and disclose the conflict.
+    carry(1.5,2,0,'clearance-constraint');
+    actions.at(-1).scheduleConflict=target.conflict;
+    sequences.push({index:count,start:started,end:seconds,
+     kind:'clearance-constraint',firstOwner:initial});
+    return;
+   }
+   const release=seconds,kickOwner=owner;
+   append('pass',target.duration,target.to,target.receiver,'defensive-clearance',3.2);
+   const stage=actions.at(-1),end=stage.end;
+   stage.clearance={...target,receiver:target.receiver,
+    landingSeconds:release+target.duration*.66,
+    bounceEndSeconds:release+target.duration*.86,
+    startSeconds:release,endSeconds:end};
+   const ids=[target.receiver,...target.supporters,...target.contesters];
+   for(const id of ids){
+    // Emit a REAL run from release to the landing zone. Cubic easing has
+    // a 1.5x speed peak; Clearance.reaction caps the full travel distance.
+    mark(id,release,{x:startPositions[id].x+offset(id),y:startPositions[id].y+.32});
+    if(id===target.receiver)continue; // append() already committed this touch
+    const to=Clearance.reaction({id,from:startPositions[id],target:target.to,
+     receiver:target.receiver,side,field,duration:target.duration});
+    mark(id,end,{x:to.x+offset(id),y:to.y+.32});
+   }
+   lastClearanceAt=release;
+   // First contact is a controlled, short outlet DRIBBLE, not an instant
+   // speculative long return into the box.
+   carry(1.7,2.3,0,'clearance-control');
    sequences.push({index:count,start:started,end:seconds,
-    kind:'defensive-clearance',firstOwner:initial});
+    kind:'defensive-clearance',firstOwner:initial,kicker:kickOwner,receiver:target.receiver});
    return;
   }
+  if(seconds-lastClearanceAt<8)kind='dribble';
   if(kind==='dribble'){
    // Make a deliberate forward carry, then release rather than waiting
    // 5–15 seconds for the next meaningful action.
