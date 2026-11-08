@@ -13,7 +13,10 @@ function flight(stage,seconds){
  const k=2*(1-u)/T,landing=.66,bounceEnd=.86;
  let z=GROUND,phase='rolling';
  if(u<landing){
-  z=GROUND+3.2*Math.sin(Math.PI*u/landing);
+  // A goalkeeper punt begins at hand height, while a defender's kick
+  // begins at grass height. Both reach the same natural landing surface.
+  const hand=Math.max(GROUND,Number(stage.from.z)||GROUND);
+  z=GROUND+(hand-GROUND)*(1-u/landing)+3.2*Math.sin(Math.PI*u/landing);
   phase='airborne';
  }else if(u<bounceEnd){
   z=GROUND+.4*Math.sin(Math.PI*(u-landing)/(bounceEnd-landing));
