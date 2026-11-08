@@ -21,7 +21,7 @@ function sequence(f,field,event,normal){
  // through the subsequent official save: no remote ball teleport or invented
  // assist. Adjust the shooting spot only within the legal 25 m chance range.
  const connected=!!s.clearance&&!s.scheduleConflict;
- let finishPoint={...s.finishPoint};
+ let finishPoint={...s.finish};
  let shotStart=end-Math.max(.12,dist(finishPoint,catchPoint)/24);
  let passStart=shotStart-(s.shotStart-s.passStart);
  let conflict=s.scheduleConflict||null;
@@ -29,7 +29,7 @@ function sequence(f,field,event,normal){
   if(s.directCarry){
    let possible=false;
    for(let shift=0;shift<=8;shift+=.25){
-    const candidate={...s.finishPoint,x:s.finishPoint.x+(s.side===0?-shift:shift)};
+    const candidate={...s.finish,x:s.finish.x+(s.side===0?-shift:shift)};
     const at=end-Math.max(.12,dist(candidate,catchPoint)/24);
     if(at-s.active>.1&&dist(s.from,candidate)<=3.6*(at-s.active)+.001){
      finishPoint=candidate;shotStart=at;passStart=at;possible=true;break;
