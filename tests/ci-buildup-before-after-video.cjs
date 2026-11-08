@@ -33,8 +33,10 @@ const host=variant=>'<!doctype html><html><head><meta charset="utf-8"><style>*{b
     s.value='4';s.dispatchEvent(new Event('change',{bubbles:true}));
    });
    const start=f.reproduction.clearanceStartSeconds-1.5;
-   await frame.evaluate(t=>{const e=document.querySelector('#scrub');e.value=String(t/60);
-    e.dispatchEvent(new Event('input',{bubbles:true}))},start);
+   // HTML range inputs quantize to three-second steps; use the exact
+   // embedded seek protocol for a frame-identical before/after starting time.
+   await page.evaluate(t=>document.querySelector('iframe').contentWindow.postMessage(
+    {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),start);
    await frame.waitForFunction(t=>Math.abs(window.__PFC_SNAPSHOT__.minute*60-t)<.001,start);
    const setup=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(setup.projection,'orthographic');assert.equal(setup.camera,'follow');
