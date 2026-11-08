@@ -577,6 +577,11 @@ function renderCommentary(t,script,isReplay){
  }
 }
 function render(t,options={}){
+ if(goalCelebration&&!options.replay&&!options.celebration&&
+  !options.sceneFrame&&!Number.isFinite(options.sceneSeconds)){
+  options={...options,sceneFrame:Celebrate.sample(goalCelebration.scene,goalCelebration.elapsed,
+   {reducedMotion:goalCelebration.reducedMotion}),celebration:true};
+ }
  const isReplay=options.replay===true;
  if(queuedPresentation&&!isReplay&&!Number.isFinite(options.sceneSeconds)){
   const q=queuedPresentation;options={...options,sceneSeconds:q.phase==='transition'?q.clock+q.elapsed:q.seconds,
@@ -679,7 +684,7 @@ function render(t,options={}){
  if(!isReplay&&embedded&&(t===match.durationMinutes||t===0||Math.abs(t-lastSent)>=.1)){
   lastSent=t;send({type:'progress',minute:t,score:s,kickIndex,
    shootoutComplete:!match.shootout||kickIndex===match.shootout.attempts.length,
-   pausedForGoal:!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused,watchSpeed:speed});
+   pausedForGoal:!!goalCelebration||!!replayNotice?.startsWith('goal-'),pausedForSave:!!replayNotice?.startsWith('save-'),watchPlaying:!!playing||!!queuedPresentation&&!queuedPresentation.paused,watchSpeed:speed});
  }
  window.__PFC_SNAPSHOT__={minute:t,score:s,players:22,
   projection:camera.projection,camera:camera.camera,scale:camera.scale,
@@ -716,7 +721,7 @@ function render(t,options={}){
    x:goal.lineX,min:goal.yMin,max:goal.yMax
   })),
   boardGeometry:Wall.boardSegments(field,{left:sim.pitch.leftGoal,right:sim.pitch.rightGoal}),
-  goalPaused:!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
+  goalPaused:!!goalCelebration||!!replayNotice?.startsWith('goal-'),savePaused:!!replayNotice?.startsWith('save-'),watchPlaying:playing,
   queuedSavePresentation:queuedPresentation?.phase||null,queuedSaveCount:incidentQueue.length,
   autoContinueSaves,saveAutoCountdown:saveAutoDeadline!==null,kickoff:script.kickoff||null,
   kickoffIntro:kickoffIntro?{...kickoffIntro}:null,saveSequence:script.saveSequence||null,
