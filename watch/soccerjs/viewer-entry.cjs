@@ -403,7 +403,7 @@ function renderHighlightCatalog(force=false){
   host.style.height=Math.max(38,lanes.length*36)+'px';
  }
 }
-function cameraFit(canvas,field,ball){
+function cameraFit(canvas,field,ball,celebration=null){
  const p=Settings.projectionMode;
  // Screen extents per one world unit, from the unchanged original Soccer-JS
  // projection transforms (Utils.toScreen). Do not substitute our own art.
@@ -414,7 +414,7 @@ function cameraFit(canvas,field,ball){
  const camera=$('camera').value==='follow'?'follow':'wide';
  // Deliberately tighter television-style framing; camera tracks the ball.
  // Midfield/penalty-area FIFA-like framing without the extreme 4.8x closeup.
- Settings.camera.scale=fit*(camera==='follow'?3.15:1.35)*zoomFactor;
+ Settings.camera.scale=fit*(camera==='follow'?3.15:1.35)*zoomFactor*(celebration?.zoom||1);
  const corners=[[0,0],[field.width,0],[0,field.height],[field.width,field.height]]
    .map(([x,y])=>Utils.toScreen(x,y,0));
  const xs=corners.map(v=>v.x),ys=corners.map(v=>v.y);
@@ -424,8 +424,22 @@ function cameraFit(canvas,field,ball){
   center.x=mix(center.x,focus.x,.94);
   center.y=mix(center.y,focus.y,.94);
  }
+ if(celebration){
+  // The existing Soccer-JS renderer has no true yaw. A shallow 38-degree
+  // elliptical camera sweep approximates a drone orbit while centering the
+  // real scorer in all projections, without distorting world geometry.
+  const t=celebration.elapsed,phase=Math.min(1,Math.max(0,t/.8));
+  const approach=phase*phase*(3-2*phase);
+  const scorer=Utils.toScreen(celebration.focus.x,celebration.focus.y,0);
+  center.x=mix(center.x,scorer.x,approach);
+  center.y=mix(center.y,scorer.y,approach);
+  const angle=celebration.angleDegrees*Math.PI/180;
+  const orbit=celebration.reducedMotion?0:Math.sin(angle)*Settings.camera.scale*.62*approach;
+  center.x+=orbit;
+  center.y+=(celebration.reducedMotion?0:(1-Math.cos(angle))*Settings.camera.scale*.28)*approach;
+ }
  // Soften abrupt changes of possession in illustrative sequences.
- if(playing&&smoothedFocus&&smoothedFocus.projection===p&&smoothedFocus.camera===camera){
+ if(playing&&!celebration&&smoothedFocus&&smoothedFocus.projection===p&&smoothedFocus.camera===camera){
   center.x=mix(smoothedFocus.x,center.x,.15);
   center.y=mix(smoothedFocus.y,center.y,.15);
  }
@@ -595,7 +609,7 @@ function render(t,options={}){
  sim.ball.vx=sim.ball.vy=sim.ball.vz=0;
  sim.scoreA=s[0];sim.scoreB=s[1];sim.matchTimer=t*60;
  const canvas=$('pitch'),ctx=canvas.getContext('2d');
- const camera=cameraFit(canvas,field,script.ball);
+ const camera=cameraFit(canvas,field,script.ball,script.celebration||null);
  window.__PFC_DRAWN__=0;window.__PFC_REAL_SPRITES_DRAWN__=0;
  // Possession changes only once the intended receiver has actually touched
  // the ball; never guess a carrier merely because a Pokémon is 12m away.
