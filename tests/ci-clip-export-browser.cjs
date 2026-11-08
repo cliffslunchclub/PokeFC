@@ -33,6 +33,11 @@ if(e.data?.type==='pfc-phase10-ready')e.source.postMessage({type:'pfc-phase10-fi
    await frame.waitForFunction(()=>!document.querySelector('#highlightReplay').hidden);
    const original=await frame.evaluate(()=>window.__PFC_SNAPSHOT__);
    assert.equal(original.replay.id,'goal-2');
+   const clean=await frame.evaluate(()=>{
+    try{document.querySelector('#pitch').toDataURL('image/png');return true}
+    catch(e){return String(e)}
+   });
+   assert.equal(clean,true,'Every rendered sprite must be CORS-clean for video capture');
    await frame.locator('#clipExportSpeed').selectOption('1');
    // Cancel never downloads or mutates the paused/selected replay.
    await frame.locator('#clipExportDownload').click();
