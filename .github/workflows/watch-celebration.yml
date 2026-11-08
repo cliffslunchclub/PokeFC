@@ -1,0 +1,38 @@
+name: Watch scorer celebration, kickoff cut and proportional zoom
+on:
+  pull_request:
+    paths:
+      - 'watch/soccerjs/goal-celebration.cjs'
+      - 'watch/soccerjs/test-goal-celebration.cjs'
+      - 'watch/soccerjs/test-celebration-kickoff-cut.cjs'
+      - 'watch/soccerjs/test-proportional-sprites.cjs'
+      - 'watch/soccerjs/pokemon-draw.cjs'
+      - 'watch/soccerjs/viewer-entry.cjs'
+      - 'watch/soccerjs/index.html'
+      - 'watch/soccerjs/viewer.css'
+      - 'watch/soccerjs/build-local.sh'
+      - '.github/workflows/deploy-siteground.yml'
+      - 'tests/ci-celebration-browser.cjs'
+      - '.github/workflows/watch-celebration.yml'
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --check watch/soccerjs/viewer-entry.cjs
+      - run: node --check watch/soccerjs/goal-celebration.cjs
+      - run: node watch/soccerjs/test-goal-celebration.cjs
+      - run: node watch/soccerjs/test-celebration-kickoff-cut.cjs
+      - run: node watch/soccerjs/test-proportional-sprites.cjs
+      - run: node tests/test-watch-deployment-deps.cjs
+      - run: node watch/soccerjs/test-goal-kickoff-reset.cjs
+      - run: node watch/soccerjs/test-shot-retreat.cjs
+      - run: node watch/soccerjs/test-official-saves-restarts.cjs
