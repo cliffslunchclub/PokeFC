@@ -24,5 +24,6 @@ jobs:
           node-version: '22'
       - run: node --check watch/soccerjs/clip-export.cjs
       - run: node watch/soccerjs/test-clip-export.cjs
+      - run: node watch/soccerjs/test-clip-recorder.cjs
       - run: node tests/test-watch-highlights.cjs
       - run: node tests/test-phase10-quickplay-lifecycle.cjs
