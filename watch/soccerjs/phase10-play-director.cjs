@@ -181,7 +181,7 @@ function makePlan(f,field){
   // changes cannot silently rewrite previously verified incident evidence.
   // Ordinary live Watch games always use the new 25–35m trajectory below.
   const archived=String(f.visualSeed||'')==='opposite-clearance-buildup-64'||
-   /^opposite-save-clearance-\\d+$/.test(String(f.visualSeed||''));
+   /^opposite-save-clearance-\d+$/.test(String(f.visualSeed||''));
   if(archived&&(ownDepth<=field.width/3||owner%11===0)){
    const forward=side===0?1:-1,x=clamp(ball.x+forward*52,12,field.width-12);
    const opponents=Array.from({length:11},(_,i)=>base((1-side)*11+i,field));
