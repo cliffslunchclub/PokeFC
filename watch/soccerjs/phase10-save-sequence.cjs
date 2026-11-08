@@ -21,18 +21,18 @@ function sequence(f,field,event,normal){
  // through the subsequent official save: no remote ball teleport or invented
  // assist. Adjust the shooting spot only within the legal 25 m chance range.
  const connected=!!s.clearance&&!s.scheduleConflict;
- let finish={...s.finish};
- let shotStart=end-Math.max(.12,dist(finish,catchPoint)/24);
+ let finishPoint={...s.finishPoint};
+ let shotStart=end-Math.max(.12,dist(finishPoint,catchPoint)/24);
  let passStart=shotStart-(s.shotStart-s.passStart);
  let conflict=s.scheduleConflict||null;
  if(connected){
   if(s.directCarry){
    let possible=false;
    for(let shift=0;shift<=8;shift+=.25){
-    const candidate={...s.finish,x:s.finish.x+(s.side===0?-shift:shift)};
+    const candidate={...s.finishPoint,x:s.finishPoint.x+(s.side===0?-shift:shift)};
     const at=end-Math.max(.12,dist(candidate,catchPoint)/24);
     if(at-s.active>.1&&dist(s.from,candidate)<=3.6*(at-s.active)+.001){
-     finish=candidate;shotStart=at;passStart=at;possible=true;break;
+     finishPoint=candidate;shotStart=at;passStart=at;possible=true;break;
     }
    }
    if(!possible)conflict={kind:'clearance-to-save',reason:'Scorer cannot carry to save kick at 3.6 m/s',
@@ -41,7 +41,7 @@ function sequence(f,field,event,normal){
    passStart=s.passStart+(shotStart-s.shotStart);
    if(passStart<=s.active+.2||
     dist(s.from,s.passFrom)>3.6*(passStart-s.active)+.01||
-    dist(s.passFrom,finish)>14*(shotStart-passStart)+.01)
+    dist(s.passFrom,finishPoint)>14*(shotStart-passStart)+.01)
     conflict={kind:'clearance-to-save',reason:'No time for controlled reception and capped final pass',
      seed:String(f.visualSeed||''),clearanceArrival:s.clearance.arrival,officialSecond:end};
   }
@@ -49,7 +49,7 @@ function sequence(f,field,event,normal){
  const active=connected?s.active:Math.min(s.active,passStart-.1);
  const opening=connected?s.opening:normal(active);
  const data={...s,active,opening,from:connected?{...s.from}:{...opening.ball},
-  finish,passStart,shotStart,net:catchPoint,end,scheduleConflict:conflict,
+  finish:finishPoint,passStart,shotStart,net:catchPoint,end,scheduleConflict:conflict,
   defending,keeper:keeperId,event,fixture:f,field,width:field.width,height:field.height};
  const release=end+.85;
  const targetX=clamp(catchPoint.x+(side===0?-1:1)*42,12,field.width-12);
