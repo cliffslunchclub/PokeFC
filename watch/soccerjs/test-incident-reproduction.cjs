@@ -82,8 +82,9 @@ let saveRepro=null;
 assert(saveRepro,'Reproduce an actual saved shot preceded by an opposite-end clearance');
 const sr=saveRepro,smid=(sr.stage.start+sr.stage.end)/2;
 console.log('SAVED SAVE REPRO',JSON.stringify({seed:sr.fixture.visualSeed,
- minute:sr.event.minute,clearanceStart:sr.stage.start,
- clearanceArrival:sr.stage.end,shotStart:sr.scene.shotStart,conflict:sr.scene.scheduleConflict}));
+ minute:sr.event.minute,clearanceStart:sr.stage.start,saveStart:sr.scene.start,
+ clearanceArrival:sr.stage.end,shotStart:sr.scene.shotStart,conflict:sr.scene.scheduleConflict,
+ connected:sr.scene.clearance,directCarry:sr.scene.directCarry,support:sr.scene.support,scorer:sr.scene.scorer}));
 assert.equal(motionFrame(sr.fixture,smid/60,field,{saveEvent:sr.event}).action,
  'illustrative-upfield-clearance','Keep the upfield clearance before a PSE save');
 if(sr.scene.clearance){
