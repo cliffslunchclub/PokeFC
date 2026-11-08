@@ -14,6 +14,8 @@ on:
       - 'watch/soccerjs/watch-bridge.js'
       - 'play/play.js'
       - '.github/workflows/watch-clip-export.yml'
+      - '.github/workflows/deploy-siteground.yml'
+      - 'tests/test-siteground-clip-package.cjs'
 permissions:
   contents: read
 jobs:
@@ -31,6 +33,7 @@ jobs:
       - run: node watch/soccerjs/test-clip-export.cjs
       - run: node watch/soccerjs/test-clip-recorder.cjs
       - run: node watch/soccerjs/test-pokemon-cors.cjs
+      - run: node tests/test-siteground-clip-package.cjs
       - run: node tests/test-watch-highlights.cjs
       - run: node tests/test-phase10-quickplay-lifecycle.cjs
 
