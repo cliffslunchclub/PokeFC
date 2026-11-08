@@ -3,6 +3,7 @@
 // Build from the actual composed actor positions, including defensive press
 // and goalkeeper rush. Never infer a chance from nominal formation slots.
 const Director=require('./phase10-play-director.cjs');
+const Recovery=require('./phase10-connected-recovery.cjs');
 const STEP=.1,SHOOTING_RANGE=25,BOX_DEPTH=25,BOX_HALF_WIDTH=25;
 const cache=new WeakMap();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -78,30 +79,55 @@ function build(f,field,rawFrame){
   const hit=sec+Math.max(.18,distance(from,block)/24);
   const loose={x:clamp(block.x+(chance.side===0?-3:3),1,field.width-1),
    y:clamp(block.y+(wing*1.5),1,field.height-1),z:.23};
-  const spilled=hit+.3,defending=1-chance.side,atHit=rawFrame(hit);
-  const candidates=atHit.actors.map((p,id)=>({id,d:distance(p,loose)}))
-   .filter(p=>Math.floor(p.id/11)===defending&&p.id!==chance.keeper&&p.d<=8)
+  const defending=1-chance.side,atHit=rawFrame(hit);
+  // Intercept the moving spill on the first reachable foot touch. The
+  // keeper needs only a short recovery from the block, never a staged hold.
+  const atBlock=atHit.actors.map((p,id)=>id===chance.keeper?{...p,...block,z:0}:{...p});
+  let intercept;
+  for(let dt=.04;dt<=2&&!intercept;dt+=.01){
+   const u=Math.min(1,dt/.3),point={x:mix(block.x,loose.x,u),y:mix(block.y,loose.y,u),z:.23};
+   const options=atBlock.map((p,id)=>({id,p,d:distance(p,point)}))
+    .filter(c=>Math.floor(c.id/11)===defending&&(c.id!==chance.keeper||dt>=.12-1e-8)&&c.d<=5*dt+.75)
+    .sort((a,b)=>(a.id===chance.keeper)-(b.id===chance.keeper)||a.d-b.d||a.id-b.id);
+   if(options.length)intercept={...options[0],point,dt};
+  }
+  if(!intercept)continue;
+  const clearer=intercept.id,recoveryFrom=atBlock[clearer],clearAt=hit+intercept.dt,spilled=clearAt;
+  const clearFrom=intercept.point;
+  const move=(a,b,seconds)=>{const u=Math.min(1,seconds*4/Math.max(.001,distance(a,b)));
+   return {...a,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:0}};
+  const pose=rawFrame(clearAt);
+  const actorsAtClear=atBlock.map((p,id)=>move(p,pose.actors[id],intercept.dt));
+  const reach=Math.min(1,5*intercept.dt/Math.max(.001,intercept.d));
+  actorsAtClear[clearer]={...recoveryFrom,x:mix(recoveryFrom.x,clearFrom.x,reach),y:mix(recoveryFrom.y,clearFrom.y,reach),z:0};
+  const desired={x:clamp(clearFrom.x+(defending===0?52:-52),8,field.width-8),y:field.height*.5};
+  const receivers=actorsAtClear.map((p,id)=>({id,p,d:distance(p,desired)}))
+   .filter(c=>c.id%11!==0&&c.id!==clearer&&distance(c.p,clearFrom)>=32&&
+    (c.p.x-clearFrom.x)*(defending===0?1:-1)>32)
    .sort((a,b)=>a.d-b.d||a.id-b.id);
-  const clearer=candidates[0]?.id??chance.keeper;
-  const recoveryFrom=clearer===chance.keeper?block:atHit.actors[clearer];
-  const clearAt=spilled+Math.max(.08,distance(recoveryFrom,loose)/5);
-  const clearTo={x:clamp(loose.x+(defending===0?52:-52),8,field.width-8),y:field.height*.5,z:.23};
-  const clearArrival=clearAt+distance(loose,clearTo)/26;
-  const finish=clearArrival+15;
+  const receiver=receivers[0]?.id;
+  if(receiver===undefined)continue;
+  const receiveActor=actorsAtClear[receiver];
+  const clearTo={x:receiveActor.x+(receiver<11?.72:-.72),y:receiveActor.y+.32,z:.23};
+  const clearArrival=clearAt+distance(clearFrom,clearTo)/26;
+  const normalArrival=rawFrame(clearArrival),direction=defending===0?1:-1;
+  const arrivalActors=actorsAtClear.map((p,id)=>{
+   if(id===receiver)return {...p};
+   const target=Math.floor(id/11)===defending&&id%11!==0?
+    {...normalArrival.actors[id],x:clamp(p.x+direction*10,1,field.width-1)}:normalArrival.actors[id];
+   return move(p,target,clearArrival-clearAt);
+  });
+  const join=Recovery.plan(clearTo,arrivalActors,receiver,clearArrival,rawFrame,30);
+  const finish=join?.end??Infinity;
   const hazards=f.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>{
    const at=rawFrame(e.minute*60);return {start:at.saveSequence?.start??at.goalSequenceStart??e.minute*60-40,end:e.minute*60+65};
   });
   const period=[0,2700,5400,6300].some(t=>t>sec&&t<finish);
-  if(finish<plan.duration&&!period&&!hazards.some(h=>sec<h.end&&finish>h.start)){
-   const terminal=rawFrame(finish);
-   const actorsAtClear=atHit.actors.map((p,id)=>id===clearer?{...p,x:loose.x,y:loose.y}:id===chance.keeper?{...p,x:block.x,y:block.y}:p);
-   const maxReturn=Math.max(...actorsAtClear.map((p,id)=>distance(p,terminal.actors[id])/15));
-   if(maxReturn<=4&&distance(clearTo,terminal.ball)/15<=16){
-    shots.push({...chance,start:sec,impactSeconds:hit,end:finish,from,impact:block,
-     spilled,loose,clearAt,clearTo,clearArrival,clearer,keeperFrom,clearerFrom:{...recoveryFrom},
-     actorsAtHit:atHit.actors.map(p=>({...p})),actorsAtClear,to:{...terminal.ball},terminal,outcome:'block'});
-    available=finish+.1;continue;
-   }
+  if(join&&finish<plan.duration&&!period&&!hazards.some(h=>sec<h.end&&finish>h.start)){
+   shots.push({...chance,start:sec,impactSeconds:hit,end:finish,from,impact:block,
+    spilled,loose:clearFrom,clearAt,clearTo,clearArrival,clearer,keeperFrom,clearerFrom:{...recoveryFrom},
+    actorsAtHit:atBlock,actorsAtClear,arrivalActors,receiver,join,to:{...join.terminal.ball},terminal:join.terminal,outcome:'block'});
+   available=finish+.1;continue;
   }
   shots.push({...chance,start:sec,impactSeconds,end,from,impact,to:{...landing.ball},
    outcome:'miss'});
@@ -137,7 +163,7 @@ function apply(f,field,seconds,frame,rawFrame){
   wall:null,wallImpactSeconds:null};
 }
 function blockFrame(s,t,frame){
- const actors=(t>=s.impactSeconds-1e-8?s.actorsAtHit:frame.actors).map(p=>({...p}));
+ let actors=(t>=s.impactSeconds-1e-8?s.actorsAtHit:frame.actors).map(p=>({...p}));
  const lerpPoint=(a,b,u,arc=0)=>{u=clamp(u,0,1);return {x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:mix(a.z??.23,b.z??.23,u)+Math.sin(Math.PI*u)*arc}};
  let ball,action,contact;
  if(t<s.impactSeconds-1e-8){
@@ -147,31 +173,34 @@ function blockFrame(s,t,frame){
  }else if(t<s.spilled){
   ball=lerpPoint(s.impact,s.loose,(t-s.impactSeconds)/(s.spilled-s.impactSeconds),.4);
   action='illustrative-keeper-block';contact='loose-deflection';
- }else if(t<s.clearAt){
+ }else if(t<s.clearAt-1e-8){
   ball={...s.loose};action='illustrative-block-recovery';contact='loose-ball';
- }else if(t<s.clearArrival){
+ }else if(t<s.clearArrival-1e-8){
   ball=lerpPoint(s.loose,s.clearTo,(t-s.clearAt)/(s.clearArrival-s.clearAt),5);
   action='illustrative-upfield-clearance';contact='foot-clearance';
  }else{
-  ball=lerpPoint(s.clearTo,s.to,(t-s.clearArrival)/(s.end-s.clearArrival),.5);
+  ball=Recovery.sample(s.join,t).ball;
   action='illustrative-clearance-recovery';contact='clearance-recovery';
  }
- const hitU=clamp((t-s.start)/(s.impactSeconds-s.start),0,1);
- const keeper=actors[s.keeper];
- Object.assign(keeper,lerpPoint(s.keeperFrom,s.impact,hitU));keeper.z=0;
- if(t>=s.impactSeconds&&t<s.spilled)keeper.frame=8;
- if(t>=s.impactSeconds-1e-8){
-  const p=actors[s.clearer],from=s.clearer===s.keeper?s.impact:s.actorsAtClear[s.clearer];
-  // Start a defender from the actual impact frame, not the future clear pose.
-  Object.assign(p,lerpPoint(s.clearerFrom??from,s.loose,(t-s.impactSeconds)/(s.clearAt-s.impactSeconds)));p.z=0;
-  if(t>=s.clearAt&&t<s.clearAt+.2)p.frame=3;
+ let ownerIndex=-1;
+ if(t<s.impactSeconds){
+  Object.assign(actors[s.keeper],lerpPoint(s.keeperFrom,s.impact,(t-s.start)/(s.impactSeconds-s.start)),{z:0});
+ }else if(t<s.clearAt-1e-8){
+  const u=(t-s.impactSeconds)/(s.clearAt-s.impactSeconds);
+  actors=s.actorsAtHit.map((p,id)=>({...p,...lerpPoint(p,s.actorsAtClear[id],u),z:0}));
+  actors[s.keeper].frame=8;
+ }else if(t<s.clearArrival-1e-8){
+  const u=(t-s.clearAt)/(s.clearArrival-s.clearAt);
+  actors=s.actorsAtClear.map((p,id)=>({...p,...lerpPoint(p,s.arrivalActors[id],u),z:0}));
+  if(t<s.clearAt+.15)actors[s.clearer].frame=3;
+ }else{
+  const joined=Recovery.sample(s.join,t);actors=joined.actors;ball=joined.ball;
+  ownerIndex=joined.ownerIndex;contact=joined.contact;
+  // A small first-touch bounce, controlled by the actual receiver.
+  const bounce=(t-s.clearArrival)/.2;if(bounce<1)ball.z+=Math.sin(Math.PI*bounce)*.25;
  }
- if(t>=s.clearArrival){
-  const u=(t-s.clearArrival)/(s.end-s.clearArrival);
-  for(let id=0;id<actors.length;id++)Object.assign(actors[id],lerpPoint(s.actorsAtClear[id],s.terminal.actors[id],u),{z:0});
- }
- return {...frame,actors,ball,ownerIndex:-1,action,contact,label:'',officialEvent:null,illustrative:true,onsideGuard:null,
-  oneOnOne:{shooter:s.shooter,keeper:s.keeper,start:s.start,impactSeconds:s.impactSeconds,end:s.end,outcome:s.outcome,clearer:s.clearer,clearAt:s.clearAt,clearArrival:s.clearArrival},
+ return {...frame,actors,ball,ownerIndex,action,contact,label:'',officialEvent:null,illustrative:true,onsideGuard:null,
+  oneOnOne:{shooter:s.shooter,keeper:s.keeper,start:s.start,impactSeconds:s.impactSeconds,end:s.end,outcome:s.outcome,clearer:s.clearer,clearAt:s.clearAt,clearArrival:s.clearArrival,receiver:s.receiver,recoveryPassStart:s.join.passStart},
   passStart:null,passArrival:null,passOrigin:null,passTarget:null,wall:null,wallImpactSeconds:null};
 }
 module.exports={opportunity,build,apply,STEP,SHOOTING_RANGE,BOX_DEPTH,BOX_HALF_WIDTH};

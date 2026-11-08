@@ -361,7 +361,9 @@ function retreatAfterShot(frame,seconds){
   if(Math.floor(id/11)!==side||id%11===0)return p;
   // Preserve the kick contact, then retreat 3.2 m at a natural pace.
   const ramp=ease((elapsed-(id===shooter ? .25 : .08))/1.25);
-  const retreat=3.2*ramp*fade;
+  const receiving=frame.oneOnOne?.receiver===id?
+   1-ease((seconds-frame.oneOnOne.clearAt)/Math.max(.001,frame.oneOnOne.clearArrival-frame.oneOnOne.clearAt)):1;
+  const retreat=3.2*ramp*fade*receiving;
   return {...p,x:p.x+(side===0?-retreat:retreat)};
  });
  return {...frame,actors};
