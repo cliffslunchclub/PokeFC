@@ -10,6 +10,9 @@ on:
       - 'watch/soccerjs/phase10-save-sequence.cjs'
       - 'watch/soccerjs/repros/natural-clearance-104.json'
       - 'watch/soccerjs/test-natural-clearance-104.cjs'
+      - 'watch/soccerjs/test-natural-clearance-restarts.cjs'
+      - 'watch/soccerjs/build-local.sh'
+      - '.github/workflows/deploy-siteground.yml'
       - '.github/workflows/watch-natural-clearance.yml'
 permissions:
   contents: read
@@ -25,6 +28,7 @@ jobs:
         with:
           node-version: '22'
       - run: node watch/soccerjs/test-natural-clearance-104.cjs
+      - run: node watch/soccerjs/test-natural-clearance-restarts.cjs
       - run: node watch/soccerjs/test-play-sequence-director.cjs
       - run: node watch/soccerjs/test-connected-clearances.cjs
       - run: node watch/soccerjs/test-clearance-priority.cjs
