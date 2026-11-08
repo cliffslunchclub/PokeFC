@@ -16,7 +16,11 @@ function oneImage(id,create=()=>new Image()){
  return new Promise(resolve=>{
   function next(){
    if(index===urls.length)return resolve(null);
-   const image=create();image.onload=()=>image.naturalWidth?resolve(image):next();
+   const image=create();
+   // Cross-origin sprite pixels must be CORS-approved: Watch records the
+   // canvas locally, and an opaque image would taint video capture.
+   image.crossOrigin='anonymous';
+   image.onload=()=>image.naturalWidth?resolve(image):next();
    image.onerror=next;image.src=urls[index++];
   }
   next();
