@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'watch/soccerjs/clip-export.cjs'
+      - 'watch/soccerjs/pokemon-load.cjs'
+      - 'watch/soccerjs/test-pokemon-cors.cjs'
       - 'watch/soccerjs/clip-recorder.cjs'
       - 'watch/soccerjs/test-clip-export.cjs'
       - 'watch/soccerjs/test-clip-recorder.cjs'
@@ -27,6 +29,7 @@ jobs:
       - run: node --check watch/soccerjs/clip-export.cjs
       - run: node watch/soccerjs/test-clip-export.cjs
       - run: node watch/soccerjs/test-clip-recorder.cjs
+      - run: node watch/soccerjs/test-pokemon-cors.cjs
       - run: node tests/test-watch-highlights.cjs
       - run: node tests/test-phase10-quickplay-lifecycle.cjs
 
