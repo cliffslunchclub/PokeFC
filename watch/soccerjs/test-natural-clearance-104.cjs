@@ -83,7 +83,7 @@ assert.equal(JSON.stringify(fixture),before,'Director must not mutate official P
 // ONLY when a real outfield opponent reaches the ball first.
 const Clearance=require('./phase10-clearance-flight.cjs');
 const positions=Array.from({length:22},()=>({x:4,y:61}));
-positions[6]={x:47,y:34};
+positions[6]={x:43,y:34}; // Teammate is two meters short of minimum 25m landing
 for(let id=12;id<22;id++){
  const n=id-12;positions[id]={x:45+(n%5)*2.5,y:32+Math.floor(n/5)*4};
 }
