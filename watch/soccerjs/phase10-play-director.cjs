@@ -307,6 +307,8 @@ function stageAt(plan,seconds){
  return arr[lo]||null;
 }
 function ballAt(stage,seconds){
+ if(stage.pattern==='defensive-clearance'&&stage.clearance)
+  return Clearance.flight(stage,seconds);
  if(stage.wall)return Wall.sampleWall(stage,seconds);
  const phase=smooth((seconds-stage.start)/Math.max(.001,stage.duration));
  return {x:lerp(stage.from.x,stage.to.x,phase),
@@ -358,8 +360,9 @@ function sample(f,field,seconds){
    stage.pattern==='one-two'?'illustrative-give-and-go':
    stage.pattern==='cross'?'illustrative-cross':
    stage.pattern==='through'?'illustrative-through-ball':'illustrative-pass';
-  contact=stage.wall?
-   (ball.contact==='approaching-wall'?'bank-approach':'bank-rebound'):
+  contact=stage.pattern==='defensive-clearance'&&stage.clearance?
+   'clearance-'+ball.contact:
+   stage.wall?(ball.contact==='approaching-wall'?'bank-approach':'bank-rebound'):
    stage.arc>2?'lofted-through':'in-flight';
  }
  return {plan,stage,ball,ownerIndex,action,contact,
@@ -370,7 +373,9 @@ function sample(f,field,seconds){
   passOrigin:stage.mode==='pass'?stage.from:null,
   passTarget:stage.mode==='pass'?stage.to:null,
   wall:stage.wall||null,wallImpactSeconds:stage.wall?
-   stage.start+stage.duration*stage.wall.impactU:null};
+   stage.start+stage.duration*stage.wall.impactU:null,
+  clearance:stage.clearance||null,
+  scheduleConflict:stage.scheduleConflict||null};
 }
 function nextBoundary(f,field,after){
  const plan=planFor(f,field);
