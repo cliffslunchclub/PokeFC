@@ -79,6 +79,7 @@ function build(f,field,rawFrame){
   const hit=sec+Math.max(.18,distance(from,block)/24);
   const loose={x:clamp(block.x+(chance.side===0?-3:3),1,field.width-1),
    y:clamp(block.y+(wing*1.5),1,field.height-1),z:.23};
+  if(hit>=plan.duration)continue;
   const defending=1-chance.side,atHit=rawFrame(hit);
   // Intercept the moving spill on the first reachable foot touch. The
   // keeper needs only a short recovery from the block, never a staged hold.
@@ -93,6 +94,7 @@ function build(f,field,rawFrame){
   }
   if(!intercept)continue;
   const clearer=intercept.id,recoveryFrom=atBlock[clearer],clearAt=hit+intercept.dt,spilled=clearAt;
+  if(clearAt>=plan.duration)continue;
   const clearFrom=intercept.point;
   const move=(a,b,seconds)=>{const u=Math.min(1,seconds*4/Math.max(.001,distance(a,b)));
    return {...a,x:mix(a.x,b.x,u),y:mix(a.y,b.y,u),z:0}};
@@ -110,6 +112,7 @@ function build(f,field,rawFrame){
   const receiveActor=actorsAtClear[receiver];
   const clearTo={x:receiveActor.x+(receiver<11?.72:-.72),y:receiveActor.y+.32,z:.23};
   const clearArrival=clearAt+distance(clearFrom,clearTo)/26;
+  if(clearArrival>=plan.duration)continue;
   const normalArrival=rawFrame(clearArrival),direction=defending===0?1:-1;
   const arrivalActors=actorsAtClear.map((p,id)=>{
    if(id===receiver)return {...p};
@@ -117,7 +120,7 @@ function build(f,field,rawFrame){
     {...normalArrival.actors[id],x:clamp(p.x+direction*10,1,field.width-1)}:normalArrival.actors[id];
    return move(p,target,clearArrival-clearAt);
   });
-  const join=Recovery.plan(clearTo,arrivalActors,receiver,clearArrival,rawFrame,30);
+  const join=Recovery.plan(clearTo,arrivalActors,receiver,clearArrival,rawFrame,Math.min(30,plan.duration-clearArrival));
   const finish=join?.end??Infinity;
   const hazards=f.events.filter(e=>e.type==='goal'||e.type==='save').map(e=>{
    const at=rawFrame(e.minute*60);return {start:at.saveSequence?.start??at.goalSequenceStart??e.minute*60-40,end:e.minute*60+65};

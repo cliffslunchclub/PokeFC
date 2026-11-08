@@ -26,15 +26,21 @@ function scenes(f,field,normal,official=normal){
   const ready=s.start+transit,kick=ready+.7,arrival=kick+.5;
   const receive={x:setup[receiver].x+direction*.72,y:setup[receiver].y+.32,z:.23};
   const received=setup.map(a=>({...a}));
-  const join=Recovery.plan(receive,received,receiver,arrival,normal);
-  if(!join)throw Error('No reachable kickoff handoff');
-  const end=join.end,landing=join.terminal;
-  items.push({...s,opening,setup,center,kicker,receiver,transit,ready,kick,arrival,receive,end,landing,join});
+  const total=(f.durationMinutes||90)*60;
+  let join=Recovery.plan(receive,received,receiver,arrival,normal,Math.min(40,total-arrival));
+  // A late goal can leave too little match time for a second passage of
+  // play. Finish the visible restart where it is, never probe beyond FT.
+  const terminalHold=!join;
+  if(!join)join={from:receive,actors:received,receiver,start:arrival,end:Math.max(total,arrival+.001),
+   terminal:{actors:received,ball:receive,ownerIndex:receiver},passStart:total};
+  const end=terminalHold?total:join.end,landing=join.terminal;
+  items.push({...s,opening,setup,center,kicker,receiver,transit,ready,kick,arrival,receive,end,landing,join,terminalHold});
  });
  cache.set(f,{width:field.width,height:field.height,items});return items;
 }
 function apply(f,field,seconds,frame,normal,official=normal){
- const s=scenes(f,field,normal,official).slice().reverse().find(s=>seconds>=s.start&&seconds<s.end);
+ const s=scenes(f,field,normal,official).slice().reverse().find(s=>seconds>=s.start&&
+  (seconds<s.end||s.terminalHold&&seconds===s.end));
  if(!s||frame.officialEvent||frame.goalSequenceStart!==undefined)return frame;
  const ready=s.start+s.transit;
  let actors,ball,owner=-1,contact;

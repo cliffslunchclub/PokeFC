@@ -35,7 +35,11 @@ for(const stage of timeline.actions){
  if(['official-goal','illustrative-goal-buildup','illustrative-shot',
   'illustrative-kickoff'].includes(frame.action))continue;
  if(frame.oneOnOne){
-  assert.equal(frame.ownerIndex,-1,'A fired/blocked shot cannot remain a dribble');
+  if(frame.ownerIndex>=0){
+   assert(at>=frame.oneOnOne.clearArrival,'A fired/blocked shot cannot remain a dribble before landing');
+   assert.equal(frame.contact,'controlled-recovery','Ownership requires a real controlled recovery');
+   maxContact=Math.max(maxContact,dist(frame.ball,frame.actors[frame.ownerIndex]));
+  }else assert.equal(frame.ownerIndex,-1,'Flight and recovery passes must remain unowned');
   continue; // Its shot/deflection seams are covered by test-one-on-one.cjs.
  }
  if(stage.mode==='carry'){

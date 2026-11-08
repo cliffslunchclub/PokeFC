@@ -47,4 +47,12 @@ for(const goal of fixture.events.filter(e=>e.type==='goal')){
  assert.equal(ready.actors.filter(a=>Math.hypot(a.x-53,a.y-34)<9.15).length,2);
 }
 assert.equal(JSON.stringify(fixture),before);
+for(const durationMinutes of [90,120]){
+ const late=JSON.parse(before);late.durationMinutes=durationMinutes;
+ late.events=late.events.map(e=>e.type==='goal'?{...e,minute:durationMinutes-.4}:e);
+ for(const sec of [durationMinutes*60-20,durationMinutes*60-.001,durationMinutes*60]){
+  const frame=presentationFrame(late,sec,field);
+  assert.equal(frame.actors.length,22);assert(Number.isFinite(frame.ball.x));
+ }
+}
 console.log('PASS kickoff intro: real 1s hold + 0.5s ramp at 1/4/16x and 30/60/144fps, pause/speed/seek, own halves and two teammates in circle in all periods');
