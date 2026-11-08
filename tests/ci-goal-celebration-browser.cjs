@@ -8,7 +8,7 @@ const goal=fixture.events.find(e=>e.type==='goal');assert(goal);
 const original=JSON.stringify(result),root=path.resolve(__dirname,'..'),out=path.join(root,'celebration-browser-artifacts');fs.mkdirSync(out,{recursive:true});
 const live=process.env.PFC_LIVE_ORIGIN,origin=live||'http://127.0.0.1:8778';
 const server=live?null:spawn('python3',['-m','http.server','8778','--bind','127.0.0.1','--directory',root],{stdio:'ignore'});
-const host='<!doctype html><html><body style="margin:0;background:#14213a"><style>iframe{width:100%;height:100%;border:0}</style><div id="stage" style="height:95vh"></div><script src="/watch/soccerjs/watch-bridge.js"></script><script>window.ready=false;window.records=0;window.session=FXI_PHASE10_WATCH.mountInline({preview:'+JSON.stringify(preview)+',result:'+JSON.stringify(result)+',container:document.getElementById("stage"),viewerUrl:"/watch/soccerjs/dist/index.html?embedded=1&inline=1&celebrationqa=1",onReady:()=>window.ready=true,onRecord:()=>window.records++});</script></body></html>';
+const host='<!doctype html><html><body style="margin:0;background:#14213a"><style>iframe{width:100%;height:100%;border:0}</style><div id="stage" style="height:95vh"></div><script src="/watch/soccerjs/watch-bridge.js"></script><script>window.ready=false;window.records=0;window.session=FXI_PHASE10_WATCH.mountInline({preview:'+JSON.stringify(preview)+',result:'+JSON.stringify(result)+',container:document.getElementById("stage"),viewerUrl:"/watch/soccerjs/dist/index.html?embedded=1&inline=1&celebrationqa=1",onReady:()=>window.ready=true,onProgress:p=>window.latestProgress=p,onRecord:()=>window.records++});</script></body></html>';
 (async()=>{let browser;try{
  if(!live)for(let i=0;i<40;i++){try{if((await fetch(origin+'/play/')).ok)break}catch(_){}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -52,11 +52,14 @@ const host='<!doctype html><html><body style="margin:0;background:#14213a"><styl
    for(const speed of [1,4,16]){
     await seek(goal.minute-.01/60);await page.evaluate(s=>window.session.play(s),speed);
     await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.celebration&&!window.__PFC_SNAPSHOT__.celebration.done,null,{timeout:15000});
+    await page.waitForFunction(()=>window.latestProgress?.watchPlaying===true);
     const start=await snap();assert.equal(start.minute,goal.minute);assert.equal(start.officialEventType,'goal');
     if(view==='orthographic'&&speed===1){
      await page.evaluate(()=>window.session.pause());await page.waitForTimeout(100);
+     await page.waitForFunction(()=>window.latestProgress?.watchPlaying===false);
      const paused=await snap();await page.waitForTimeout(250);assert.equal((await snap()).celebration.elapsed,paused.celebration.elapsed);
      await page.evaluate(s=>window.session.play(s),speed);
+     await page.waitForFunction(()=>window.latestProgress?.watchPlaying===true);
     }
     await frame.waitForFunction(()=>window.__PFC_SNAPSHOT__.celebration?.elapsed>1.2&&Math.max(...window.__PFC_SNAPSHOT__.actorHeights)>.2,null,{timeout:6000});
     const close=await snap();assert.equal(close.minute,goal.minute);assert(close.scale>start.scale);

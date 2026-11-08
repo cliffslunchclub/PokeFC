@@ -691,7 +691,7 @@ function step(now){
  if(clipExportSession){clipExportSession.tick(now);requestAnimationFrame(step);return;}
  if(celebration&&!celebration.done){
   const delta=celebration.last===null?0:Math.max(0,(now-celebration.last)/1000);celebration.last=now;
-  if(delta>2)celebration.paused=true;
+  if(delta>2){celebration.paused=true;lastSent=-2;}
   if(!celebration.paused)celebration.elapsed=Math.min(Celebration.DURATION,celebration.elapsed+delta);
   render(minute);
   if(celebration.elapsed>=Celebration.DURATION){
@@ -719,7 +719,7 @@ function step(now){
     })};
     celebration={scene:Celebration.create(match,entry.event,sceneFrame,
      window.matchMedia('(prefers-reduced-motion: reduce)').matches),entry,elapsed:0,last:now,paused:false,done:false};
-    $('goalCelebrationName').textContent=entry.name;$('goalCelebration').hidden=false;
+    lastSent=-2;$('goalCelebrationName').textContent=entry.name;$('goalCelebration').hidden=false;
    }else showHighlightNotice(entry);
   }
  }
@@ -896,7 +896,7 @@ async function boot(){
   };
   $('stats').textContent=shotSummary(match.stats);
   $('play').onclick=()=>{
-    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;lastSent=-2;return;}
     cutToKickoff();
     if(minute>=match.durationMinutes&&(!match.shootout||kickIndex>=match.shootout.attempts.length)){
      minute=0;kickIndex=0;
@@ -905,7 +905,7 @@ async function boot(){
     stopAt=match.durationMinutes;lastSent=-2;last=null;playing=true;
    };
   $('playFive').onclick=()=>{
-    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;lastSent=-2;return;}
     cutToKickoff();
     if(minute>=match.durationMinutes){playing=true;last=null;return}
     if(replayNotice||pendingGoal)clearHighlightNotice();
@@ -925,7 +925,7 @@ async function boot(){
   $('speed').onchange=e=>{speed=Number(e.target.value)||1;render(minute);};
   $('fullscreenPause').onclick=()=>{if(celebration&&!celebration.done)celebration.paused=true;if(queuedPresentation)queuedPresentation.paused=true;playing=false;last=null;lastSent=-2;render(minute);};
   $('fullscreenResume').onclick=()=>{
-   if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+   if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;lastSent=-2;return;}
    if(queuedPresentation){queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
    cutToKickoff();
    if(replayNotice||pendingGoal)clearHighlightNotice();
@@ -968,7 +968,7 @@ async function boot(){
    }
    if(msg.type!=='pfc-phase10-control')return;
    if(msg.action==='play'){
-    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;return;}
+    if(celebration&&!celebration.done){celebration.paused=false;celebration.last=null;lastSent=-2;return;}
     cutToKickoff();
     if(queuedPresentation){speed=Math.max(1,Math.min(16,Number(msg.speed)||speed));queuedPresentation.paused=false;queuedPresentation.last=null;lastSent=-2;render(minute);return;}
     if(minute>=match.durationMinutes&&
