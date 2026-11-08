@@ -1,14 +1,15 @@
 'use strict';
 const {badge}=require('./pokemon-badge.cjs');
-function draw(g,player,entry,screen,showNumbers,selected){
- const q=screen(player.x,player.y,0),x=q.x,y=q.y,size=80;
+function draw(g,player,entry,screen,showNumbers,selected,worldScale=1){
+ const ground=screen(player.x,player.y,0),q=screen(player.x,player.y,player.z||0);
+ const x=q.x,y=q.y,size=80*worldScale;
  g.save();
- g.beginPath();g.ellipse(x,y-2,22,9,0,0,Math.PI*2);
+ g.beginPath();g.ellipse(ground.x,ground.y-2*worldScale,22*worldScale,9*worldScale,0,0,Math.PI*2);
  g.fillStyle=entry.color+'38';g.strokeStyle=entry.color;
  g.lineWidth=selected?4:2.5;g.shadowColor='#061820';g.shadowBlur=3;
  g.fill();g.stroke();g.shadowBlur=0;
  const loaded=entry.image?.naturalWidth>0;
- if(loaded){g.imageSmoothingEnabled=false;g.drawImage(entry.image,x-size/2,y-size-4,size,size)}
+ if(loaded){g.imageSmoothingEnabled=false;g.drawImage(entry.image,x-size/2,y-size-4*worldScale,size,size)}
  else{g.fillStyle='#31465C';g.beginPath();g.arc(x,y-26,17,0,Math.PI*2);g.fill();
   g.fillStyle='#FFF';g.font='bold 13px system-ui';g.textAlign='center';g.fillText('?',x,y-22)}
  if(showNumbers)badge(g,x,y-size-15,entry.number,entry.color,entry.role==='GK');

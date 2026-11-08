@@ -22,6 +22,7 @@ cp "$HERE/phase10-clearance-flight.cjs" "$TMP/upstream/phase10-clearance-flight.
 cp "$HERE/phase10-player-pace.cjs" "$TMP/upstream/phase10-player-pace.cjs"
 cp "$HERE/phase10-goalkeeper-rush.cjs" "$TMP/upstream/phase10-goalkeeper-rush.cjs"
 cp "$HERE/phase10-camera-zoom.cjs" "$TMP/upstream/phase10-camera-zoom.cjs"
+cp "$HERE/goal-celebration.cjs" "$TMP/upstream/goal-celebration.cjs"
 cp "$HERE/phase10-team-shape.cjs" "$TMP/upstream/phase10-team-shape.cjs"
 cp "$HERE/phase10-wall-physics.cjs" "$TMP/upstream/phase10-wall-physics.cjs"
 cp "$HERE/highlight-replay.cjs" "$TMP/upstream/highlight-replay.cjs"

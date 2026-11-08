@@ -22,8 +22,8 @@ function scenes(f,field,normal,official=normal){
    if(id===receiver){x=center.x-direction*4;y=center.y+2;}
    return {...a,x:clamp(x,1,field.width-1),y};
   });
-  const transit=s.initial?0:Math.max(dist(opening.ball,center)/12,...setup.map((a,i)=>dist(a,opening.actors[i])/4));
-  const ready=s.start+transit,kick=ready+.7,arrival=kick+.5;
+  const transit=s.initial||s.goal?0:Math.max(dist(opening.ball,center)/12,...setup.map((a,i)=>dist(a,opening.actors[i])/4));
+  const ready=s.start+transit+(s.goal?1e-5:0),kick=ready+.7,arrival=kick+.5;
   const receive={x:setup[receiver].x+direction*.72,y:setup[receiver].y+.32,z:.23};
   const received=setup.map(a=>({...a}));
   const total=(f.durationMinutes||90)*60;
@@ -42,11 +42,11 @@ function apply(f,field,seconds,frame,normal,official=normal){
  const s=scenes(f,field,normal,official).slice().reverse().find(s=>seconds>=s.start&&
   (seconds<s.end||s.terminalHold&&seconds===s.end));
  if(!s||frame.officialEvent||frame.goalSequenceStart!==undefined)return frame;
- const ready=s.start+s.transit;
+ const ready=s.ready;
  let actors,ball,owner=-1,contact;
  // A seek uses minutes and then converts back to seconds; tolerate the
  // resulting sub-microsecond roundoff at the exact ready boundary.
- if(seconds<ready-1e-6){
+ if(s.transit>0&&seconds<ready-1e-6){
   const u=(seconds-s.start)/s.transit;
   actors=s.opening.actors.map((a,i)=>blend(a,s.setup[i],u));ball=blend(s.opening.ball,s.center,u);contact='kickoff-reposition';
  }else if(seconds<s.kick){actors=s.setup.map(a=>({...a}));ball=s.center;owner=s.kicker;contact='kickoff-setup';}
@@ -57,7 +57,7 @@ function apply(f,field,seconds,frame,normal,official=normal){
   contact='kickoff-recovery';
  }
  return {...frame,actors,ball,ownerIndex:owner,action:'illustrative-kickoff',contact,
-  sceneCut:null,officialEvent:null,onsideGuard:null,
+  sceneCut:s.goal?'post-goal-kickoff':null,officialEvent:null,onsideGuard:null,
   kickoff:{start:s.start,ready:s.ready,kick:s.kick,arrival:s.arrival,end:s.end,kicker:s.kicker,receiver:s.receiver},
   passStart:s.kick,passArrival:s.arrival,passOrigin:s.center,passTarget:s.receive};
 }

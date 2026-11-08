@@ -1,0 +1,38 @@
+name: Watch scorer celebration and proportional zoom
+on:
+  pull_request:
+    paths: ['watch/soccerjs/**', 'tests/ci-goal-celebration-browser.cjs', '.github/workflows/watch-goal-celebration.yml']
+  workflow_run:
+    workflows: ['Deploy PokéFC Home + Three Game Modes']
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node watch/soccerjs/test-goal-celebration.cjs
+      - if: github.event_name != 'workflow_run'
+        run: bash watch/soccerjs/build-local.sh
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/ci-goal-celebration-browser.cjs
+        env:
+          PFC_LIVE_ORIGIN: ${{ github.event_name == 'workflow_run' && 'https://pfc.cliffslunchclub.com' || '' }}
+          PFC_EXPECTED_BUILD_ID: ${{ github.event.workflow_run.head_sha || '' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scorer-celebration-browser-proof
+          path: celebration-browser-artifacts/
+          retention-days: 14
