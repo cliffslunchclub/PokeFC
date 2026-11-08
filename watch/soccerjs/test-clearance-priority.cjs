@@ -15,8 +15,13 @@ for(const durationMinutes of [90,120])for(let seed=0;seed<12;seed++){
    const distance=Math.hypot(a.to.x-a.from.x,a.to.y-a.from.y);
    assert(distance>=24.99&&distance<=35.01,'Approved 25–35m danger clearance');
    assert((a.to.x-a.from.x)*(side===0?1:-1)>0,'Kick upfield');
-   assert(a.clearance?.flightSeconds>0&&a.clearance?.bounceEndSeconds<a.end,
-    'Ball flight/bounce must finish before the receiving touch: '+JSON.stringify({start:a.start,end:a.end,clearance:a.clearance}));
+   assert(a.clearance?.flightSeconds>0,'Clearance flight must have a real duration');
+   if(a.clearance.truncated){
+    assert(a.scheduleConflict?.kind==='clearance-period-end',
+     'Do not speed up a clearance to complete it at the final whistle');
+    assert(a.clearance.bounceEndSeconds>a.end,'Natural flight remains unfinished at FT');
+   }else assert(a.clearance.bounceEndSeconds<a.end,
+    'Ball bounce must finish before the controlled receiving touch');
    assert(a.clearance?.receiver===a.receiver,'Receiver must be physically assigned');
    clearances++;sides.add(side);
   }
