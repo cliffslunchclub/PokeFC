@@ -11,7 +11,7 @@ const server=spawn('python3',['-m','http.server','8773','--bind','127.0.0.1','--
 const url=origin+'/watch/soccerjs/dist/index.html';
 const original=JSON.stringify(fixture);
 const goals=fixture.events.filter(e=>e.type==='goal');
-const chosen=[goals[0],goals.find(e=>e.team===fixture.away.id)];
+const chosen=[goals.find(e=>e.team===fixture.home.id),goals.find(e=>e.team===fixture.away.id)];
 assert(chosen.every(Boolean),'Both scoring sides required');
 const expectedScore=t=>[fixture.home.id,fixture.away.id].map(team=>
  goals.filter(e=>e.team===team&&e.minute<=t).length);
@@ -47,6 +47,7 @@ function dist(a,b){return Math.hypot(a[0]-b.x,a[1]-b.y)}
     assert.deepEqual(first.score,expectedScore(goal.minute));
     assert.equal(first.celebration.duration,3);
     assert(!first.celebration.reducedMotion);
+    await page.locator('#pause').click();
     for(const view of ['orthographic','isometric','topdown']){
      await page.locator('#projection').selectOption(view);
      const scene=await snap();
@@ -58,7 +59,6 @@ function dist(a,b){return Math.hypot(a[0]-b.x,a[1]-b.y)}
       'scorer-'+device+'-'+view+'.png')});
     }
     await page.locator('#projection').selectOption('orthographic');
-    await page.locator('#pause').click();
     const paused=(await snap()).celebration.elapsed;
     await page.waitForTimeout(250);
     assert(Math.abs((await snap()).celebration.elapsed-paused)<.03,
