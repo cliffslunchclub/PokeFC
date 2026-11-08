@@ -90,7 +90,7 @@ for(let id=12;id<22;id++){
 const contested=Clearance.plan({field,from:{x:20,y:34,z:.23},owner:2,side:0,
  position:id=>positions[id],seed:'issue104-intercept-0',offside:()=>false});
 assert(!contested.conflict,'Synthetic physical contest has valid reachable kick');
-assert(contested.intercepted,'Closer opponent should physically intercept');
+assert(contested.intercepted,'Closer opponent should physically intercept: '+JSON.stringify(contested));
 assert.equal(Math.floor(contested.receiver/11),1,'Give actual first touch to opponent');
 assert(contested.intendedReceiver===6,'Original intended teammate retained in diagnostic');
 assert(dist(contested.to,{x:20,y:34})>=25);
