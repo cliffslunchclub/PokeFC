@@ -39,9 +39,11 @@ const dist=(a,b)=>Math.hypot(a[0]-b.x,a[1]-b.y);
    const pagePath='/__pfc_live_buildup_'+entry.kind+'__';
    await page.route('**'+pagePath,r=>r.fulfill({contentType:'text/html',body:host(entry.fixture)}));
    await page.goto(origin+pagePath,{waitUntil:'domcontentloaded',timeout:40000});
+   // DOMContentLoaded does not guarantee the nested iframe has navigated.
+   await page.waitForFunction(()=>document.querySelector('iframe')?.contentWindow?.__PFC_VIEWER_READY__===true,
+    null,{timeout:90000});
    const frame=page.frames().find(f=>f.url().includes('/watch/soccerjs/dist/index.html'));
    assert(frame,'Deployed Soccer-JS iframe missing for '+entry.kind);
-   await frame.waitForFunction(()=>window.__PFC_VIEWER_READY__===true,null,{timeout:90000});
    const seek=async second=>{
     await page.evaluate(t=>document.querySelector('iframe').contentWindow.postMessage(
      {type:'pfc-phase10-control',action:'seek',minute:t/60},location.origin),second);
