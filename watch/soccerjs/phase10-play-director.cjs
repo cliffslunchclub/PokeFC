@@ -75,7 +75,7 @@ function makePlan(f,field){
   throw Error('Play Director needs a PSE fixture');
  const total=(f.durationMinutes===120?120:90)*60;
  const actions=[],sequences=[],tracks=Array.from({length:22},()=>[]);
- let seconds=0,owner=6,ball=point(field,field.width*.45,field.height*.5),count=0,lastClearanceAt=-Infinity;
+ let seconds=0,owner=6,ball=point(field,field.width*.45,field.height*.5),count=0,lastClearanceBySide=[-Infinity,-Infinity];
  const dice=(key,n)=>hash(seed(f)+':'+count+':'+key)%n;
  function mark(id,t,p){
   const arr=tracks[id],spot=point(field,p.x-offset(id),p.y-.32);
@@ -197,7 +197,7 @@ function makePlan(f,field){
     kind:'defensive-clearance',firstOwner:initial});
    return;
   }
-  if((ownDepth<=field.width/3||owner%11===0)&&seconds-lastClearanceAt>8){
+  if((ownDepth<=field.width/3||owner%11===0)&&seconds-lastClearanceBySide[side]>8){
    const startPositions=Array.from({length:22},(_,id)=>releasePosition(id));
    const target=Clearance.plan({field,from:ball,owner,side,
     position:id=>startPositions[id],seed:seed(f)+':'+count,
@@ -245,7 +245,7 @@ function makePlan(f,field){
      receiver:target.receiver,side,field,duration:target.duration});
     mark(id,end,{x:to.x+offset(id),y:to.y+.32});
    }
-   lastClearanceAt=release;
+   lastClearanceBySide[side]=release;
    // First contact is a controlled, short outlet DRIBBLE, not an instant
    // speculative long return into the box.
    carry(1.7,2.3,0,'clearance-control');
@@ -253,7 +253,7 @@ function makePlan(f,field){
     kind:'defensive-clearance',firstOwner:initial,kicker:kickOwner,receiver:target.receiver});
    return;
   }
-  if(seconds-lastClearanceAt<8)kind='dribble';
+  if(seconds-lastClearanceBySide[side]<8)kind='dribble';
   if(kind==='dribble'){
    // Make a deliberate forward carry, then release rather than waiting
    // 5–15 seconds for the next meaningful action.
