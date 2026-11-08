@@ -56,15 +56,18 @@ function sequence(f,field,event,normal){
  // Securing the catch includes the kick setup; traffic never adds another
  // idle animation. The explicit Replay/Continue pause is a separate UI state.
  const release=end+.65;
+ // The on-screen save moves defenders/GK before the punt. Pick a physically
+ // reachable catcher from that displayed formation, not the raw director.
+ const terminal=buildupActors(data,end,normal);
  const plan=Clearance.plan({field,from:catchPoint,owner:keeperId,side:defending,
-  position:id=>atEnd.actors[id],
+  position:id=>terminal[id],
   seed:String(f.visualSeed||'')+':keeper-punt:'+event.minute,
   offside:Director.isOffside.bind(null,f,field)});
  // A PSE save is never discarded, even if the visual restart lacks time
  // for a natural long punt. The planned conflict is exposed to Watch.
  const fallback=plan.conflict?{
   to:{x:clamp(catchPoint.x+(defending===0?25:-25),5,field.width-5),
-   y:catchPoint.y},receiver:atEnd.actors.map((p,id)=>({id,d:dist(p,catchPoint)}))
+   y:catchPoint.y},receiver:terminal.map((p,id)=>({id,d:dist(p,catchPoint)}))
     .filter(x=>Math.floor(x.id/11)===defending&&x.id!==keeperId&&x.id%11!==0)
     .sort((a,b)=>a.d-b.d||a.id-b.id)[0]?.id,
   duration:3.25,supporters:[],contesters:[],conflict:plan.conflict
@@ -78,7 +81,7 @@ function sequence(f,field,event,normal){
  let finish=arrival+12,landing;
  for(let i=0;i<5;i++){
   finish=Math.min(finish,(f.durationMinutes||90)*60);landing=normal(finish);
-  const recovery=Math.max(dist(target,landing.ball)/12,...landing.actors.map((a,id)=>dist(id===receiver?target:id===keeperId?catchPoint:atEnd.actors[id],a)/4));
+  const recovery=Math.max(dist(target,landing.ball)/12,...landing.actors.map((a,id)=>dist(id===receiver?target:id===keeperId?catchPoint:terminal[id],a)/4));
   if(finish-arrival>=recovery)break;finish=arrival+recovery+.2;
  }
  finish=Math.min(finish,(f.durationMinutes||90)*60);landing=normal(finish);
