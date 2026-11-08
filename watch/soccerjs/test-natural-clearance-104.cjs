@@ -14,7 +14,8 @@ for(const seed of [fixture.visualSeed,'issue-104-mirror-1','issue-104-mirror-2']
  assert(clearances.length>=3,'Saved fixture no longer reaches defensive clearances');
  for(const a of clearances.slice(0,15)){
   const side=Math.floor(a.owner/11),distance=dist(a.from,a.to);
-  assert(a.mode==='pass','Danger must be kicked away immediately');
+  assert(a.mode===(a.clearance?.intercepted?'challenge':'pass'),
+   'Only a physically won interception may switch teams during a clearance');
   assert(a.wall===null,'No intentional board play');
   // 25–35 m is the default. Longer flights require an explicit, bounded emergency.
   assert(distance>=24.99&&(distance<=35.01||a.clearance?.emergency&&distance<=48),
