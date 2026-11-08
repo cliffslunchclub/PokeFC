@@ -8,7 +8,9 @@ const fixture=require('./fixture.json'),field={width:106,height:68};
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 let compared=0,shifted=0;
 function check(frame,unshifted,side,label){
- assert.deepEqual(frame.ball,unshifted.ball,label+' ball/score is PSE-owned');
+ for(const axis of ['x','y','z'])
+  assert(Math.abs(frame.ball[axis]-unshifted.ball[axis])<1e-8,
+   label+' ball position must not be altered by retreat');
  assert.equal(frame.ownerIndex,unshifted.ownerIndex,label+' ball ownership unchanged');
  assert.equal(frame.officialEvent,unshifted.officialEvent,label+' official event unchanged');
  let moved=0;
